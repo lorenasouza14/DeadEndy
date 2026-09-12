@@ -1,0 +1,3 @@
+repository "deadEndy-game/deadEndy-game@4674243291615@cloud"
+  path "/"
+    smartbranch "/main"
