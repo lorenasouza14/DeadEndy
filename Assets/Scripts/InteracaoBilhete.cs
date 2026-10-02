@@ -3,7 +3,7 @@ using UnityEngine;
 public class InteracaoBilhete : MonoBehaviour
 {
     [Header("Interface do Bilhete")]
-    public GameObject ImagemBilhete; // Arraste o Panel do Canvas para cá no Inspector
+    public GameObject PanelBilhete; // Arraste o Panel do Canvas para cá no Inspector
 
     private bool pertoDoBilhete = false;
 
@@ -32,17 +32,17 @@ public class InteracaoBilhete : MonoBehaviour
         if (other.CompareTag("Player"))
         {
             pertoDoBilhete = false;
-            ImagemBilhete.SetActive(false); // Esconde o bilhete se ele for embora
+            PanelBilhete.SetActive(false); // Esconde o bilhete se ele for embora
         }
     }
 
     void MostrarBilhete()
     {
         // Inverte o estado da UI (se está desligada, liga; se está ligada, desliga)
-        bool estadoAtual = ImagemBilhete.activeSelf;
-        ImagemBilhete.SetActive(!estadoAtual);
+        bool estadoAtual = PanelBilhete.activeSelf;
+        PanelBilhete.SetActive(!estadoAtual);
 
         // Opcional: Se quiser que o jogo pause enquanto ele lê, você pode usar:
-        // Time.timeScale = ImagemBilhete.activeSelf ? 0f : 1f;
+        // Time.timeScale = PanelBilhete.activeSelf ? 0f : 1f;
     }
 }
