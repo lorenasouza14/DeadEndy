@@ -2,47 +2,48 @@ using UnityEngine;
 
 public class InteracaoBilhete : MonoBehaviour
 {
-    [Header("Interface do Bilhete")]
-    public GameObject PanelBilhete; // Arraste o Panel do Canvas para cá no Inspector
+    [Header("Interface e Animação")]
+    public GameObject painelUI;
+    public Animator animEndy; // Arraste o personagem Endy para cá no Inspector
 
-    private bool pertoDoBilhete = false;
+    private bool pertoDoObjeto = false;
 
     void Update()
     {
-        // Verifica se o Endy está na área e apertou a tecla de interação (ex: 'E')
-        if (pertoDoBilhete && Input.GetKeyDown(KeyCode.E))
+        // Usando o sistema clássico com a tecla E que já está funcionando no seu projeto
+        if (pertoDoObjeto && Input.GetKeyDown(KeyCode.E))
         {
-            MostrarBilhete();
+            // Dispara a animação no Endy
+            if (animEndy != null)
+            {
+                animEndy.SetTrigger("Interagir");
+            }
+
+            MostrarInterface();
         }
     }
 
-    // Quando o Endy entra na área do gatilho
     void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
         {
-            pertoDoBilhete = true;
-            // Dica: Aqui você pode ativar um ícone flutuante de "Aperte E para ler"
+            pertoDoObjeto = true;
         }
     }
 
-    // Quando o Endy sai da área do gatilho
     void OnTriggerExit(Collider other)
     {
         if (other.CompareTag("Player"))
         {
-            pertoDoBilhete = false;
-            PanelBilhete.SetActive(false); // Esconde o bilhete se ele for embora
+            pertoDoObjeto = false;
+            painelUI.SetActive(false); // Esconde a interface se ele for embora
         }
     }
 
-    void MostrarBilhete()
+    void MostrarInterface()
     {
-        // Inverte o estado da UI (se está desligada, liga; se está ligada, desliga)
-        bool estadoAtual = PanelBilhete.activeSelf;
-        PanelBilhete.SetActive(!estadoAtual);
-
-        // Opcional: Se quiser que o jogo pause enquanto ele lê, você pode usar:
-        // Time.timeScale = PanelBilhete.activeSelf ? 0f : 1f;
+        // Inverte o estado do painel da UI
+        bool estadoAtual = painelUI.activeSelf;
+        painelUI.SetActive(!estadoAtual);
     }
 }
