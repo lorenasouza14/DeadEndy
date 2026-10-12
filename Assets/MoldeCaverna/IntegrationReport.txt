@@ -1,0 +1,27 @@
+Scene=Assets/PurePoly/Mining_Pack/Scenes/Demo_01.unity
+Saved=True
+OriginalRoots=19
+CurrentRoots=20
+Position=(442.18, 0.00, -118.45)
+Preserved=Lighting:True
+Preserved=Vegetation:True
+Preserved=Stones&Rocks:True
+Preserved=Crystals&Ores&Veins:True
+Preserved=Coins:True
+Preserved=Props:True
+Preserved=Mushrooms:True
+Preserved=Cave Props:True
+Preserved=Cave:True
+Preserved=Rails&Mine Carts:True
+Preserved=Runes:True
+Preserved=Blacksmithing House:True
+Preserved=Bridges:True
+Preserved=Stalactite&Stalagmite&Stalagnate:True
+Preserved=Terrain_Stone:True
+Preserved=Terrain:True
+Preserved=Weapons:True
+Preserved=Tools:True
+Preserved=FX:True
+Mesh=default Vertices=10530
+Mesh=default Vertices=5714
+Mesh=default Vertices=10530
