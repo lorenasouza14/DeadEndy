@@ -1,150 +1,253 @@
 using UnityEngine;
+using System.Collections;
 
-[RequireComponent(typeof(Rigidbody))]
 public class CaranguejoChefe : MonoBehaviour
 {
-    // Define todos os modos de ação possíveis para o chefe
-    public enum EstadoChefe { Escondido, Perseguindo, PrepararInvestida, Investindo, Atordoado }
+    public enum EstadoChefe { Escondido, Perseguindo, PreparandoGiro, Investindo, Atordoado, Derrotado }
 
     [Header("Configurações do Chefe")]
     public EstadoChefe estadoAtual = EstadoChefe.Escondido;
     public Transform alvoEndy;
-    public float velocidadePerseguicao = 3f;
     public Animator animChefe;
-    private Rigidbody corpo;
 
-    [Header("Configurações da Investida")]
-    public float velocidadeInvestida = 15f; // Muito mais rápido que o normal!
-    private bool preparando = false;
-    private bool investindo = false;
+    [Header("Atributos de Combate")]
+    public float velPerseguicao = 6f;
+    public float velInvestida = 25f;
+    public float tempoEntreAtaques = 3.5f;
+
+    [Header("Magia da Areia")]
+    public GameObject prefabAreia;
+    public float tempoEntrePocas = 0.25f;
+    private float timerAreia;
+
+    public int NumeroAtordoamento { get; private set; }
+
     private Vector3 direcaoInvestida;
-    private float timerAtaque = 0f;
+    private Rigidbody rb;
+    private float timerAtaque;
+    private bool ataqueTeleguiado = false;
+    private bool ignorarPedrasNoArranque = false;
 
-    void Awake()
+    void Start()
     {
-        corpo = GetComponent<Rigidbody>();
-    }
-
-    void Update()
-    {
-        // Se ainda está escondido ou a preparar o ataque, não faz nada
-        if (estadoAtual == EstadoChefe.Escondido || preparando) return;
-
-        if (investindo)
-        {
-            // FASE 2: Arranque! Corre reto na direção guardada, ignorando onde o Endy está
-            transform.position += direcaoInvestida * velocidadeInvestida * Time.deltaTime;
-        }
-        else if (estadoAtual == EstadoChefe.Perseguindo)
-        {
-            // FASE 0: Perseguição normal
-            // (Coloque aqui o seu código normal de virar e andar na direção do alvoEndy)
-            transform.LookAt(new Vector3(alvoEndy.position.x, transform.position.y, alvoEndy.position.z));
-            transform.position = Vector3.MoveTowards(transform.position, alvoEndy.position, velocidadePerseguicao * Time.deltaTime);
-
-            // Conta o tempo para dar a próxima investida (ex: a cada 4 segundos)
-            timerAtaque += Time.deltaTime;
-            if (timerAtaque >= 4f)
-            {
-                StartCoroutine(RotinaDeInvestida());
-            }
-        }
+        rb = GetComponent<Rigidbody>();
+        if (rb != null) rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
     }
 
     void FixedUpdate()
     {
-        // Controla apenas X/Z: a gravidade e as colisões continuam responsáveis pela altura.
-        Vector3 velocidade = corpo.linearVelocity;
-        velocidade.x = 0f;
-        velocidade.z = 0f;
-
-        switch (estadoAtual)
+        if (estadoAtual == EstadoChefe.Derrotado || estadoAtual == EstadoChefe.Escondido ||
+            estadoAtual == EstadoChefe.Atordoado || estadoAtual == EstadoChefe.PreparandoGiro)
         {
-            case EstadoChefe.Escondido:
-                // Fica enterrado na areia, ignorando o jogador
-                break;
-
-            case EstadoChefe.Perseguindo:
-                if (alvoEndy != null)
-                {
-                    Vector3 direcao = alvoEndy.position - corpo.position;
-                    direcao.y = 0f;
-
-                    if (direcao.sqrMagnitude > 0.0001f)
-                    {
-                        direcao.Normalize();
-                        corpo.MoveRotation(Quaternion.LookRotation(direcao));
-                        velocidade.x = direcao.x * velocidadePerseguicao;
-                        velocidade.z = direcao.z * velocidadePerseguicao;
-                    }
-                }
-                // (No futuro, colocaremos aqui um cronómetro para ele decidir dar a investida)
-                break;
-
-            case EstadoChefe.PrepararInvestida:
-                // Para de andar, faz uma animação de ameaça/grito
-                break;
-
-            case EstadoChefe.Investindo:
-                // Corre em linha reta a alta velocidade para tentar atropelar o Endy
-                break;
-
-            case EstadoChefe.Atordoado:
-                // Bateu na pedra! Fica parado a reproduzir animação de tontura
-                break;
+            if (rb != null) rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
+            return;
         }
 
-        corpo.linearVelocity = velocidade;
+        if (estadoAtual == EstadoChefe.Investindo)
+        {
+            // Se você tentou dar um 2º toque seguido no baú, ele corrige a curva para te acertar em cheio
+            if (ataqueTeleguiado && alvoEndy != null)
+            {
+                Vector3 posAlvo = new Vector3(alvoEndy.position.x, transform.position.y, alvoEndy.position.z);
+                transform.LookAt(posAlvo);
+                direcaoInvestida = (posAlvo - transform.position).normalized;
+            }
+
+            rb.linearVelocity = new Vector3(direcaoInvestida.x * velInvestida, rb.linearVelocity.y, direcaoInvestida.z * velInvestida);
+
+            if (prefabAreia != null)
+            {
+                timerAreia += Time.fixedDeltaTime;
+                if (timerAreia >= tempoEntrePocas)
+                {
+                    Instantiate(prefabAreia, transform.position, prefabAreia.transform.rotation);
+                    timerAreia = 0f;
+                }
+            }
+        }
+        else if (estadoAtual == EstadoChefe.Perseguindo)
+        {
+            Vector3 posAlvo = new Vector3(alvoEndy.position.x, transform.position.y, alvoEndy.position.z);
+            transform.LookAt(posAlvo);
+            Vector3 dir = (posAlvo - transform.position).normalized;
+            rb.linearVelocity = new Vector3(dir.x * velPerseguicao, rb.linearVelocity.y, dir.z * velPerseguicao);
+
+            timerAtaque += Time.fixedDeltaTime;
+            if (timerAtaque >= tempoEntreAtaques)
+            {
+                StartCoroutine(RotinaPrepararGiro());
+            }
+        }
     }
 
-    // Método que vamos usar para "acordar" o chefe quando o Endy pisar na armadilha
     public void AcordarChefe()
     {
-        estadoAtual = EstadoChefe.Perseguindo;
-        if (animChefe != null) animChefe.SetTrigger("Perseguir");
-        Debug.Log("O Caranguejo Rei despertou!");
+        if (estadoAtual == EstadoChefe.Escondido)
+        {
+            estadoAtual = EstadoChefe.Perseguindo;
+            if (animChefe != null) animChefe.SetTrigger("Perseguir");
+        }
     }
 
-    System.Collections.IEnumerator RotinaDeInvestida()
+    // --- CORTA O ATORDOAMENTO NA HORA E VEM DIRETO ATACAR ---
+    public void InvestidaPunitiva(bool teleguiado)
     {
-        // FASE 1: O Aviso (Para e olha para o Endy)
-        preparando = true;
+        if (estadoAtual == EstadoChefe.Derrotado) return;
+
+        StopAllCoroutines(); // Cancela os segundos restantes do atordoamento imediatamente!
+        StartCoroutine(RotinaInvestidaImediata(teleguiado));
+    }
+
+    IEnumerator RotinaInvestidaImediata(bool teleguiado)
+    {
+        ataqueTeleguiado = teleguiado;
+        ignorarPedrasNoArranque = true; // Evita que ele se atordoe na mesma pedra de onde está saindo
         timerAtaque = 0f;
+        timerAreia = tempoEntrePocas;
 
-        // Vira para o Endy uma última vez e guarda essa direção em linha reta
-        Vector3 direcaoParaOEndy = (alvoEndy.position - transform.position).normalized;
-        direcaoParaOEndy.y = 0; // Para ele não tentar voar
-        direcaoInvestida = direcaoParaOEndy;
-        transform.LookAt(transform.position + direcaoInvestida);
+        if (alvoEndy != null)
+        {
+            Vector3 posAlvo = new Vector3(alvoEndy.position.x, transform.position.y, alvoEndy.position.z);
+            transform.LookAt(posAlvo);
+            direcaoInvestida = (posAlvo - transform.position).normalized;
+        }
 
-        // Se tiver uma animação de "Aviso/Grito", dispararia aqui!
+        if (animChefe != null)
+        {
+            animChefe.ResetTrigger("Perseguir");
+            animChefe.ResetTrigger("Atordoar");
+            animChefe.SetTrigger("Girar");
+        }
 
-        // Espera 1.5 segundos para o jogador ter tempo de fugir
+        estadoAtual = EstadoChefe.Investindo;
+
+        // Dispara em alta velocidade por 1.5s
         yield return new WaitForSeconds(1.5f);
 
-        // FASE 2: Inicia o Arranque
-        preparando = false;
-        investindo = true;
+        ignorarPedrasNoArranque = false;
+        ataqueTeleguiado = false;
 
-        // Fica a correr reto no máximo 2 segundos. Se não bater em nada, para.
-        yield return new WaitForSeconds(2f);
-        investindo = false;
+        if (estadoAtual == EstadoChefe.Investindo)
+        {
+            estadoAtual = EstadoChefe.Perseguindo;
+            if (animChefe != null) animChefe.SetTrigger("Perseguir");
+        }
     }
 
-    void OnCollisionEnter(Collision collision)
+    IEnumerator RotinaPrepararGiro()
     {
-        if (collision.gameObject.CompareTag("Pedra"))
+        estadoAtual = EstadoChefe.PreparandoGiro;
+        ataqueTeleguiado = false;
+        ignorarPedrasNoArranque = false;
+        timerAtaque = 0;
+
+        if (animChefe != null)
         {
-            if (investindo)
+            animChefe.ResetTrigger("Perseguir");
+            animChefe.SetTrigger("Girar");
+        }
+
+        float tempoMira = 1.5f;
+        while (tempoMira > 0)
+        {
+            Vector3 posAlvo = new Vector3(alvoEndy.position.x, transform.position.y, alvoEndy.position.z);
+            transform.LookAt(posAlvo);
+            tempoMira -= Time.deltaTime;
+            yield return null;
+        }
+
+        direcaoInvestida = (alvoEndy.position - transform.position).normalized;
+        direcaoInvestida.y = 0;
+
+        timerAreia = tempoEntrePocas;
+        estadoAtual = EstadoChefe.Investindo;
+
+        yield return new WaitForSeconds(1.5f);
+
+        if (estadoAtual == EstadoChefe.Investindo)
+        {
+            estadoAtual = EstadoChefe.Perseguindo;
+            if (animChefe != null) animChefe.SetTrigger("Perseguir");
+        }
+    }
+
+    void OnCollisionEnter(Collision collision) { ProcessarColisao(collision.gameObject); }
+    void OnCollisionStay(Collision collision) { ProcessarColisao(collision.gameObject); }
+
+    void ProcessarColisao(GameObject obj)
+    {
+        if (estadoAtual == EstadoChefe.Investindo)
+        {
+            if (obj.CompareTag("Pedra") && !ignorarPedrasNoArranque)
             {
-                Debug.Log("CRASH! O Caranguejo bateu na pedra em cheio!");
-                investindo = false;
-                // FASE 3: Fica atordoado! (Podemos adicionar uma animação de tontura depois)
+                StartCoroutine(RotinaAtordoado());
             }
-            else
+            else if (obj.CompareTag("Player"))
             {
-                Debug.Log("O caranguejo só esbarrou na pedra a andar normal.");
+                AplicarDano(obj);
             }
         }
+    }
+
+    IEnumerator RotinaAtordoado()
+    {
+        estadoAtual = EstadoChefe.Atordoado;
+        ataqueTeleguiado = false;
+        ignorarPedrasNoArranque = false;
+        NumeroAtordoamento++;
+
+        if (animChefe != null) animChefe.SetTrigger("Atordoar");
+
+        Debug.Log("CRASH! Chefe bateu na pedra!");
+        yield return new WaitForSeconds(4f);
+
+        if (estadoAtual != EstadoChefe.Derrotado)
+        {
+            estadoAtual = EstadoChefe.Perseguindo;
+            if (animChefe != null) animChefe.SetTrigger("Perseguir");
+        }
+    }
+
+    void AplicarDano(GameObject player)
+    {
+        ataqueTeleguiado = false;
+        ignorarPedrasNoArranque = false;
+
+        VidaEndy vida = player.GetComponent<VidaEndy>();
+        if (vida != null) vida.TomarDano();
+
+        estadoAtual = EstadoChefe.Perseguindo;
+        if (animChefe != null) animChefe.SetTrigger("Perseguir");
+    }
+
+    public void TomarPocaoEncolhedora()
+    {
+        if (estadoAtual == EstadoChefe.Derrotado) return;
+
+        estadoAtual = EstadoChefe.Derrotado;
+        ataqueTeleguiado = false;
+        ignorarPedrasNoArranque = false;
+        StopAllCoroutines();
+
+        if (animChefe != null) animChefe.SetTrigger("Atordoar");
+
+        StartCoroutine(RotinaEncolher());
+    }
+
+    IEnumerator RotinaEncolher()
+    {
+        float tempo = 0;
+        Vector3 tamanhoInicial = transform.localScale;
+        Vector3 tamanhoFinal = tamanhoInicial * 0.15f;
+
+        while (tempo < 2f)
+        {
+            transform.localScale = Vector3.Lerp(tamanhoInicial, tamanhoFinal, tempo / 2f);
+            tempo += Time.deltaTime;
+            yield return null;
+        }
+
+        transform.localScale = tamanhoFinal;
+        Debug.Log("Poção funcionou! O Caranguejo Rei encolheu e parou de atacar!");
     }
 }
