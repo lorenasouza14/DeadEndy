@@ -93,7 +93,7 @@ LightmapSettings:
     m_ExportTrainingData: 0
     m_TrainingDataDestination: TrainingData
     m_LightProbeSampleCountMultiplier: 4
-  m_LightingDataAsset: {fileID: 0}
+  m_LightingDataAsset: {fileID: 112000004, guid: f4a994f1e7430f146a847a264874c693, type: 2}
   m_LightingSettings: {fileID: 0}
 --- !u!196 &4
 NavMeshSettings:
@@ -157107,7 +157107,7 @@ MonoBehaviour:
   m_Offset: {x: 0, y: 0, z: 0.1}
   m_Size: {x: 3, y: 4, z: 0.2}
   m_FadeFactor: 1
-  m_VisibleInScene: 1
+  m_VisibleInScene: 0
   version: 1
   m_DecalLayerMask: 1
 --- !u!4 &1485645921
@@ -483519,6 +483519,7 @@ MonoBehaviour:
   alvoEndy: {fileID: 3893294198796622464}
   velocidadePerseguicao: 8
   animChefe: {fileID: 2212159576742318763}
+  velocidadeInvestida: 15
 --- !u!1 &2212159576749711729
 GameObject:
   m_ObjectHideFlags: 0

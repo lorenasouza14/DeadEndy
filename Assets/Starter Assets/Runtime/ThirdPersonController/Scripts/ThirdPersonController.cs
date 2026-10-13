@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
@@ -17,6 +17,7 @@ namespace StarterAssets
         [Header("Player")]
         [Tooltip("Move speed of the character in m/s")]
         public float MoveSpeed = 2.0f;
+        public Animator CharacterAnimator;
 
         [Tooltip("Sprint speed of the character in m/s")]
         public float SprintSpeed = 5.335f;
@@ -136,7 +137,8 @@ namespace StarterAssets
         {
             _cinemachineTargetYaw = CinemachineCameraTarget.transform.rotation.eulerAngles.y;
             
-            _hasAnimator = TryGetComponent(out _animator);
+            _animator = CharacterAnimator != null ? CharacterAnimator : GetComponent<Animator>();
+            _hasAnimator = _animator != null;
             _controller = GetComponent<CharacterController>();
             _input = GetComponent<StarterAssetsInputs>();
 #if ENABLE_INPUT_SYSTEM
@@ -154,7 +156,8 @@ namespace StarterAssets
 
         private void Update()
         {
-            _hasAnimator = TryGetComponent(out _animator);
+            _animator = CharacterAnimator != null ? CharacterAnimator : GetComponent<Animator>();
+            _hasAnimator = _animator != null;
 
             GroundedCheck();
             ReadDodgeInput();
@@ -181,8 +184,10 @@ namespace StarterAssets
             // set sphere position, with offset
             Vector3 spherePosition = new Vector3(transform.position.x, transform.position.y - GroundedOffset,
                 transform.position.z);
-            Grounded = Physics.CheckSphere(spherePosition, GroundedRadius, GroundLayers,
+            // Capsule contact remains reliable on uneven tunnel floors where the small foot sphere can miss.
+            bool footContact = Physics.CheckSphere(spherePosition, GroundedRadius, GroundLayers,
                 QueryTriggerInteraction.Ignore);
+            Grounded = _verticalVelocity <= 0f && (_controller.isGrounded || footContact);
 
             // update animator if using character
             if (_hasAnimator)
@@ -393,3 +398,4 @@ namespace StarterAssets
         }
     }
 }
+

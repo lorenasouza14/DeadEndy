@@ -1,87 +1,22 @@
 fileFormatVersion: 2
-guid: d1ba23993861ef64284e1acf952639fc
+guid: 26c16908ae004ef41b7e956164b681bb
 ModelImporter:
-  serializedVersion: 23
-  fileIDToRecycleName:
-    100000: Rig
-    100002: RigHead
-    100004: RigHeadGizmo
-    100006: RigLArm1
-    100008: RigLArm2
-    100010: RigLArmCollarbone
-    100012: RigLArmPalm
-    100014: RigLArmPalmGizmo
-    100016: RigLLeg1
-    100018: RigLLeg2
-    100020: RigLLegPlatform
-    100022: RigNeck
-    100024: RigPelvis
-    100026: RigPelvisGizmo
-    100028: RigRArm1
-    100030: RigRArm2
-    100032: RigRArmCollarbone
-    100034: RigRArmPalm
-    100036: RigRArmPalmGizmo
-    100038: RigRibcage
-    100040: RigRibcageGizmo
-    100042: RigRLeg1
-    100044: RigRLeg2
-    100046: RigRLegAnkle
-    100048: RigRLegPlatform
-    100050: RigRLegToes1
-    100052: RigSpine1
-    100054: RigSpine2
-    100056: Training Dummy
-    100058: //RootNode
-    400000: Rig
-    400002: RigHead
-    400004: RigHeadGizmo
-    400006: RigLArm1
-    400008: RigLArm2
-    400010: RigLArmCollarbone
-    400012: RigLArmPalm
-    400014: RigLArmPalmGizmo
-    400016: RigLLeg1
-    400018: RigLLeg2
-    400020: RigLLegPlatform
-    400022: RigNeck
-    400024: RigPelvis
-    400026: RigPelvisGizmo
-    400028: RigRArm1
-    400030: RigRArm2
-    400032: RigRArmCollarbone
-    400034: RigRArmPalm
-    400036: RigRArmPalmGizmo
-    400038: RigRibcage
-    400040: RigRibcageGizmo
-    400042: RigRLeg1
-    400044: RigRLeg2
-    400046: RigRLegAnkle
-    400048: RigRLegPlatform
-    400050: RigRLegToes1
-    400052: RigSpine1
-    400054: RigSpine2
-    400056: Training Dummy
-    400058: //RootNode
-    2100000: 'Material #26'
-    4300000: Training Dummy
-    7400000: Take 001
-    9500000: //RootNode
-    13700000: Training Dummy
+  serializedVersion: 24501
+  internalIDToNameTable: []
   externalObjects: {}
   materials:
-    importMaterials: 0
+    materialImportMode: 2
     materialName: 0
     materialSearch: 1
     materialLocation: 1
+    searchTexturesGlobally: 0
   animations:
     legacyGenerateAnimations: 4
     bakeSimulation: 0
     resampleCurves: 1
     optimizeGameObjects: 0
+    removeConstantScaleCurves: 0
     motionNodeName: 
-    rigImportErrors: 
-    rigImportWarnings: 
     animationImportErrors: 
     animationImportWarnings: 
     animationRetargetingWarnings: 
@@ -96,32 +31,48 @@ ModelImporter:
     extraExposedTransformPaths: []
     extraUserProperties: []
     clipAnimations: []
-    isReadable: 1
+    isReadable: 0
   meshes:
     lODScreenPercentages: []
     globalScale: 1
     meshCompression: 0
     addColliders: 0
     useSRGBMaterialColor: 1
+    sortHierarchyByName: 1
+    importPhysicalCameras: 1
     importVisibility: 1
     importBlendShapes: 1
     importCameras: 1
     importLights: 1
+    nodeNameCollisionStrategy: 1
+    fileIdsGeneration: 2
     swapUVChannels: 0
     generateSecondaryUV: 0
     useFileUnits: 1
-    optimizeMeshForGPU: 1
     keepQuads: 0
     weldVertices: 1
+    bakeAxisConversion: 0
     preserveHierarchy: 0
+    skinWeightsMode: 0
+    maxBonesPerVertex: 4
+    minBoneWeight: 0.001
+    optimizeBones: 1
+    generateMeshLods: 0
+    meshLodGenerationFlags: 0
+    maximumMeshLod: -1
+    importUVs: -1
+    importVertexColors: 1
+    meshOptimizationFlags: -1
     indexFormat: 0
     secondaryUVAngleDistortion: 8
     secondaryUVAreaDistortion: 15.000001
     secondaryUVHardAngle: 88
+    secondaryUVMarginMethod: 1
+    secondaryUVMinLightmapResolution: 40
+    secondaryUVMinObjectScale: 1
     secondaryUVPackMargin: 4
     useFileScale: 1
-    previousCalculatedGlobalScale: 0.01
-    hasPreviousCalculatedGlobalScale: 1
+    strictVertexDataChecks: 0
   tangentSpace:
     normalSmoothAngle: 60
     normalImportMode: 0
@@ -130,10 +81,11 @@ ModelImporter:
     legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
     blendShapeNormalImportMode: 1
     normalSmoothingSource: 0
+    calculateBlendshapeNormalsDeltaFromImportedNormals: 0
+  referencedClips: []
   importAnimation: 1
-  copyAvatar: 0
   humanDescription:
-    serializedVersion: 2
+    serializedVersion: 3
     human: []
     skeleton: []
     armTwist: 0.5
@@ -143,13 +95,19 @@ ModelImporter:
     armStretch: 0.05
     legStretch: 0.05
     feetSpacing: 0
+    globalScale: 1
     rootMotionBoneName: 
     hasTranslationDoF: 0
     hasExtraRoot: 0
     skeletonHasParents: 1
   lastHumanDescriptionAvatarSource: {instanceID: 0}
+  autoGenerateAvatarMappingIfUnspecified: 1
   animationType: 2
   humanoidOversampling: 1
+  avatarSetup: 0
+  addHumanoidExtraRootOnlyWhenUsingAvatar: 1
+  importBlendShapeDeformPercent: 1
+  remapMaterialsIfMaterialImportModeIsNone: 0
   additionalBone: 0
   userData: 
   assetBundleName: 
