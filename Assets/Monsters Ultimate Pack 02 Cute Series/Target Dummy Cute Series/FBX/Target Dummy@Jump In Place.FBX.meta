@@ -1,69 +1,22 @@
 fileFormatVersion: 2
-guid: 4e0f24abe56fe004fa931ce64f565c6a
+guid: 23388d14ae03dda4ca2d083610bc69d2
 ModelImporter:
-  serializedVersion: 23
-  fileIDToRecycleName:
-    100000: Dummy001
-    100002: Rig
-    100004: RigLArm1
-    100006: RigLArm1Gizmo
-    100008: RigLArm2
-    100010: RigLArm2Gizmo
-    100012: RigLLeg1
-    100014: RigLLegPlatform
-    100016: RigPelvis
-    100018: RigPelvisGizmo
-    100020: RigRArm1
-    100022: RigRArm1Gizmo
-    100024: RigRArm2
-    100026: RigRArm2Gizmo
-    100028: RigRibcage
-    100030: RigRibcageGizmo
-    100032: RigRLeg1
-    100034: RigRLegPlatform
-    100036: RigSpine
-    100038: Target Dummy
-    100040: //RootNode
-    400000: Dummy001
-    400002: Rig
-    400004: RigLArm1
-    400006: RigLArm1Gizmo
-    400008: RigLArm2
-    400010: RigLArm2Gizmo
-    400012: RigLLeg1
-    400014: RigLLegPlatform
-    400016: RigPelvis
-    400018: RigPelvisGizmo
-    400020: RigRArm1
-    400022: RigRArm1Gizmo
-    400024: RigRArm2
-    400026: RigRArm2Gizmo
-    400028: RigRibcage
-    400030: RigRibcageGizmo
-    400032: RigRLeg1
-    400034: RigRLegPlatform
-    400036: RigSpine
-    400038: Target Dummy
-    400040: //RootNode
-    2100000: 'Material #25'
-    4300000: Target Dummy
-    7400000: Take 001
-    9500000: //RootNode
-    13700000: Target Dummy
+  serializedVersion: 24501
+  internalIDToNameTable: []
   externalObjects: {}
   materials:
-    importMaterials: 0
+    materialImportMode: 2
     materialName: 0
     materialSearch: 1
     materialLocation: 1
+    searchTexturesGlobally: 0
   animations:
     legacyGenerateAnimations: 4
     bakeSimulation: 0
     resampleCurves: 1
     optimizeGameObjects: 0
+    removeConstantScaleCurves: 0
     motionNodeName: 
-    rigImportErrors: 
-    rigImportWarnings: 
     animationImportErrors: 
     animationImportWarnings: 
     animationRetargetingWarnings: 
@@ -78,32 +31,48 @@ ModelImporter:
     extraExposedTransformPaths: []
     extraUserProperties: []
     clipAnimations: []
-    isReadable: 1
+    isReadable: 0
   meshes:
     lODScreenPercentages: []
     globalScale: 1
     meshCompression: 0
     addColliders: 0
     useSRGBMaterialColor: 1
+    sortHierarchyByName: 1
+    importPhysicalCameras: 1
     importVisibility: 1
     importBlendShapes: 1
     importCameras: 1
     importLights: 1
+    nodeNameCollisionStrategy: 1
+    fileIdsGeneration: 2
     swapUVChannels: 0
     generateSecondaryUV: 0
     useFileUnits: 1
-    optimizeMeshForGPU: 1
     keepQuads: 0
     weldVertices: 1
+    bakeAxisConversion: 0
     preserveHierarchy: 0
+    skinWeightsMode: 0
+    maxBonesPerVertex: 4
+    minBoneWeight: 0.001
+    optimizeBones: 1
+    generateMeshLods: 0
+    meshLodGenerationFlags: 0
+    maximumMeshLod: -1
+    importUVs: -1
+    importVertexColors: 1
+    meshOptimizationFlags: -1
     indexFormat: 0
     secondaryUVAngleDistortion: 8
     secondaryUVAreaDistortion: 15.000001
     secondaryUVHardAngle: 88
+    secondaryUVMarginMethod: 1
+    secondaryUVMinLightmapResolution: 40
+    secondaryUVMinObjectScale: 1
     secondaryUVPackMargin: 4
     useFileScale: 1
-    previousCalculatedGlobalScale: 0.01
-    hasPreviousCalculatedGlobalScale: 1
+    strictVertexDataChecks: 0
   tangentSpace:
     normalSmoothAngle: 60
     normalImportMode: 0
@@ -112,10 +81,11 @@ ModelImporter:
     legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
     blendShapeNormalImportMode: 1
     normalSmoothingSource: 0
+    calculateBlendshapeNormalsDeltaFromImportedNormals: 0
+  referencedClips: []
   importAnimation: 1
-  copyAvatar: 0
   humanDescription:
-    serializedVersion: 2
+    serializedVersion: 3
     human: []
     skeleton: []
     armTwist: 0.5
@@ -125,13 +95,19 @@ ModelImporter:
     armStretch: 0.05
     legStretch: 0.05
     feetSpacing: 0
+    globalScale: 1
     rootMotionBoneName: 
     hasTranslationDoF: 0
     hasExtraRoot: 0
     skeletonHasParents: 1
   lastHumanDescriptionAvatarSource: {instanceID: 0}
+  autoGenerateAvatarMappingIfUnspecified: 1
   animationType: 2
   humanoidOversampling: 1
+  avatarSetup: 0
+  addHumanoidExtraRootOnlyWhenUsingAvatar: 1
+  importBlendShapeDeformPercent: 1
+  remapMaterialsIfMaterialImportModeIsNone: 0
   additionalBone: 0
   userData: 
   assetBundleName: 

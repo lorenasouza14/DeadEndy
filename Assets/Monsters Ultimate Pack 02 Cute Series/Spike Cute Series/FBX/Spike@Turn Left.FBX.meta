@@ -1,99 +1,22 @@
 fileFormatVersion: 2
-guid: e3b66d30028b9874fa79ef9620d2da3f
+guid: 7f1fdf0249a006f4a87bf62ccf7137cd
 ModelImporter:
-  serializedVersion: 23
-  fileIDToRecycleName:
-    100000: Dummy001
-    100002: Rig
-    100004: RigHub
-    100006: RigHubGizmo
-    100008: RigLArm1
-    100010: RigLArm2
-    100012: RigLArmPalm
-    100014: RigLBLeg1
-    100016: RigLBLeg2
-    100018: RigLBLegAnkle
-    100020: RigLBLegPlatform
-    100022: RigLEye01
-    100024: RigLEye02
-    100026: RigLEye03
-    100028: RigLFLeg1
-    100030: RigLFLeg2
-    100032: RigLFLegAnkle
-    100034: RigLFLegPlatform
-    100036: RigRArm1
-    100038: RigRArm2
-    100040: RigRArmPalm
-    100042: RigRBLeg1
-    100044: RigRBLeg2
-    100046: RigRBLegAnkle
-    100048: RigRBLegPlatform
-    100050: RigREye01
-    100052: RigREye02
-    100054: RigREye03
-    100056: RigRFLeg1
-    100058: RigRFLeg2
-    100060: RigRFLegAnkle
-    100062: RigRFLegPlatform
-    100064: RigShell
-    100066: RigShellGizmo
-    100068: Spike
-    100070: //RootNode
-    400000: Dummy001
-    400002: Rig
-    400004: RigHub
-    400006: RigHubGizmo
-    400008: RigLArm1
-    400010: RigLArm2
-    400012: RigLArmPalm
-    400014: RigLBLeg1
-    400016: RigLBLeg2
-    400018: RigLBLegAnkle
-    400020: RigLBLegPlatform
-    400022: RigLEye01
-    400024: RigLEye02
-    400026: RigLEye03
-    400028: RigLFLeg1
-    400030: RigLFLeg2
-    400032: RigLFLegAnkle
-    400034: RigLFLegPlatform
-    400036: RigRArm1
-    400038: RigRArm2
-    400040: RigRArmPalm
-    400042: RigRBLeg1
-    400044: RigRBLeg2
-    400046: RigRBLegAnkle
-    400048: RigRBLegPlatform
-    400050: RigREye01
-    400052: RigREye02
-    400054: RigREye03
-    400056: RigRFLeg1
-    400058: RigRFLeg2
-    400060: RigRFLegAnkle
-    400062: RigRFLegPlatform
-    400064: RigShell
-    400066: RigShellGizmo
-    400068: Spike
-    400070: //RootNode
-    2100000: 01 - Default
-    4300000: Spike
-    7400000: Take 001
-    9500000: //RootNode
-    13700000: Spike
+  serializedVersion: 24501
+  internalIDToNameTable: []
   externalObjects: {}
   materials:
-    importMaterials: 0
+    materialImportMode: 2
     materialName: 0
     materialSearch: 1
     materialLocation: 1
+    searchTexturesGlobally: 0
   animations:
     legacyGenerateAnimations: 4
     bakeSimulation: 0
     resampleCurves: 1
     optimizeGameObjects: 0
+    removeConstantScaleCurves: 0
     motionNodeName: 
-    rigImportErrors: 
-    rigImportWarnings: 
     animationImportErrors: 
     animationImportWarnings: 
     animationRetargetingWarnings: 
@@ -108,32 +31,48 @@ ModelImporter:
     extraExposedTransformPaths: []
     extraUserProperties: []
     clipAnimations: []
-    isReadable: 1
+    isReadable: 0
   meshes:
     lODScreenPercentages: []
     globalScale: 1
     meshCompression: 0
     addColliders: 0
     useSRGBMaterialColor: 1
+    sortHierarchyByName: 1
+    importPhysicalCameras: 1
     importVisibility: 1
     importBlendShapes: 1
     importCameras: 1
     importLights: 1
+    nodeNameCollisionStrategy: 1
+    fileIdsGeneration: 2
     swapUVChannels: 0
     generateSecondaryUV: 0
     useFileUnits: 1
-    optimizeMeshForGPU: 1
     keepQuads: 0
     weldVertices: 1
+    bakeAxisConversion: 0
     preserveHierarchy: 0
+    skinWeightsMode: 0
+    maxBonesPerVertex: 4
+    minBoneWeight: 0.001
+    optimizeBones: 1
+    generateMeshLods: 0
+    meshLodGenerationFlags: 0
+    maximumMeshLod: -1
+    importUVs: -1
+    importVertexColors: 1
+    meshOptimizationFlags: -1
     indexFormat: 0
     secondaryUVAngleDistortion: 8
     secondaryUVAreaDistortion: 15.000001
     secondaryUVHardAngle: 88
+    secondaryUVMarginMethod: 1
+    secondaryUVMinLightmapResolution: 40
+    secondaryUVMinObjectScale: 1
     secondaryUVPackMargin: 4
     useFileScale: 1
-    previousCalculatedGlobalScale: 0.01
-    hasPreviousCalculatedGlobalScale: 1
+    strictVertexDataChecks: 0
   tangentSpace:
     normalSmoothAngle: 60
     normalImportMode: 0
@@ -142,10 +81,11 @@ ModelImporter:
     legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
     blendShapeNormalImportMode: 1
     normalSmoothingSource: 0
+    calculateBlendshapeNormalsDeltaFromImportedNormals: 0
+  referencedClips: []
   importAnimation: 1
-  copyAvatar: 0
   humanDescription:
-    serializedVersion: 2
+    serializedVersion: 3
     human: []
     skeleton: []
     armTwist: 0.5
@@ -155,13 +95,19 @@ ModelImporter:
     armStretch: 0.05
     legStretch: 0.05
     feetSpacing: 0
+    globalScale: 1
     rootMotionBoneName: 
     hasTranslationDoF: 0
     hasExtraRoot: 0
     skeletonHasParents: 1
   lastHumanDescriptionAvatarSource: {instanceID: 0}
+  autoGenerateAvatarMappingIfUnspecified: 1
   animationType: 2
   humanoidOversampling: 1
+  avatarSetup: 0
+  addHumanoidExtraRootOnlyWhenUsingAvatar: 1
+  importBlendShapeDeformPercent: 1
+  remapMaterialsIfMaterialImportModeIsNone: 0
   additionalBone: 0
   userData: 
   assetBundleName: 
