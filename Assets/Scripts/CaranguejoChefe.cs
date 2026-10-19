@@ -3,7 +3,8 @@ using System.Collections;
 
 public class CaranguejoChefe : MonoBehaviour
 {
-    public enum EstadoChefe { Escondido, Perseguindo, PreparandoGiro, Investindo, Atordoado, Derrotado }
+    // Novo estado "Atacando" adicionado
+    public enum EstadoChefe { Escondido, Perseguindo, PreparandoGiro, Investindo, Atordoado, Derrotado, Atacando }
 
     [Header("Configurações do Chefe")]
     public EstadoChefe estadoAtual = EstadoChefe.Escondido;
@@ -15,6 +16,11 @@ public class CaranguejoChefe : MonoBehaviour
     public float velInvestida = 25f;
     public float tempoEntreAtaques = 3.5f;
 
+    [Header("Ataque Corpo a Corpo")]
+    public float distanciaSoco = 3f; // Distância que o Endy precisa estar para tomar um soco
+    public float tempoEntreSocos = 2f; // Cooldown entre um soco e outro
+    private float timerSoco;
+
     [Header("Magia da Areia")]
     public GameObject prefabAreia;
     public float tempoEntrePocas = 0.25f;
@@ -24,9 +30,12 @@ public class CaranguejoChefe : MonoBehaviour
 
     private Vector3 direcaoInvestida;
     private Rigidbody rb;
-    private float timerAtaque;
+    private float timerAtaque; // Timer do ataque de giro
     private bool ataqueTeleguiado = false;
     private bool ignorarPedrasNoArranque = false;
+
+    [Header("Controle da Arena")]
+    public GameObject barreirasInvisiveis;
 
     void Start()
     {
@@ -36,8 +45,10 @@ public class CaranguejoChefe : MonoBehaviour
 
     void FixedUpdate()
     {
+        // Se estiver num estado parado (incluindo o novo Atacando), não se move
         if (estadoAtual == EstadoChefe.Derrotado || estadoAtual == EstadoChefe.Escondido ||
-            estadoAtual == EstadoChefe.Atordoado || estadoAtual == EstadoChefe.PreparandoGiro)
+            estadoAtual == EstadoChefe.Atordoado || estadoAtual == EstadoChefe.PreparandoGiro ||
+            estadoAtual == EstadoChefe.Atacando)
         {
             if (rb != null) rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
             return;
@@ -45,12 +56,11 @@ public class CaranguejoChefe : MonoBehaviour
 
         if (estadoAtual == EstadoChefe.Investindo)
         {
-            // Se você tentou dar um 2º toque seguido no baú, ele corrige a curva para te acertar em cheio
             if (ataqueTeleguiado && alvoEndy != null)
             {
                 Vector3 posAlvo = new Vector3(alvoEndy.position.x, transform.position.y, alvoEndy.position.z);
                 transform.LookAt(posAlvo);
-                direcaoInvestida = (posAlvo - transform.position).normalized;
+                direcaoInvestida = (posAlvo - transform.position).normalized; // Erro de digitação corrigido aqui!
             }
 
             rb.linearVelocity = new Vector3(direcaoInvestida.x * velInvestida, rb.linearVelocity.y, direcaoInvestida.z * velInvestida);
@@ -67,16 +77,69 @@ public class CaranguejoChefe : MonoBehaviour
         }
         else if (estadoAtual == EstadoChefe.Perseguindo)
         {
-            Vector3 posAlvo = new Vector3(alvoEndy.position.x, transform.position.y, alvoEndy.position.z);
-            transform.LookAt(posAlvo);
-            Vector3 dir = (posAlvo - transform.position).normalized;
-            rb.linearVelocity = new Vector3(dir.x * velPerseguicao, rb.linearVelocity.y, dir.z * velPerseguicao);
-
             timerAtaque += Time.fixedDeltaTime;
-            if (timerAtaque >= tempoEntreAtaques)
+            timerSoco += Time.fixedDeltaTime;
+
+            float distanciaDoEndy = 100f;
+            if (alvoEndy != null)
+            {
+                distanciaDoEndy = Vector3.Distance(transform.position, alvoEndy.position);
+            }
+
+            // 1ª Prioridade: Bater se o Endy estiver colado
+            if (distanciaDoEndy <= distanciaSoco && timerSoco >= tempoEntreSocos)
+            {
+                StartCoroutine(RotinaAtaqueCorpoACorpo());
+            }
+            // 2ª Prioridade: Dar o ataque de giro se o tempo estourou
+            else if (timerAtaque >= tempoEntreAtaques)
             {
                 StartCoroutine(RotinaPrepararGiro());
             }
+            // 3ª Prioridade: Apenas caminhar até o Endy
+            else
+            {
+                Vector3 posAlvo = new Vector3(alvoEndy.position.x, transform.position.y, alvoEndy.position.z);
+                transform.LookAt(posAlvo);
+                Vector3 dir = (posAlvo - transform.position).normalized;
+                rb.linearVelocity = new Vector3(dir.x * velPerseguicao, rb.linearVelocity.y, dir.z * velPerseguicao);
+            }
+        }
+    }
+
+    // --- NOVA MECÂNICA DE SOCO ---
+    IEnumerator RotinaAtaqueCorpoACorpo()
+    {
+        estadoAtual = EstadoChefe.Atacando;
+        timerSoco = 0f;
+
+        // Olha para o Endy antes de bater
+        if (alvoEndy != null)
+        {
+            Vector3 posAlvo = new Vector3(alvoEndy.position.x, transform.position.y, alvoEndy.position.z);
+            transform.LookAt(posAlvo);
+        }
+
+        // Toca a animação. Se o seu trigger no Animator tiver outro nome (como "Bater"), mude a palavra "Atacar" abaixo.
+        if (animChefe != null) animChefe.SetTrigger("Investir");
+
+        // Tempo até a "garra" bater no Endy durante a animação (ajuste conforme a sua animação)
+        yield return new WaitForSeconds(0.4f);
+
+        // Confere se o Endy não desviou correndo no meio do soco
+        if (alvoEndy != null && Vector3.Distance(transform.position, alvoEndy.position) <= distanciaSoco + 0.5f)
+        {
+            VidaEndy vida = alvoEndy.GetComponent<VidaEndy>();
+            if (vida != null) vida.TomarDano();
+        }
+
+        // Tempo para a animação terminar de tocar antes dele voltar a andar
+        yield return new WaitForSeconds(1.0f);
+
+        if (estadoAtual == EstadoChefe.Atacando)
+        {
+            estadoAtual = EstadoChefe.Perseguindo;
+            if (animChefe != null) animChefe.SetTrigger("Perseguir");
         }
     }
 
@@ -89,19 +152,18 @@ public class CaranguejoChefe : MonoBehaviour
         }
     }
 
-    // --- CORTA O ATORDOAMENTO NA HORA E VEM DIRETO ATACAR ---
     public void InvestidaPunitiva(bool teleguiado)
     {
         if (estadoAtual == EstadoChefe.Derrotado) return;
 
-        StopAllCoroutines(); // Cancela os segundos restantes do atordoamento imediatamente!
+        StopAllCoroutines();
         StartCoroutine(RotinaInvestidaImediata(teleguiado));
     }
 
     IEnumerator RotinaInvestidaImediata(bool teleguiado)
     {
         ataqueTeleguiado = teleguiado;
-        ignorarPedrasNoArranque = true; // Evita que ele se atordoe na mesma pedra de onde está saindo
+        ignorarPedrasNoArranque = true;
         timerAtaque = 0f;
         timerAreia = tempoEntrePocas;
 
@@ -120,8 +182,6 @@ public class CaranguejoChefe : MonoBehaviour
         }
 
         estadoAtual = EstadoChefe.Investindo;
-
-        // Dispara em alta velocidade por 1.5s
         yield return new WaitForSeconds(1.5f);
 
         ignorarPedrasNoArranque = false;
@@ -230,6 +290,11 @@ public class CaranguejoChefe : MonoBehaviour
         StopAllCoroutines();
 
         if (animChefe != null) animChefe.SetTrigger("Atordoar");
+
+        if (barreirasInvisiveis != null)
+        {
+            barreirasInvisiveis.SetActive(false);
+        }
 
         StartCoroutine(RotinaEncolher());
     }

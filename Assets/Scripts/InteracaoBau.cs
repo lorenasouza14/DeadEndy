@@ -83,10 +83,6 @@ public class InteracaoBau : MonoBehaviour
                 StartCoroutine(AbrirETravarTampa());
 
                 InventarioEndy inventario = other.GetComponentInParent<InventarioEndy>();
-                if (inventario != null)
-                {
-                    inventario.ReceberItensDoBau();
-                }
 
                 chefe.InvestidaPunitiva(false);
             }

@@ -61,24 +61,6 @@ public class InventarioEndy : MonoBehaviour
         return false;
     }
 
-    // Chamado pelo Baú no 3º toque!
-    public void ReceberItensDoBau()
-    {
-        temDiario = true;
-        temPocao = true;
-
-        // 1. Toca a animação do Endy pegando os itens do baú
-        if (animEndy != null)
-        {
-            animEndy.SetTrigger("Pegar");
-        }
-
-        // 2. Faz o Diário e a Poção aparecerem na tela!
-        AtualizarVisuais();
-
-        Debug.Log("Você pegou o DIÁRIO e a POÇÃO! Aperte [F] para arremessar a poção no Caranguejo!");
-    }
-
     IEnumerator RotinaJogarPocao()
     {
         estaJogando = true;
@@ -124,5 +106,22 @@ public class InventarioEndy : MonoBehaviour
         if (iconeDiarioUI != null) iconeDiarioUI.SetActive(temDiario);
         if (iconePocaoUI != null) iconePocaoUI.SetActive(temPocao);
         if (pocaoNaMao3D != null) pocaoNaMao3D.SetActive(temPocao);
+    }
+
+    public void ColetarItem(bool pegouPocao, bool pegouDiario)
+    {
+        if (pegouPocao)
+        {
+            // O nome das variáveis (TemPocao, iconePocaoUI, etc) deve ser exatamente igual ao que está lá no começo do seu script!
+            temPocao = true;
+            if (iconePocaoUI != null) iconePocaoUI.SetActive(true);
+            if (pocaoNaMao3D != null) pocaoNaMao3D.SetActive(true);
+        }
+
+        if (pegouDiario)
+        {
+            temDiario = true;
+            if (iconeDiarioUI != null) iconeDiarioUI.SetActive(true);
+        }
     }
 }

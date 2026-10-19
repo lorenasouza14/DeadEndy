@@ -104,6 +104,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8243f22e6f97a1d45b278f685155cd98, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PocaoMagica
+  prefabEfeitoSplash: {fileID: 2080973045511424477, guid: 57d6780dbf36236418061f209f20f948, type: 3}
 --- !u!1 &5575713802241928929
 GameObject:
   m_ObjectHideFlags: 0

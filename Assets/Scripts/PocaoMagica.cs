@@ -3,6 +3,9 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody), typeof(Collider))]
 public class PocaoMagica : MonoBehaviour
 {
+    [Header("Efeitos Visuais")]
+    public GameObject prefabEfeitoSplash; // <-- Arraste o Prefab de partículas aqui!
+
     private VidaEndy vidaEndy;
     private bool jaBateu = false;
 
@@ -10,7 +13,7 @@ public class PocaoMagica : MonoBehaviour
     {
         vidaEndy = vidaDoJogador;
 
-        // Impede que a poção bata no próprio corpo do Endy na hora que sai da mão dele!
+        // Impede que a poção bata no próprio corpo do Endy
         Collider meuColisor = GetComponent<Collider>();
         if (meuColisor != null && colisorDoJogador != null)
         {
@@ -35,14 +38,27 @@ public class PocaoMagica : MonoBehaviour
         jaBateu = true;
         CancelInvoke(nameof(ErrouArremesso));
 
-        // Verifica se acertou o Caranguejo Chefe (mesmo que bata nas patas ou na concha filha)
+        // --- A MAGIA DO SPLASH ACONTECE AQUI ---
+        if (prefabEfeitoSplash != null)
+        {
+            // Pega o ponto exato de contato da colisão
+            Vector3 pontoImpacto = collision.contacts[0].point;
+
+            // Instancia o splash de partículas no local do impacto
+            GameObject splash = Instantiate(prefabEfeitoSplash, pontoImpacto, Quaternion.identity);
+
+            // Garante que o efeito de partículas vai se autodestruir depois de 3 segundos para não pesar o jogo
+            Destroy(splash, 3f);
+        }
+
+        // Verifica se acertou o Caranguejo Chefe
         CaranguejoChefe chefe = collision.collider.GetComponentInParent<CaranguejoChefe>();
 
         if (chefe != null)
         {
             Debug.Log("NA MOSCA! A poção quebrou no Caranguejo Rei!");
             chefe.TomarPocaoEncolhedora();
-            Destroy(gameObject);
+            Destroy(gameObject); // Some com o frasco de poção
         }
         else
         {
@@ -60,4 +76,5 @@ public class PocaoMagica : MonoBehaviour
         }
         Destroy(gameObject);
     }
+
 }
