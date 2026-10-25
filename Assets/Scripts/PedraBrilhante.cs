@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Audio;
 
 /// <summary>
 /// Faz esta pedra acender quando o personagem encosta nela na ordem correta.
@@ -39,6 +40,9 @@ public class PedraBrilhante : MonoBehaviour
     private Material[][] materiais;
     private bool acesa;
     private Bounds limitesDaPedra;
+
+    public AudioSource audioSource;
+    public AudioClip somErro;
 
     private static readonly CorDaSequencia[] OrdemCorreta =
     {
@@ -87,7 +91,6 @@ public class PedraBrilhante : MonoBehaviour
         materiais = new Material[renderizadores.Length][];
         for (int i = 0; i < renderizadores.Length; i++)
         {
-            // .materials cria materiais locais para esta pedra, sem editar o asset compartilhado.
             materiais[i] = renderizadores[i].materials;
         }
     }
@@ -101,7 +104,6 @@ public class PedraBrilhante : MonoBehaviour
         for (int i = 1; i < renderizadores.Length; i++)
             limitesDaPedra.Encapsulate(renderizadores[i].bounds);
 
-        // O trigger e adicionado apenas nesta pedra e nao altera o collider fisico existente.
         SphereCollider areaDeToque = GetComponent<SphereCollider>();
         if (areaDeToque == null || !areaDeToque.isTrigger)
             areaDeToque = gameObject.AddComponent<SphereCollider>();
@@ -164,7 +166,6 @@ public class PedraBrilhante : MonoBehaviour
 
     private void SelecionarPedra()
     {
-        // Depois de concluir as seis cores, as pedras permanecem acesas.
         if (acesa || proximaCor >= OrdemCorreta.Length)
             return;
 
@@ -174,7 +175,19 @@ public class PedraBrilhante : MonoBehaviour
             ApagarTodasAsPedras();
             proximaCor = 0;
             Debug.Log("Sequencia incorreta. Tente novamente.");
+
+            // Dispara o som e o tremor automático na câmara do player
+            JogadorErrouSequencia();
             return;
+        }
+
+        if (ObterCorDaPedra() == CorDaSequencia.Vermelho)
+        {
+            GerenciadorFantasmasCaverna gerenciador = FindFirstObjectByType<GerenciadorFantasmasCaverna>();
+            if (gerenciador != null)
+            {
+                gerenciador.AtivarSpawnsAposPedraVermelha();
+            }
         }
 
         Acender();
@@ -183,7 +196,6 @@ public class PedraBrilhante : MonoBehaviour
         if (proximaCor == OrdemCorreta.Length)
         {
             Debug.Log("Sequencia das pedras concluida!");
-            // Aqui depois podemos ligar a animacao da porta.
         }
     }
 
@@ -192,8 +204,6 @@ public class PedraBrilhante : MonoBehaviour
         if (definirCorDaSequenciaManualmente)
             return corDaPedra;
 
-        // Tags deixam a configuracao da fase bem mais clara no Inspector.
-        // Se uma pedra ainda nao tiver tag, usamos sua cor visual como reserva.
         switch (gameObject.tag)
         {
             case "Vermelho": return CorDaSequencia.Vermelho;
@@ -285,5 +295,16 @@ public class PedraBrilhante : MonoBehaviour
 
         if (som != null && Camera.main != null)
             AudioSource.PlayClipAtPoint(som, Camera.main.transform.position);
+    }
+
+    public void JogadorErrouSequencia()
+    {
+        // 1. Toca o som de erro
+        if (audioSource != null && somErro != null)
+        {
+            audioSource.PlayOneShot(somErro);
+        }
+
+       
     }
 }

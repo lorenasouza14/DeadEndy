@@ -105,5 +105,8 @@ public class InteracaoBauLanterna : MonoBehaviour
         lanternaNoBau.transform.localPosition = posicaoNaMao;
         lanternaNoBau.transform.localEulerAngles = rotacaoNaMao;
         lanternaNoBau.SetActive(true);
+
+        if (LanternaJogador.Instancia != null)
+            LanternaJogador.Instancia.ColetarLanterna();
     }
 }

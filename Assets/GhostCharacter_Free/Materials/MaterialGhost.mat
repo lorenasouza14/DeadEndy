@@ -151,10 +151,10 @@ Material:
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 0.6532188, g: 0, b: 0.7075472, a: 1}
-    - _DissolveColor: {r: 0.98206764, g: 0.8915094, b: 1, a: 0.24705882}
+    - _DissolveColor: {r: 0.98206764, g: 0.8915094, b: 1, a: 0.15686275}
     - _DissolveRange: {r: 0.5, g: 3, b: 0, a: 0}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _MainColor: {r: 0.98431987, g: 0.94811314, b: 1, a: 0.23921569}
+    - _MainColor: {r: 0.98431987, g: 0.94811314, b: 1, a: 0.14117648}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

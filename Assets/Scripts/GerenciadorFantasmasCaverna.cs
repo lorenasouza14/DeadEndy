@@ -1,9 +1,9 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Spawna fantasmas da caverna gradualmente e limita a quantidade ativa.
-/// Coloque este componente em um GameObject vazio apenas na cena da caverna.
+/// Spawna fantasmas da caverna gradualmente após a ativação da pedra vermelha.
 /// </summary>
 public class GerenciadorFantasmasCaverna : MonoBehaviour
 {
@@ -13,7 +13,6 @@ public class GerenciadorFantasmasCaverna : MonoBehaviour
 
     [Header("Quantidade")]
     [SerializeField, Min(1)] private int maximoDeFantasmas = 3;
-    [SerializeField, Min(0.5f)] private float esperaAntesDoPrimeiroFantasma = 8f;
     [SerializeField, Min(0.5f)] private float intervaloInicialDeSpawn = 16f;
     [SerializeField, Min(0.5f)] private float intervaloMinimoDeSpawn = 7f;
     [SerializeField, Min(0f)] private float reducaoDoIntervaloPorPedra = 1.5f;
@@ -27,18 +26,41 @@ public class GerenciadorFantasmasCaverna : MonoBehaviour
     private Transform jogador;
     private float proximoSpawn;
 
+    // Controle de fluxo da pedra vermelha
+    private bool spawnsAtivados = false;
+
     private void Start()
     {
         StarterAssets.ThirdPersonController controlador =
             FindFirstObjectByType<StarterAssets.ThirdPersonController>();
         if (controlador != null)
             jogador = controlador.transform;
+    }
 
-        proximoSpawn = Time.time + esperaAntesDoPrimeiroFantasma;
+    // Método chamado pelo script da pedra vermelha quando o jogador acerta a sequência
+    public void AtivarSpawnsAposPedraVermelha()
+    {
+        if (!spawnsAtivados)
+        {
+            StartCoroutine(ContagemRegressivaParaSpawn());
+        }
+    }
+
+    private IEnumerator ContagemRegressivaParaSpawn()
+    {
+        
+        yield return new WaitForSeconds(35f);
+
+        spawnsAtivados = true;
+        proximoSpawn = Time.time; // Libera o spawn imediato após passar o minuto
     }
 
     private void Update()
     {
+        // Se a pedra vermelha ainda não foi ativada, o gestor não faz nada
+        if (!spawnsAtivados)
+            return;
+
         fantasmasAtivos.RemoveAll(fantasma => fantasma == null);
 
         if (jogador == null)

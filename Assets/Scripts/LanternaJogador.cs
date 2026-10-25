@@ -18,6 +18,9 @@ public class LanternaJogador : MonoBehaviour
     [SerializeField] private Vector3 rotacaoDaLuz;
     [SerializeField] private bool iniciarLigada;
 
+    [Header("Estado Lanterna")]
+    public bool foiColetada = false;
+
     [Header("Feixe visivel no ar")]
     [SerializeField] private bool mostrarFeixe = true;
     [SerializeField, Min(0.5f)] private float comprimentoDoFeixe = 12f;
@@ -56,7 +59,8 @@ public class LanternaJogador : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetMouseButtonDown(0))
+        // Só permite ligar/desligar se a lanterna já foi coletada
+        if (foiColetada && Input.GetMouseButtonDown(0))
             AtualizarLuz(!luzDaLanterna.enabled);
     }
 
@@ -87,11 +91,13 @@ public class LanternaJogador : MonoBehaviour
         if (Vector3.Angle(luzDaLanterna.transform.forward, ateAlvo) > luzDaLanterna.spotAngle * 0.5f)
             return false;
 
+        int layerMask = ~LayerMask.GetMask("Fumaca");
+
         RaycastHit[] impactos = Physics.RaycastAll(
             origem,
             ateAlvo / distancia,
             distancia,
-            ~0,
+            layerMask,
             QueryTriggerInteraction.Collide);
         System.Array.Sort(impactos, (a, b) => a.distance.CompareTo(b.distance));
 
@@ -176,5 +182,10 @@ public class LanternaJogador : MonoBehaviour
         malha.triangles = triangulos;
         malha.RecalculateBounds();
         return malha;
+    }
+
+    public void ColetarLanterna()
+    {
+        foiColetada = true;
     }
 }

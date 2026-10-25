@@ -6,6 +6,8 @@ TagManager:
   tags:
   - CinemachineTarget
   - Pedra
+  - Fantasma
+  - PonteFantasma
   layers:
   - Default
   - TransparentFX
@@ -13,10 +15,10 @@ TagManager:
   - 
   - Water
   - UI
-  - 
-  - 
-  - 
-  - 
+  - Fantasma
+  - PonteFantasma
+  - Personagem
+  - Fumaca
   - 
   - 
   - 
