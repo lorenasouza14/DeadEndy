@@ -7,6 +7,7 @@ public class InteracaoBilhete : MonoBehaviour
     public Animator animEndy; // Arraste o personagem Endy para cá no Inspector
 
     private bool pertoDoObjeto = false;
+    public bool MostrarDica => enabled && pertoDoObjeto && painelUI != null && !painelUI.activeSelf;
 
     void Update()
     {

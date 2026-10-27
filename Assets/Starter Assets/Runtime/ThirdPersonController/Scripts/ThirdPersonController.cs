@@ -22,6 +22,15 @@ namespace StarterAssets
         [Tooltip("Sprint speed of the character in m/s")]
         public float SprintSpeed = 5.335f;
 
+        // Separado da velocidade base para a areia não restaurar um bônus já expirado.
+        public float MultiplicadorPocao { get; set; } = 1f;
+        private bool _bloquearPulo;
+        public bool BloquearPulo
+        {
+            get => _bloquearPulo;
+            set { _bloquearPulo = value; if (_input != null) _input.jump = false; }
+        }
+
         [Tooltip("How fast the character turns to face movement direction")]
         [Range(0.0f, 0.3f)]
         public float RotationSmoothTime = 0.12f;
@@ -156,6 +165,7 @@ namespace StarterAssets
 
         private void Update()
         {
+            RestoreDodgePose();
             _animator = CharacterAnimator != null ? CharacterAnimator : GetComponent<Animator>();
             _hasAnimator = _animator != null;
 
@@ -168,6 +178,7 @@ namespace StarterAssets
         private void LateUpdate()
         {
             CameraRotation();
+            AnimateDodge();
         }
 
         private void AssignAnimationIDs()
@@ -222,7 +233,7 @@ namespace StarterAssets
             if (MoveDodge()) return;
 
             // set target speed based on move speed, sprint speed and if sprint is pressed
-            float targetSpeed = _input.sprint ? SprintSpeed : MoveSpeed;
+            float targetSpeed = (_input.sprint ? SprintSpeed : MoveSpeed) * MultiplicadorPocao;
 
             // a simplistic acceleration and deceleration designed to be easy to remove, replace, or iterate upon
 
@@ -289,6 +300,7 @@ namespace StarterAssets
 
         private void JumpAndGravity()
         {
+            if (BloquearPulo) _input.jump = false;
             if (Grounded)
             {
                 // reset the fall timeout timer

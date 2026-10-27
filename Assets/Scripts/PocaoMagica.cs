@@ -3,78 +3,86 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody), typeof(Collider))]
 public class PocaoMagica : MonoBehaviour
 {
-    [Header("Efeitos Visuais")]
-    public GameObject prefabEfeitoSplash; // <-- Arraste o Prefab de partículas aqui!
+    public enum TipoPocao { Encolher, Velocidade }
+    public TipoPocao tipo;
+    [Min(0.1f)] public float tempoDeEfeito = 10f;
+    [Range(0.1f, 1f)] public float fatorEncolhimento = 0.5f;
+    [Min(1f)] public float multiplicadorVelocidade = 2f;
+    [Tooltip("Raio físico do frasco, menor que a área usada para coletar.")]
+    public float raioArremesso = 0.12f;
+    public GameObject prefabEfeitoSplash;
+    [Tooltip("Regra antiga: perder ao errar a poção de encolher.")]
+    public bool perderAoErrar = true;
 
     private VidaEndy vidaEndy;
-    private bool jaBateu = false;
+    private Transform dono;
+    private bool naMao;
+    private bool arremessada;
+    private bool jaBateu;
+    public bool DisponivelParaColeta => !naMao && !arremessada && !jaBateu;
+
+    public void PrepararNaMao()
+    {
+        naMao = true;
+        Rigidbody rb = GetComponent<Rigidbody>();
+        rb.isKinematic = true;
+        rb.useGravity = false;
+        foreach (Collider colisor in GetComponentsInChildren<Collider>()) colisor.enabled = false;
+        ItemColetavel item = GetComponent<ItemColetavel>();
+        if (item != null) item.enabled = false;
+    }
 
     public void ConfigurarArremesso(VidaEndy vidaDoJogador, Collider colisorDoJogador, Vector3 velocidadeInicial)
     {
+        if (arremessada || jaBateu) return;
         vidaEndy = vidaDoJogador;
-
-        // Impede que a poção bata no próprio corpo do Endy
-        Collider meuColisor = GetComponent<Collider>();
-        if (meuColisor != null && colisorDoJogador != null)
+        dono = vidaDoJogador != null ? vidaDoJogador.transform :
+            (colisorDoJogador != null ? colisorDoJogador.transform : null);
+        naMao = false;
+        arremessada = true;
+        transform.SetParent(null, true);
+        ItemColetavel item = GetComponent<ItemColetavel>();
+        if (item != null) item.enabled = false;
+        foreach (Collider colisor in GetComponentsInChildren<Collider>())
         {
-            Physics.IgnoreCollision(meuColisor, colisorDoJogador);
+            colisor.enabled = true;
+            colisor.isTrigger = false;
+            if (colisor is SphereCollider esfera) esfera.radius = raioArremesso;
+            if (dono != null)
+                foreach (Collider colisorDono in dono.GetComponentsInChildren<Collider>())
+                    Physics.IgnoreCollision(colisor, colisorDono);
         }
-
         Rigidbody rb = GetComponent<Rigidbody>();
-        rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
+        rb.isKinematic = false;
+        rb.useGravity = true;
+        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
         rb.linearVelocity = velocidadeInicial;
-
-        // Segurança: se jogar a poção para fora do mapa e ela cair no vazio por 5s, também perde
         Invoke(nameof(ErrouArremesso), 5f);
     }
 
     void OnCollisionEnter(Collision collision)
     {
-        if (jaBateu) return;
-
-        // Ignora o próprio jogador caso tenha mais de um colisor
-        if (collision.collider.CompareTag("Player")) return;
-
+        if (!arremessada || jaBateu) return;
+        if (dono != null && collision.transform.IsChildOf(dono)) return;
         jaBateu = true;
         CancelInvoke(nameof(ErrouArremesso));
-
-        // --- A MAGIA DO SPLASH ACONTECE AQUI ---
         if (prefabEfeitoSplash != null)
         {
-            // Pega o ponto exato de contato da colisão
-            Vector3 pontoImpacto = collision.contacts[0].point;
-
-            // Instancia o splash de partículas no local do impacto
-            GameObject splash = Instantiate(prefabEfeitoSplash, pontoImpacto, Quaternion.identity);
-
-            // Garante que o efeito de partículas vai se autodestruir depois de 3 segundos para não pesar o jogo
-            Destroy(splash, 3f);
+            Vector3 impacto = collision.contactCount > 0 ? collision.GetContact(0).point : transform.position;
+            Destroy(Instantiate(prefabEfeitoSplash, impacto, Quaternion.identity), 3f);
         }
-
-        // Verifica se acertou o Caranguejo Chefe
         CaranguejoChefe chefe = collision.collider.GetComponentInParent<CaranguejoChefe>();
-
-        if (chefe != null)
-        {
-            Debug.Log("NA MOSCA! A poção quebrou no Caranguejo Rei!");
-            chefe.TomarPocaoEncolhedora();
-            Destroy(gameObject); // Some com o frasco de poção
-        }
-        else
-        {
-            // Bateu na areia, na pedra ou no baú!
-            ErrouArremesso();
-        }
+        if (chefe == null) { ErrouArremesso(); return; }
+        if (tipo == TipoPocao.Encolher) chefe.TomarPocaoEncolhedora();
+        else chefe.FicarRapido(tempoDeEfeito);
+        Destroy(gameObject);
     }
 
     void ErrouArremesso()
     {
-        Debug.Log("NÃÃÃO! Você errou a única poção! O Caranguejo venceu!");
-        if (vidaEndy != null)
-        {
-            vidaEndy.ForcarDerrota();
-        }
+        jaBateu = true;
+        CancelInvoke();
+        if (perderAoErrar && tipo == TipoPocao.Encolher && vidaEndy != null) vidaEndy.ForcarDerrota();
         Destroy(gameObject);
     }
-
 }

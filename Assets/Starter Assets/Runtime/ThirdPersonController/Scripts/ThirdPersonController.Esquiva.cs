@@ -93,6 +93,7 @@ namespace StarterAssets
                 _dodgeDirection = lateral.normalized * side;
                 _dodgeTimeLeft = Mathf.Max(0.01f, DodgeDuration);
                 _dodgeSpeed = Mathf.Max(0.01f, DodgeDistance) / _dodgeTimeLeft;
+                PrepareDodgeAnimation();
                 _dodgeNextAllowedAt = Time.time + _dodgeTimeLeft + Mathf.Max(0f, DodgeCooldown);
                 _speed = 0f;
                 _animationBlend = 0f;
@@ -122,7 +123,7 @@ namespace StarterAssets
             _dodgeTimeLeft = Mathf.Max(0f, _dodgeTimeLeft - step);
             if (!IsDodging) _dodgeResetSpeed = true;
 
-            // Mantem os parametros existentes; animacao de esquiva pode ser ligada depois.
+            // A pose de deslize e aplicada depois do Animator, em LateUpdate.
             if (_hasAnimator)
             {
                 _animator.SetFloat(_animIDSpeed, 0f);
@@ -153,6 +154,7 @@ namespace StarterAssets
 
         private void CancelDodge()
         {
+            RestoreDodgePose();
             _dodgeResetSpeed |= IsDodging;
             _dodgeTimeLeft = 0f;
             ClearDodgeTaps();
