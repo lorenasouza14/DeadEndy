@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
@@ -12,11 +12,12 @@ namespace StarterAssets
 #if ENABLE_INPUT_SYSTEM
     [RequireComponent(typeof(PlayerInput))]
 #endif
-    public class ThirdPersonController : MonoBehaviour
+    public partial class ThirdPersonController : MonoBehaviour
     {
         [Header("Player")]
         [Tooltip("Move speed of the character in m/s")]
         public float MoveSpeed = 2.0f;
+        public Animator CharacterAnimator;
 
         [Tooltip("Sprint speed of the character in m/s")]
         public float SprintSpeed = 5.335f;
@@ -136,7 +137,8 @@ namespace StarterAssets
         {
             _cinemachineTargetYaw = CinemachineCameraTarget.transform.rotation.eulerAngles.y;
             
-            _hasAnimator = TryGetComponent(out _animator);
+            _animator = CharacterAnimator != null ? CharacterAnimator : GetComponent<Animator>();
+            _hasAnimator = _animator != null;
             _controller = GetComponent<CharacterController>();
             _input = GetComponent<StarterAssetsInputs>();
 #if ENABLE_INPUT_SYSTEM
@@ -154,10 +156,12 @@ namespace StarterAssets
 
         private void Update()
         {
-            _hasAnimator = TryGetComponent(out _animator);
+            _animator = CharacterAnimator != null ? CharacterAnimator : GetComponent<Animator>();
+            _hasAnimator = _animator != null;
 
-            JumpAndGravity();
             GroundedCheck();
+            ReadDodgeInput();
+            JumpAndGravity();
             Move();
         }
 
@@ -180,8 +184,10 @@ namespace StarterAssets
             // set sphere position, with offset
             Vector3 spherePosition = new Vector3(transform.position.x, transform.position.y - GroundedOffset,
                 transform.position.z);
-            Grounded = Physics.CheckSphere(spherePosition, GroundedRadius, GroundLayers,
+            // Capsule contact remains reliable on uneven tunnel floors where the small foot sphere can miss.
+            bool footContact = Physics.CheckSphere(spherePosition, GroundedRadius, GroundLayers,
                 QueryTriggerInteraction.Ignore);
+            Grounded = _verticalVelocity <= 0f && (_controller.isGrounded || footContact);
 
             // update animator if using character
             if (_hasAnimator)
@@ -213,8 +219,10 @@ namespace StarterAssets
 
         private void Move()
         {
+            if (MoveDodge()) return;
+
             // set target speed based on move speed, sprint speed and if sprint is pressed
-            float targetSpeed = _input.sprint ? SprintSpeed : MoveSpeed;
+            float targetSpeed = (_input.sprint ? SprintSpeed : MoveSpeed) * MultiplicadorAgua;
 
             // a simplistic acceleration and deceleration designed to be easy to remove, replace, or iterate upon
 
@@ -223,7 +231,7 @@ namespace StarterAssets
             if (_input.move == Vector2.zero) targetSpeed = 0.0f;
 
             // a reference to the players current horizontal velocity
-            float currentHorizontalSpeed = new Vector3(_controller.velocity.x, 0.0f, _controller.velocity.z).magnitude;
+            float currentHorizontalSpeed = GetHorizontalSpeedAfterDodge();
 
             float speedOffset = 0.1f;
             float inputMagnitude = _input.analogMovement ? _input.move.magnitude : 1f;
@@ -390,3 +398,5 @@ namespace StarterAssets
         }
     }
 }
+
+
