@@ -163,6 +163,7 @@ namespace StarterAssets
         private void OnDisable()
         {
             CancelDodge();
+            CancelKnockback();
         }
     }
 }

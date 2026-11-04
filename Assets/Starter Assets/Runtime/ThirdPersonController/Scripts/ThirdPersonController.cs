@@ -170,6 +170,7 @@ namespace StarterAssets
             _hasAnimator = _animator != null;
 
             GroundedCheck();
+            if (MoveKnockback(Time.deltaTime)) return;
             ReadDodgeInput();
             JumpAndGravity();
             Move();
