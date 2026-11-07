@@ -10,6 +10,7 @@ public class DicaInteracao : MonoBehaviour
     private TMP_Text texto;
     private ItemColetavel item;
     private InteracaoBilhete bilhete;
+    private AltarRuinas altar;
     private Renderer[] malhas;
     public bool Visivel => canvas != null && canvas.gameObject.activeSelf;
 
@@ -17,6 +18,7 @@ public class DicaInteracao : MonoBehaviour
     {
         item = GetComponent<ItemColetavel>();
         bilhete = GetComponent<InteracaoBilhete>();
+        altar = GetComponent<AltarRuinas>();
         malhas = GetComponentsInChildren<Renderer>(true);
         var go = new GameObject("Aviso de interação", typeof(RectTransform), typeof(Canvas));
         go.transform.SetParent(transform, false);
@@ -42,7 +44,7 @@ public class DicaInteracao : MonoBehaviour
 
     void LateUpdate()
     {
-        string dica = item != null ? item.ObterDica() : bilhete != null && bilhete.MostrarDica ? "[E] Ler bilhete" : null;
+        string dica = altar != null ? altar.ObterDica() : item != null ? item.ObterDica() : bilhete != null && bilhete.MostrarDica ? "[E] Ler bilhete" : null;
         if (canvas == null) return;
         canvas.gameObject.SetActive(!string.IsNullOrEmpty(dica));
         if (!canvas.gameObject.activeSelf) return;
@@ -50,6 +52,7 @@ public class DicaInteracao : MonoBehaviour
         Bounds bounds = new Bounds(transform.position, Vector3.zero);
         foreach (var mesh in malhas)
             if (mesh != null && mesh.enabled && mesh.gameObject.activeInHierarchy) bounds.Encapsulate(mesh.bounds);
+        if (altar != null) bounds = new Bounds(altar.alavanca.position + Vector3.up * 0.5f, Vector3.zero);
         canvas.transform.position = new Vector3(bounds.center.x, bounds.max.y + 0.55f, bounds.center.z);
         Vector3 escala = transform.lossyScale;
         canvas.transform.localScale = new Vector3(0.007f / Mathf.Max(0.001f, Mathf.Abs(escala.x)),
