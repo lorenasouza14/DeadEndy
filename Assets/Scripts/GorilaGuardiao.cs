@@ -2,7 +2,7 @@ using StarterAssets;
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public class GorilaGuardiao : MonoBehaviour
+public partial class GorilaGuardiao : MonoBehaviour
 {
     [Header("Referencias")]
     public Animator animGorila;
@@ -31,12 +31,15 @@ public class GorilaGuardiao : MonoBehaviour
     [Range(0.01f, 0.99f)] public float momentoImpacto = 0.4f;
 
     [Header("Arremesso do Endy")]
+    [Tooltip("Desmarque no desafio furtivo: o golpe apenas arremessa, sem retirar vida.")]
+    public bool causarDano = true;
     [Min(0f)] public float velocidadeArremesso = 12f;
     [Min(0f)] public float impulsoVertical = 5f;
     [Min(0.01f)] public float duracaoArremesso = 0.8f;
     [Min(0f)] public float desaceleracao = 8f;
 
     public bool EstaAtacando { get; private set; }
+    public bool DocilPelaSopa { get; private set; }
     private ThirdPersonController movimentoEndy;
     private CharacterController capsulaEndy;
     private VidaEndy alvoPreparado;
@@ -79,6 +82,7 @@ public class GorilaGuardiao : MonoBehaviour
         animGorila.cullingMode = AnimatorCullingMode.AlwaysAnimate;
         PrepararAlvo();
         VoltarAoRepouso();
+        PrepararSono();
     }
 
     private void PrepararAlvo()
@@ -134,7 +138,7 @@ public class GorilaGuardiao : MonoBehaviour
 
     private void Update()
     {
-        if (!configurado || Time.deltaTime <= 0f) return;
+        if (!configurado || Time.deltaTime <= 0f || DocilPelaSopa) return;
         if (alvoPreparado != alvoEndy)
         {
             CancelarAtaque();
@@ -143,14 +147,16 @@ public class GorilaGuardiao : MonoBehaviour
         if (!guardandoCaverna || !AlvoDisponivel() || !animGorila.isActiveAndEnabled)
         {
             if (EstaAtacando) CancelarAtaque();
+            if (!guardandoCaverna) InterromperSono();
             return;
         }
+        if (AtualizarSono(Time.deltaTime)) return;
         if (EstaAtacando)
         {
             AtualizarAtaque(Time.deltaTime);
             return;
         }
-        if (Time.time >= proximoAtaque && AlvoAoAlcance()) IniciarAtaque();
+        if (!movimentoEndy.EstaArremessado && Time.time >= proximoAtaque && AlvoAoAlcance()) IniciarAtaque();
     }
 
     private void IniciarAtaque()
@@ -185,12 +191,12 @@ public class GorilaGuardiao : MonoBehaviour
 
     private void AplicarImpacto()
     {
-        if (!guardandoCaverna || !AlvoAoAlcance()) return;
+        if (DocilPelaSopa || !guardandoCaverna || SonoImpedeAtaque || !AlvoAoAlcance()) return;
         Vector3 direcao = pontoDeExpulsao != null
             ? pontoDeExpulsao.position - movimentoEndy.transform.position
             : movimentoEndy.transform.position - transform.position;
         if (Vector3.ProjectOnPlane(direcao, Vector3.up).sqrMagnitude < 0.0001f) direcao = transform.forward;
-        alvoEndy.TomarDano();
+        if (causarDano) alvoEndy.TomarDano();
         // A morte existente desliga movimento e capsula; nao reativa nenhum dos dois.
         if (!alvoEndy.EstaMorto)
             movimentoEndy.ReceberArremesso(direcao, velocidadeArremesso, impulsoVertical, duracaoArremesso, desaceleracao);
@@ -214,11 +220,20 @@ public class GorilaGuardiao : MonoBehaviour
     // Ponto de integracao para o futuro puzzle da sopa.
     public void DefinirGuarda(bool ativa)
     {
+        if (DocilPelaSopa) return;
         guardandoCaverna = ativa;
+        InterromperSono();
         CancelarAtaque();
     }
 
-    private void OnDisable() { CancelarAtaque(); }
+    public void TornarDocilPelaSopa()
+    {
+        if (DocilPelaSopa) return;
+        DefinirGuarda(false);
+        DocilPelaSopa = true;
+    }
+
+    private void OnDisable() { InterromperSono(); CancelarAtaque(); }
 
     private void OnDrawGizmosSelected()
     {
@@ -234,5 +249,6 @@ public class GorilaGuardiao : MonoBehaviour
             }
         if (!desenhouCorpo) Gizmos.DrawWireSphere(Centro, alcanceAtaque);
         if (pontoDeExpulsao != null) Gizmos.DrawLine(Centro, pontoDeExpulsao.position);
+        DesenharAudicao();
     }
 }

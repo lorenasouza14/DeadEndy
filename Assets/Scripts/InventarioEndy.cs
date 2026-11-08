@@ -4,7 +4,7 @@ using System.Collections;
 using UnityEngine.InputSystem;
 #endif
 
-public class InventarioEndy : MonoBehaviour
+public partial class InventarioEndy : MonoBehaviour
 {
     [Header("Itens do Inventário")]
     public bool temDiario;
@@ -44,7 +44,7 @@ public class InventarioEndy : MonoBehaviour
     private Vector3 escalaOriginal;
     private float fimEncolhimento;
     private float fimVelocidade;
-    public bool PodeColetarPocao => !temPocao && !TemPirulito && !TemTrompete && !TemRadio && !estaJogando && !EstaTocandoTrompete;
+    public bool PodeColetarPocao => !TemBanana && !temPocao && !TemPirulito && !TemTrompete && !TemRadio && !estaJogando && !EstaTocandoTrompete;
 
     void Awake()
     {
@@ -80,6 +80,7 @@ public class InventarioEndy : MonoBehaviour
 
     void Update()
     {
+        AtualizarBananaCarregada();
         if (fimEncolhimento > 0 && Time.time >= fimEncolhimento) RestaurarTamanho();
         if (fimVelocidade > 0 && Time.time >= fimVelocidade) RestaurarVelocidade();
         var vida = GetComponent<VidaEndy>();
@@ -308,6 +309,7 @@ public class InventarioEndy : MonoBehaviour
 
     void OnDisable()
     {
+        DevolverBanana();
         CancelarTrompete();
         StopAllCoroutines();
         estaJogando = false;

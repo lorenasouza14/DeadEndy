@@ -38,7 +38,9 @@ public class ItemColetavel : MonoBehaviour
 
     public bool TentarColetar(InventarioEndy destino)
     {
-        if (destino == null || !enabled) return false;
+        if (destino == null || !isActiveAndEnabled) return false;
+        var banana = GetComponentInParent<BananaSopa>();
+        if (banana != null) return destino.PegarBanana(banana);
         var vida = destino.GetComponent<VidaEndy>();
         if (vida != null && vida.EstaMorto) return false;
         if (ehRadio)
@@ -85,6 +87,8 @@ public class ItemColetavel : MonoBehaviour
     public string ObterDica()
     {
         if (!enabled || inventario == null || !inventario.mostrarControles) return null;
+        var banana = GetComponentInParent<BananaSopa>();
+        if (banana != null) return banana.ObterDica(inventario);
         var vida = inventario.GetComponent<VidaEndy>();
         if (vida != null && vida.EstaMorto) return null;
         if (ehRadio)
