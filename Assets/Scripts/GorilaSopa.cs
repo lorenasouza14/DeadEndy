@@ -17,6 +17,8 @@ public class GorilaSopa : MonoBehaviour
     public int valorComer = 4;
     [Tooltip("Somente os colliders extras que bloqueiam a passagem. Desativados quando o gorila chega a sopa.")]
     public Collider[] bloqueiosDaCaverna;
+    [Tooltip("Apenas a representacao visual dos bloqueios extras; nunca piso ou paredes.")]
+    public Renderer[] visuaisDosBloqueios;
     public EtapaSopa Etapa { get; private set; }
     public bool PassagemLiberada => Etapa == EtapaSopa.Comendo;
     private GorilaGuardiao guarda;
@@ -41,7 +43,10 @@ public class GorilaSopa : MonoBehaviour
     {
         if (Etapa != EtapaSopa.Esperando || !Configurado || sopa == null || sopa.gorila != this || !sopa.SopaPronta) return false;
         bool levantando = Guarda.SonoImpedeAtaque;
+        var poseAnterior = Anim.GetCurrentAnimatorStateInfo(0);
         Guarda.TornarDocilPelaSopa();
+        // DefinirGuarda cancela golpes e reseta Idle. Recupera a pose para levantar suavemente.
+        if (levantando) Anim.Play(poseAnterior.fullPathHash, 0, poseAnterior.normalizedTime);
         Etapa = EtapaSopa.Levantando;
         tempo = levantando ? Mathf.Max(0.1f, Guarda.tempoAcordar) : 0.25f;
         Anim.SetInteger(Guarda.parametroAnimacao, Guarda.valorParado);
@@ -79,6 +84,8 @@ public class GorilaSopa : MonoBehaviour
                     Anim.CrossFadeInFixedTime(estadoComer, 0.25f, 0, 0f);
                     if (bloqueiosDaCaverna != null)
                         foreach (var col in bloqueiosDaCaverna) if (col != null) col.enabled = false;
+                    if (visuaisDosBloqueios != null)
+                        foreach (var visual in visuaisDosBloqueios) if (visual != null) visual.enabled = false;
                 }
             }
         }
