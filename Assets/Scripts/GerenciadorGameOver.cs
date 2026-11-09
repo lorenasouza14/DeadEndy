@@ -15,6 +15,7 @@ public class GerenciadorGameOver : MonoBehaviour
     {
         if (reiniciando) return;
         reiniciando = true;
+        ProgressoJogo.PrepararContinuar(out _);
         Debug.Log("Reiniciando a batalha...");
         Time.timeScale = 1f;
 

@@ -10,6 +10,8 @@ public class DicaInteracao : MonoBehaviour
     private TMP_Text texto;
     private ItemColetavel item;
     private InteracaoBilhete bilhete;
+    private AlavancaTriangulo alavanca;
+    private BauDiario bauDiario;
     private Renderer[] malhas;
     public bool Visivel => canvas != null && canvas.gameObject.activeSelf;
 
@@ -17,6 +19,8 @@ public class DicaInteracao : MonoBehaviour
     {
         item = GetComponent<ItemColetavel>();
         bilhete = GetComponent<InteracaoBilhete>();
+        alavanca = GetComponent<AlavancaTriangulo>();
+        bauDiario = GetComponent<BauDiario>();
         malhas = GetComponentsInChildren<Renderer>(true);
         var go = new GameObject("Aviso de interação", typeof(RectTransform), typeof(Canvas));
         go.transform.SetParent(transform, false);
@@ -37,12 +41,15 @@ public class DicaInteracao : MonoBehaviour
         texto.fontSize = 24;
         texto.raycastTarget = false;
         texto.outlineWidth = 0.15f;
+        TeclaInteracao.Aplicar(texto);
         go.SetActive(false);
     }
 
     void LateUpdate()
     {
-        string dica = item != null ? item.ObterDica() : bilhete != null && bilhete.MostrarDica ? "[E] Ler bilhete" : null;
+        string dica = item != null ? item.ObterDica() :
+            bilhete != null && bilhete.MostrarDica ? "[E] Ler bilhete" :
+            alavanca != null && alavanca.MostrarDica ? "[E] Puxar alavanca" : bauDiario != null ? bauDiario.Dica : null;
         if (canvas == null) return;
         canvas.gameObject.SetActive(!string.IsNullOrEmpty(dica));
         if (!canvas.gameObject.activeSelf) return;

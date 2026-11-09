@@ -3,6 +3,7 @@ using System.Collections;
 
 public class CaranguejoChefe : MonoBehaviour
 {
+    public bool EncolhimentoConcluido { get; private set; }
     // Novo estado "Atacando" adicionado
     public enum EstadoChefe { Escondido, Perseguindo, PreparandoGiro, Investindo, Atordoado, Derrotado, Atacando, Dancando, ReagindoComRaiva }
 
@@ -14,7 +15,8 @@ public class CaranguejoChefe : MonoBehaviour
     [Header("Atributos de Combate")]
     public float velPerseguicao = 6f;
     public float velInvestida = 25f;
-    public float tempoEntreAtaques = 3.5f;
+    public float tempoEntreAtaques = 2.2f;
+    [Min(1)] public int danoInvestidaForte = 3;
     private float velPerseguicaoBase;
     private float velInvestidaBase;
     private float fimEfeitoVelocidade;
@@ -38,7 +40,7 @@ public class CaranguejoChefe : MonoBehaviour
 
     [Header("Ataque Corpo a Corpo")]
     public float distanciaSoco = 3f; // Distância que o Endy precisa estar para tomar um soco
-    public float tempoEntreSocos = 2f; // Cooldown entre um soco e outro
+    public float tempoEntreSocos = 1.2f; // Cooldown entre um soco e outro
     private float timerSoco;
 
     [Header("Magia da Areia")]
@@ -54,6 +56,10 @@ public class CaranguejoChefe : MonoBehaviour
     private bool ataqueTeleguiado = false;
     private bool ignorarPedrasNoArranque = false;
     public bool EstaCalmo { get; private set; }
+    private ComerPirulitoCaranguejo comendoPirulito;
+    private float fimContatoEndy = float.NegativeInfinity;
+    private int danoInvestidaAtual = 1;
+    private Collider[] colisoresDoChefe;
 
     [Header("Controle da Arena")]
     public GameObject barreirasInvisiveis;
@@ -64,11 +70,27 @@ public class CaranguejoChefe : MonoBehaviour
         velInvestidaBase = velInvestida;
 
         rb = GetComponent<Rigidbody>();
-        if (rb != null) rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
+        colisoresDoChefe = GetComponentsInChildren<Collider>();
+        if (rb != null)
+        {
+            rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
+            // Sobreposições com a cápsula do Endy não devem ejetar o chefe.
+            rb.maxDepenetrationVelocity = 2f;
+        }
+    }
+
+    void Start()
+    {
+        // CharacterController também informa contatos durante Move, fora do passo físico.
+        if (alvoEndy == null) return;
+        var controle = alvoEndy.GetComponentInParent<CharacterController>();
+        if (controle != null && controle.GetComponent<ContatoChefeEndy>() == null)
+            controle.gameObject.AddComponent<ContatoChefeEndy>();
     }
 
     void FixedUpdate()
     {
+        if (Time.time < fimContatoEndy) PararMovimentoNoEndy();
         // Não depende das corrotinas de ataque, que são interrompidas pelos baús.
         if (fimEfeitoVelocidade > 0f && Time.time >= fimEfeitoVelocidade)
             RestaurarVelocidadePocao();
@@ -92,6 +114,7 @@ public class CaranguejoChefe : MonoBehaviour
 
         if (estadoAtual == EstadoChefe.Investindo)
         {
+            if (rb == null) return;
             if (ataqueTeleguiado && alvoEndy != null)
             {
                 Vector3 posAlvo = new Vector3(alvoEndy.position.x, transform.position.y, alvoEndy.position.z);
@@ -99,6 +122,10 @@ public class CaranguejoChefe : MonoBehaviour
                 direcaoInvestida = (posAlvo - transform.position).normalized; // Erro de digitação corrigido aqui!
             }
 
+            // Detecta o impacto antes de mover o corpo rápido contra o CharacterController.
+            // Isso também funciona quando Endy está parado e não recebe callback de Move.
+            if (DetectarEndyNaInvestida()) return;
+            if (Time.time < fimContatoEndy) return;
             rb.linearVelocity = new Vector3(direcaoInvestida.x * velInvestida, rb.linearVelocity.y, direcaoInvestida.z * velInvestida);
 
             if (prefabAreia != null)
@@ -130,7 +157,9 @@ public class CaranguejoChefe : MonoBehaviour
             // 2ª Prioridade: Dar o ataque de giro se o tempo estourou
             else if (timerAtaque >= tempoEntreAtaques * IntervaloAtaquesRadio)
             {
-                StartCoroutine(RotinaPrepararGiro());
+                var inventario = alvoEndy != null ? alvoEndy.GetComponentInParent<InventarioEndy>() : null;
+                if (inventario != null && inventario.EstaEncolhido) InvestidaPunitiva(true);
+                else StartCoroutine(RotinaPrepararGiro());
             }
             // 3ª Prioridade: Apenas caminhar até o Endy
             else if (alvoEndy != null && rb != null)
@@ -138,7 +167,9 @@ public class CaranguejoChefe : MonoBehaviour
                 Vector3 posAlvo = new Vector3(alvoEndy.position.x, transform.position.y, alvoEndy.position.z);
                 transform.LookAt(posAlvo);
                 Vector3 dir = (posAlvo - transform.position).normalized;
-                rb.linearVelocity = new Vector3(dir.x * velPerseguicao, rb.linearVelocity.y, dir.z * velPerseguicao);
+                // Não continua empurrando a cápsula enquanto espera o próximo soco.
+                float velocidade = Time.time < fimContatoEndy || distanciaDoEndy <= distanciaSoco ? 0f : velPerseguicao;
+                rb.linearVelocity = new Vector3(dir.x * velocidade, rb.linearVelocity.y, dir.z * velocidade);
             }
         }
     }
@@ -165,8 +196,7 @@ public class CaranguejoChefe : MonoBehaviour
         // Confere se o Endy não desviou correndo no meio do soco
         if (alvoEndy != null && Vector3.Distance(transform.position, alvoEndy.position) <= distanciaSoco + 0.5f)
         {
-            VidaEndy vida = alvoEndy.GetComponent<VidaEndy>();
-            if (vida != null) vida.TomarDano();
+            AtingirEndy(alvoEndy, 1);
         }
 
         // Tempo para a animação terminar de tocar antes dele voltar a andar
@@ -199,6 +229,7 @@ public class CaranguejoChefe : MonoBehaviour
 
     IEnumerator RotinaInvestidaImediata(bool teleguiado)
     {
+        danoInvestidaAtual = Mathf.Max(1, danoInvestidaForte);
         ataqueTeleguiado = teleguiado;
         ignorarPedrasNoArranque = true;
         timerAtaque = 0f;
@@ -233,6 +264,7 @@ public class CaranguejoChefe : MonoBehaviour
 
     IEnumerator RotinaPrepararGiro()
     {
+        danoInvestidaAtual = NivelRaivaRadio > 0 ? Mathf.Max(1, danoInvestidaForte) : 1;
         estadoAtual = EstadoChefe.PreparandoGiro;
         ataqueTeleguiado = false;
         ignorarPedrasNoArranque = false;
@@ -268,11 +300,47 @@ public class CaranguejoChefe : MonoBehaviour
         }
     }
 
+    bool DetectarEndyNaInvestida()
+    {
+        var controle = alvoEndy != null ? alvoEndy.GetComponentInParent<CharacterController>() : null;
+        if (controle != null && controle.enabled && controle.gameObject.activeInHierarchy)
+        {
+            // Casts não detectam um alvo que já estava sobreposto no início da investida.
+            foreach (var colisor in colisoresDoChefe)
+            {
+                if (colisor == null || !colisor.enabled || colisor.isTrigger || colisor.attachedRigidbody != rb) continue;
+                if (Physics.ComputePenetration(colisor, colisor.transform.position, colisor.transform.rotation,
+                    controle, controle.transform.position, controle.transform.rotation, out _, out _))
+                {
+                    RegistrarContatoEndy(controle.gameObject);
+                    return true;
+                }
+            }
+        }
+
+        float margem = controle != null ? Mathf.Max(0.05f, controle.skinWidth) : 0.05f;
+        float percurso = Mathf.Max(0f, velInvestida) * Time.fixedDeltaTime + margem;
+        // O primeiro obstáculo bloqueia o golpe, evitando dano através de pedras e paredes.
+        if (rb.SweepTest(direcaoInvestida, out RaycastHit impacto, percurso, QueryTriggerInteraction.Ignore) &&
+            impacto.collider.GetComponentInParent<VidaEndy>() != null)
+        {
+            RegistrarContatoEndy(impacto.collider.gameObject);
+            return true;
+        }
+        return false;
+    }
+
     void OnCollisionEnter(Collision collision) { ProcessarColisao(collision.gameObject); }
     void OnCollisionStay(Collision collision) { ProcessarColisao(collision.gameObject); }
 
     void ProcessarColisao(GameObject obj)
     {
+        var vida = obj.GetComponentInParent<VidaEndy>();
+        if (vida != null || obj.CompareTag("Player"))
+        {
+            RegistrarContatoEndy(obj);
+            return;
+        }
         if (estadoAtual == EstadoChefe.Investindo)
         {
             if (obj.GetComponentInParent<BarreiraDaAgua>() != null)
@@ -292,11 +360,24 @@ public class CaranguejoChefe : MonoBehaviour
                 StopAllCoroutines();
                 StartCoroutine(RotinaAtordoado());
             }
-            else if (obj.CompareTag("Player"))
-            {
-                AplicarDano(obj);
-            }
         }
+    }
+
+    public void RegistrarContatoEndy(GameObject player)
+    {
+        if (player == null) return;
+        // Também remove o impulso se o Endy encostar durante dança, pirulito ou soco.
+        fimContatoEndy = Time.time + 0.15f;
+        PararMovimentoNoEndy();
+        if (isActiveAndEnabled && estadoAtual == EstadoChefe.Investindo) AplicarDano(player);
+    }
+
+    void PararMovimentoNoEndy()
+    {
+        if (rb == null || rb.isKinematic) return;
+        // Preserva queda e gravidade; não prende a altura do chefe no terreno.
+        rb.linearVelocity = new Vector3(0, Mathf.Min(0, rb.linearVelocity.y), 0);
+        rb.angularVelocity = Vector3.zero;
     }
 
     IEnumerator RotinaAtordoado()
@@ -323,14 +404,24 @@ public class CaranguejoChefe : MonoBehaviour
 
     void AplicarDano(GameObject player)
     {
+        // A rotina da investida não pode continuar depois do impacto.
+        StopAllCoroutines();
         ataqueTeleguiado = false;
         ignorarPedrasNoArranque = false;
-
-        VidaEndy vida = player.GetComponent<VidaEndy>();
-        if (vida != null) vida.TomarDano();
-
+        timerAtaque = timerSoco = 0f;
+        PararMovimentoNoEndy();
         estadoAtual = EstadoChefe.Perseguindo;
         if (animChefe != null) animChefe.SetTrigger("Perseguir");
+
+        AtingirEndy(player.transform, danoInvestidaAtual);
+    }
+
+    static void AtingirEndy(Transform alvo, int dano)
+    {
+        var vida = alvo.GetComponentInParent<VidaEndy>();
+        if (vida == null) return;
+        bool pequeno = vida.TryGetComponent<InventarioEndy>(out var inventario) && inventario.EstaEncolhido;
+        vida.TomarDano(pequeno ? vida.VidaAtual : dano);
     }
 
     public void TomarPocaoEncolhedora()
@@ -339,6 +430,7 @@ public class CaranguejoChefe : MonoBehaviour
 
         PararDanca();
         PararGestoRaiva();
+        if (comendoPirulito != null) comendoPirulito.Encerrar();
 
         estadoAtual = EstadoChefe.Derrotado;
         EstaCalmo = false;
@@ -356,39 +448,37 @@ public class CaranguejoChefe : MonoBehaviour
         StartCoroutine(RotinaEncolher());
     }
 
-    public void FicarCalmo(float tempoDePaz)
+    public void FicarCalmo(float tempoDePaz, EfeitoPirulito pirulito = null)
     {
-        if (estadoAtual == EstadoChefe.Derrotado) return;
+        if (!isActiveAndEnabled || estadoAtual == EstadoChefe.Derrotado) return;
 
         PararDanca();
         PararGestoRaiva();
 
         // Para qualquer investida ou ataque que ele esteja fazendo agora
         StopAllCoroutines();
-        StartCoroutine(RotinaCalmo(tempoDePaz));
+        StartCoroutine(RotinaCalmo(tempoDePaz, pirulito));
     }
 
-    IEnumerator RotinaCalmo(float tempo)
+    IEnumerator RotinaCalmo(float tempo, EfeitoPirulito pirulito)
     {
         EstaCalmo = true;
         ataqueTeleguiado = false;
         ignorarPedrasNoArranque = false;
-        Debug.Log("O Chefe pegou o pirulito! Ele entrou num coma açucarado e está inofensivo!");
+        Debug.Log("O Chefe pegou o pirulito e está devorando!");
 
         // Usamos o estado "Escondido" para ele congelar no lugar sem fazer animação de dor
         estadoAtual = EstadoChefe.Escondido;
 
-        // Tira ele da animação de correr/atacar para ele ficar apenas respirando (Idle)
-        if (animChefe != null)
-        {
-            animChefe.ResetTrigger("Perseguir");
-            animChefe.ResetTrigger("Investir");
-            animChefe.ResetTrigger("Girar");
-            // Se tiver uma animação base de parado, a Unity volta para ela sozinha
-        }
+        if (rb != null) rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
+        // Estado sem saída automática: a mastigação dura todo o efeito do item.
+        if (!TocarAnimacaoReacao("Comendo")) TocarAnimacaoReacao("Idle");
+        comendoPirulito = GetComponent<ComerPirulitoCaranguejo>() ?? gameObject.AddComponent<ComerPirulitoCaranguejo>();
+        comendoPirulito.Iniciar(this, pirulito, tempo);
 
         // Espera os segundos de paz
-        yield return new WaitForSeconds(tempo);
+        yield return new WaitForSeconds(Mathf.Max(0.1f, tempo));
+        comendoPirulito.Encerrar();
         EstaCalmo = false;
         timerAtaque = 0f;
         timerSoco = 0f;
@@ -415,7 +505,27 @@ public class CaranguejoChefe : MonoBehaviour
         }
 
         transform.localScale = tamanhoFinal;
+        EncolhimentoConcluido = true;
+        AutosaveEndy.Instancia?.SolicitarAutosave();
         Debug.Log("Poção funcionou! O Caranguejo Rei encolheu e parou de atacar!");
+    }
+
+    public void RestaurarDerrota(Vector3 posicao)
+    {
+        gameObject.SetActive(true);
+        StopAllCoroutines();
+        PararDanca();
+        PararGestoRaiva();
+        if (comendoPirulito != null) comendoPirulito.Encerrar();
+        estadoAtual = EstadoChefe.Derrotado;
+        EstaCalmo = false;
+        ataqueTeleguiado = ignorarPedrasNoArranque = false;
+        if (!EncolhimentoConcluido) transform.localScale *= 0.15f;
+        EncolhimentoConcluido = true;
+        transform.position = posicao;
+        if (rb != null && !rb.isKinematic) { rb.linearVelocity = Vector3.zero; rb.angularVelocity = Vector3.zero; }
+        if (animChefe != null) animChefe.SetTrigger("Atordoar");
+        if (barreirasInvisiveis != null) barreirasInvisiveis.SetActive(false);
     }
 
     public void FicarRapido(float tempoDeEfeito)
@@ -547,6 +657,17 @@ public class CaranguejoChefe : MonoBehaviour
     {
         PararDanca();
         PararGestoRaiva();
+        if (comendoPirulito != null) comendoPirulito.Encerrar();
+        if (EstaCalmo)
+        {
+            StopAllCoroutines();
+            EstaCalmo = false;
+            if (estadoAtual != EstadoChefe.Derrotado)
+            {
+                estadoAtual = EstadoChefe.Perseguindo;
+                if (animChefe != null) animChefe.SetTrigger("Perseguir");
+            }
+        }
         if (EstaDancando || EstaReagindoComRaiva) estadoAtual = EstadoChefe.Perseguindo;
         if (fimEfeitoVelocidade > 0f) RestaurarVelocidadePocao();
     }

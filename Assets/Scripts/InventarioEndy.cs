@@ -6,6 +6,13 @@ using UnityEngine.InputSystem;
 
 public class InventarioEndy : MonoBehaviour
 {
+    public enum TipoItemNaMao { Nenhum, PocaoVerde, PocaoAzul, Pirulito, Trompete, Radio }
+    public TipoItemNaMao ItemNaMao => TemRadio ? TipoItemNaMao.Radio :
+        TemTrompete ? TipoItemNaMao.Trompete : TemPirulito ? TipoItemNaMao.Pirulito :
+        pocaoSegurada != null ? (pocaoSegurada.tipo == PocaoMagica.TipoPocao.Encolher ? TipoItemNaMao.PocaoVerde : TipoItemNaMao.PocaoAzul) : TipoItemNaMao.Nenhum;
+    public bool ExecutandoAcao => estaJogando || EstaBebendoPocao || EstaTocandoTrompete;
+    public bool EstaEncolhido { get; private set; }
+    public bool TemEfeitoDePocao => EstaEncolhido || fimVelocidade > 0f;
     [Header("Itens do Inventário")]
     public bool temDiario;
     public bool temPocao;
@@ -36,15 +43,16 @@ public class InventarioEndy : MonoBehaviour
     public bool EstaTocandoTrompete { get; private set; }
     public bool TemPirulito => pirulitoSegurado != null;
     private bool estaJogando;
+    public bool EstaBebendoPocao { get; private set; }
+    private Coroutine rotinaBeber;
+    private int camadaBeber = -1;
     private int frameColeta = -1;
     private Vector3 posicaoNaMao;
     private Quaternion rotacaoNaMao = Quaternion.identity;
     private Vector3 escalaNaMao = Vector3.one;
     private StarterAssets.ThirdPersonController movimento;
-    private Vector3 escalaOriginal;
-    private float fimEncolhimento;
     private float fimVelocidade;
-    public bool PodeColetarPocao => !temPocao && !TemPirulito && !TemTrompete && !TemRadio && !estaJogando && !EstaTocandoTrompete;
+    public bool PodeColetarPocao => !temPocao && !TemPirulito && !TemTrompete && !TemRadio && !estaJogando && !EstaTocandoTrompete && !EstaBebendoPocao;
 
     void Awake()
     {
@@ -80,11 +88,10 @@ public class InventarioEndy : MonoBehaviour
 
     void Update()
     {
-        if (fimEncolhimento > 0 && Time.time >= fimEncolhimento) RestaurarTamanho();
         if (fimVelocidade > 0 && Time.time >= fimVelocidade) RestaurarVelocidade();
         var vida = GetComponent<VidaEndy>();
-        if (vida != null && vida.EstaMorto) { CancelarTrompete(); return; }
-        if ((!temPocao && !TemPirulito && !TemTrompete && !TemRadio) || estaJogando || EstaTocandoTrompete || Time.frameCount == frameColeta || Time.timeScale == 0) return;
+        if (vida != null && vida.EstaMorto) { CancelarTrompete(); CancelarBebida(); return; }
+        if ((!temPocao && !TemPirulito && !TemTrompete && !TemRadio) || estaJogando || EstaTocandoTrompete || EstaBebendoPocao || Time.frameCount == frameColeta || Time.timeScale == 0) return;
 #if ENABLE_INPUT_SYSTEM
         if (Keyboard.current == null) return;
         if (Keyboard.current.rKey.wasPressedThisFrame) BeberPocao();
@@ -117,12 +124,50 @@ public class InventarioEndy : MonoBehaviour
 
     public void BeberPocao()
     {
-        if (pocaoSegurada == null || estaJogando) return;
+        var vida = GetComponent<VidaEndy>();
+        if (!isActiveAndEnabled || pocaoSegurada == null || estaJogando || EstaBebendoPocao ||
+            Time.timeScale == 0 || (vida != null && vida.EstaMorto)) return;
+        camadaBeber = animEndy != null && animEndy.isActiveAndEnabled ? animEndy.GetLayerIndex("Arremesso") : -1;
+        AnimationClip clipe = null;
+        if (camadaBeber >= 0 && animEndy.HasState(camadaBeber, Animator.StringToHash("Arremesso.BeberPocao")))
+            foreach (var candidato in animEndy.runtimeAnimatorController.animationClips)
+                if (candidato.name == "Use_Item") { clipe = candidato; break; }
+        if (clipe != null) rotinaBeber = StartCoroutine(RotinaBeberPocao(clipe.length));
+        else ConsumirPocao(); // Compatibilidade com personagens sem o clipe de beber.
+    }
+
+    IEnumerator RotinaBeberPocao(float duracao)
+    {
+        EstaBebendoPocao = true;
+        animEndy.CrossFadeInFixedTime("Arremesso.BeberPocao", 0.1f, camadaBeber, 0f);
+        // O frasco acompanha a mão até o gole; o bônus só começa nesse momento.
+        yield return new WaitForSeconds(duracao * 0.6f);
+        ConsumirPocao();
+        yield return new WaitForSeconds(duracao * 0.4f + 0.1f);
+        EstaBebendoPocao = false;
+        rotinaBeber = null;
+        camadaBeber = -1;
+    }
+
+    void CancelarBebida()
+    {
+        if (!EstaBebendoPocao) return;
+        if (rotinaBeber != null) StopCoroutine(rotinaBeber);
+        rotinaBeber = null;
+        if (animEndy != null && animEndy.isActiveAndEnabled && camadaBeber >= 0)
+            animEndy.Play("Arremesso.Vazio", camadaBeber, 0f);
+        EstaBebendoPocao = false;
+        camadaBeber = -1;
+    }
+
+    void ConsumirPocao()
+    {
+        if (pocaoSegurada == null) return;
         if (pocaoSegurada.tipo == PocaoMagica.TipoPocao.Encolher)
         {
-            if (fimEncolhimento <= 0) escalaOriginal = transform.localScale;
-            transform.localScale = escalaOriginal * Mathf.Clamp(pocaoSegurada.fatorEncolhimento, 0.1f, 1f);
-            fimEncolhimento = Time.time + Mathf.Max(0.1f, pocaoSegurada.tempoDeEfeito);
+            if (!EstaEncolhido)
+                transform.localScale *= Mathf.Clamp(pocaoSegurada.fatorEncolhimento, 0.1f, 1f);
+            EstaEncolhido = true;
         }
         else if (movimento != null)
         {
@@ -137,6 +182,7 @@ public class InventarioEndy : MonoBehaviour
 
     public void JogarPocao()
     {
+        if (EstaBebendoPocao) return;
         if (TemRadio) { ColocarRadio(); return; }
         if (TemTrompete) { TocarTrompete(); return; }
         if ((pocaoSegurada != null || TemPirulito) && !estaJogando) StartCoroutine(RotinaJogarPocao());
@@ -294,12 +340,6 @@ public class InventarioEndy : MonoBehaviour
         AtualizarVisuais();
     }
 
-    void RestaurarTamanho()
-    {
-        if (fimEncolhimento > 0) transform.localScale = escalaOriginal;
-        fimEncolhimento = 0;
-    }
-
     void RestaurarVelocidade()
     {
         if (fimVelocidade > 0 && movimento != null) movimento.MultiplicadorPocao = 1f;
@@ -308,37 +348,11 @@ public class InventarioEndy : MonoBehaviour
 
     void OnDisable()
     {
+        CancelarBebida();
         CancelarTrompete();
         StopAllCoroutines();
         estaJogando = false;
-        RestaurarTamanho();
         RestaurarVelocidade();
     }
 
-    void OnGUI()
-    {
-        if (!mostrarControles) return;
-        if (TemRadio)
-        {
-            GUI.Box(new Rect((Screen.width - 460) / 2f, Screen.height - 85, 460, 60),
-                "Rádio\n[F] Colocar no chão" + (string.IsNullOrEmpty(radioSegurado.Aviso) ? "" : "\n" + radioSegurado.Aviso));
-            return;
-        }
-        if (TemTrompete)
-        {
-            GUI.Box(new Rect((Screen.width - 420) / 2f, Screen.height - 75, 420, 50),
-                "Trompete" + (EstaTocandoTrompete ? "\nTocando..." : "\n[F] Tocar trompete"));
-            return;
-        }
-        if (TemPirulito)
-        {
-            GUI.Box(new Rect((Screen.width - 420) / 2f, Screen.height - 75, 420, 50),
-                "Pirulito" + (estaJogando ? "\nArremessando..." : "\n[F] Arremessar para distrair o chefe"));
-            return;
-        }
-        if (pocaoSegurada == null) return;
-        string nome = pocaoSegurada.tipo == PocaoMagica.TipoPocao.Encolher ? "Poção de encolher" : "Poção de velocidade";
-        GUI.Box(new Rect((Screen.width - 420) / 2f, Screen.height - 75, 420, 50),
-            nome + (estaJogando ? "\nArremessando..." : "\n[R] Beber    [F] Arremessar para a frente"));
-    }
 }
