@@ -18,6 +18,10 @@ public partial class GorilaGuardiao
     public bool manterPoseFinalSono = true;
     [Tooltip("Bolhas junto ao focinho, visiveis somente enquanto esta dormindo.")]
     public ParticleSystem bolhasRonco;
+    [Tooltip("Giro horizontal ao deitar, relativo a orientacao acordado. 90 mostra o perfil; -90 troca o lado.")]
+    [Range(-180f, 180f)] public float giroLateralSono = 90f;
+    [Tooltip("Deslocamento ao deitar em unidades de mundo, independente da escala do prefab. Volta ao ponto original ao acordar.")]
+    public Vector3 deslocamentoSono;
 
     [Header("Audicao durante o sono")]
     [Tooltip("Opcional. Sem referencia, usa o centro de deteccao do gorila.")]
@@ -37,11 +41,17 @@ public partial class GorilaGuardiao
     private float ruidoAcumulado;
     private bool poseSonoCongelada;
     private float velocidadeAnimacaoAntesSono = 1f;
+    private bool orientacaoSonoGuardada;
+    private Quaternion orientacaoAntesSono;
+    private Quaternion inicioGiroSono, destinoGiroSono;
+    private Vector3 posicaoAntesSono, inicioPosicaoSono, destinoPosicaoSono;
+    private float duracaoGiroSono, progressoGiroSono;
     private Vector3 CentroAudicao => centroAudicao != null ? centroAudicao.position : Centro;
 
     private void PrepararSono()
     {
         RestaurarAnimacaoSono();
+        RestaurarOrientacaoSono();
         PararBolhasRonco();
         sonoPreparado = false;
         EstadoSono = EstadoSonoGorila.Acordado;
@@ -75,6 +85,7 @@ public partial class GorilaGuardiao
         }
         if (!sonoPreparado) PrepararSono();
         if (!sonoPreparado || delta <= 0f) return SonoImpedeAtaque;
+        AtualizarGiroSono(delta);
 
         if (EstadoSono == EstadoSonoGorila.Dormindo || EstadoSono == EstadoSonoGorila.Adormecendo)
         {
@@ -93,6 +104,11 @@ public partial class GorilaGuardiao
                 {
                     EstadoSono = EstadoSonoGorila.Adormecendo;
                     tempoEstadoSono = Mathf.Max(0.1f, tempoAdormecer);
+                    orientacaoAntesSono = transform.rotation;
+                    posicaoAntesSono = transform.position;
+                    orientacaoSonoGuardada = true;
+                    IniciarGiroSono(Quaternion.AngleAxis(giroLateralSono, Vector3.up) * orientacaoAntesSono,
+                        posicaoAntesSono + deslocamentoSono, tempoEstadoSono);
                     animGorila.SetInteger(hashParametro, valorDormindo);
                     animGorila.CrossFadeInFixedTime(hashDormindo, tempoEstadoSono, 0, 0f);
                     return true;
@@ -123,6 +139,7 @@ public partial class GorilaGuardiao
                 if (tempoEstadoSono <= 0f)
                 {
                     EstadoSono = EstadoSonoGorila.Acordado;
+                    RestaurarOrientacaoSono();
                     tempoEstadoSono = SortearDuracao(intervaloAcordado);
                     // O atraso de despertar ja acabou; o golpe ainda respeita seu momento de impacto.
                     proximoAtaque = Mathf.Max(proximoAtaque, Time.time);
@@ -159,6 +176,7 @@ public partial class GorilaGuardiao
         PararBolhasRonco();
         EstadoSono = EstadoSonoGorila.Acordando;
         tempoEstadoSono = Mathf.Max(0.1f, tempoAcordar);
+        if (orientacaoSonoGuardada) IniciarGiroSono(orientacaoAntesSono, posicaoAntesSono, tempoEstadoSono);
         ruidoAcumulado = 0f;
         animGorila.SetInteger(hashParametro, valorParado);
         animGorila.CrossFadeInFixedTime(hashParado, tempoEstadoSono, 0, 0f);
@@ -167,11 +185,39 @@ public partial class GorilaGuardiao
     private void InterromperSono()
     {
         RestaurarAnimacaoSono();
+        RestaurarOrientacaoSono();
         PararBolhasRonco();
         if (sonoPreparado && EstadoSono != EstadoSonoGorila.Acordado) VoltarAoRepouso();
         sonoPreparado = false;
         EstadoSono = EstadoSonoGorila.Acordado;
         ruidoAcumulado = 0f;
+    }
+
+    private void IniciarGiroSono(Quaternion destino, Vector3 posicaoDestino, float duracao)
+    {
+        inicioGiroSono = transform.rotation;
+        destinoGiroSono = destino;
+        inicioPosicaoSono = transform.position;
+        destinoPosicaoSono = posicaoDestino;
+        duracaoGiroSono = Mathf.Max(0.1f, duracao);
+        progressoGiroSono = 0f;
+    }
+
+    private void AtualizarGiroSono(float delta)
+    {
+        if (!orientacaoSonoGuardada || progressoGiroSono >= duracaoGiroSono) return;
+        progressoGiroSono = Mathf.Min(duracaoGiroSono, progressoGiroSono + delta);
+        float t = Mathf.SmoothStep(0f, 1f, progressoGiroSono / duracaoGiroSono);
+        transform.rotation = Quaternion.Slerp(inicioGiroSono, destinoGiroSono, t);
+        transform.position = Vector3.Lerp(inicioPosicaoSono, destinoPosicaoSono, t);
+    }
+
+    private void RestaurarOrientacaoSono()
+    {
+        if (!orientacaoSonoGuardada) return;
+        transform.rotation = orientacaoAntesSono;
+        transform.position = posicaoAntesSono;
+        orientacaoSonoGuardada = false;
     }
 
     private void RestaurarAnimacaoSono()

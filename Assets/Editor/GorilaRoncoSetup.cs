@@ -6,6 +6,37 @@ using UnityEngine;
 
 public static class GorilaRoncoSetup
 {
+    [MenuItem("Tools/Gorila/Afastar sono da pedra")]
+    public static void ConfigurarDeslocamento()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode) return;
+        var cena = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+        var g = UnityEngine.Object.FindObjectsByType<GorilaGuardiao>(FindObjectsInactive.Include).Single(x => x.gameObject.scene == cena);
+        Undo.RecordObject(g, "Afastar sono da pedra");
+        // A direita do gorila acordado corresponde a esquerda de quem olha para a entrada.
+        g.deslocamentoSono = Vector3.ProjectOnPlane(g.transform.right, Vector3.up).normalized * 0.8f;
+        PrefabUtility.RecordPrefabInstancePropertyModifications(g);
+        EditorUtility.SetDirty(g);
+        EditorSceneManager.MarkSceneDirty(cena);
+        EditorSceneManager.SaveScene(cena);
+        Selection.activeGameObject = g.gameObject;
+        Debug.Log("Sono deslocado 0,8 metro para a esquerda de quem olha a caverna. Retorna ao acordar. Cena salva.", g);
+    }
+
+    [MenuItem("Tools/Gorila/Colocar sono de lado %#&e")]
+    public static void ConfigurarLado()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode) return;
+        var cena = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+        var g = UnityEngine.Object.FindObjectsByType<GorilaGuardiao>(FindObjectsInactive.Include).Single(x => x.gameObject.scene == cena);
+        Undo.RecordObject(g,"Virar de lado ao dormir");
+        g.giroLateralSono = 90f;
+        PrefabUtility.RecordPrefabInstancePropertyModifications(g);
+        EditorUtility.SetDirty(g); EditorSceneManager.MarkSceneDirty(cena); EditorSceneManager.SaveScene(cena);
+        Selection.activeGameObject = g.gameObject;
+        Debug.Log("Sono lateral configurado: giro suave de 90 graus ao deitar e retorno ao acordar. Cena salva.", g);
+    }
+
     [MenuItem("Tools/Gorila/Configurar sono Die e bolhas %#&r")]
     public static void Configurar()
     {
