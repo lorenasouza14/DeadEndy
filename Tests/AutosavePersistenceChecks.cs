@@ -52,6 +52,10 @@ public static class AutosavePersistenceChecks
             alavancas = new string[0], baus = new string[0]
         };
         Check(dados.Valido(), "Checkpoint inicial completo é válido");
+        dados.cena = ProgressoJogo.CenaIntegrada;
+        Check(dados.Valido(), "Checkpoint aceita a cena unificada");
+        dados.cena = ProgressoJogo.CenaJogo;
+        Check(dados.Valido(), "Checkpoints anteriores da primeira fase continuam validos");
         dados.vida = 5f / 3f;
         Check(dados.Valido(), "Checkpoint preserva vida fracionada do dano do gorila e de quedas");
         dados.vida = 0.25f;

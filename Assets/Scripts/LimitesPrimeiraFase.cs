@@ -26,7 +26,7 @@ public class LimitesPrimeiraFase : MonoBehaviour
     static void AoCarregar(Scene cena, LoadSceneMode modo) { Garantir(cena); }
     public static LimitesPrimeiraFase Garantir(Scene cena)
     {
-        if (!cena.IsValid() || !cena.isLoaded || cena.path != ProgressoJogo.CenaJogo) return null;
+        if (!cena.IsValid() || !cena.isLoaded || !ProgressoJogo.EhCenaJogo(cena.path)) return null;
         foreach (var raiz in cena.GetRootGameObjects())
         {
             var existente = raiz.GetComponentInChildren<LimitesPrimeiraFase>(true);

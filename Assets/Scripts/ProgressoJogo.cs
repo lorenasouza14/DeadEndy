@@ -18,7 +18,7 @@ public class DadosJogo
 
     public bool Valido()
     {
-        return versao == 1 && jogo == "DeadEndy" && cena == ProgressoJogo.CenaJogo &&
+        return versao == 1 && jogo == "DeadEndy" && ProgressoJogo.EhCenaJogo(cena) &&
             DateTime.TryParse(salvoEmUtc, null, System.Globalization.DateTimeStyles.RoundtripKind, out _) &&
             Finito(x) && Finito(y) && Finito(z) && Finito(direcao) &&
             Finito(chefeX) && Finito(chefeY) && Finito(chefeZ) &&
@@ -36,6 +36,8 @@ public class DadosJogo
 public static class ProgressoJogo
 {
     public const string CenaJogo = "Assets/Cenario/PNB_Tropical_Jungle/Scenes/Demo_Day.unity";
+    public const string CenaIntegrada = "Assets/Cenario/PNB_Tropical_Jungle/Scenes/juncao_fase1-2.unity";
+    public static bool EhCenaJogo(string caminho) => caminho == CenaJogo || caminho == CenaIntegrada;
     public const string CenaMenu = "Assets/MenuPrincipal.unity";
     public enum Entrada { Automatica, NovoJogo, Continuar }
     public static Entrada ProximaEntrada { get; private set; }

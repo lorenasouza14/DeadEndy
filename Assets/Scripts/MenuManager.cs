@@ -38,7 +38,7 @@ public class MenuManager : MonoBehaviour
         for (int i = 0; i < SceneManager.sceneCount; i++)
         {
             var cena = SceneManager.GetSceneAt(i);
-            if (!cena.isLoaded || cena == gameObject.scene || cena.path != ProgressoJogo.CenaJogo) continue;
+            if (!cena.isLoaded || cena == gameObject.scene || !ProgressoJogo.EhCenaJogo(cena.path)) continue;
             foreach (var raiz in cena.GetRootGameObjects()) raiz.SetActive(false);
         }
         LiberarCursor();
@@ -120,7 +120,7 @@ public class MenuManager : MonoBehaviour
     void CarregarJogo(bool novo)
     {
         if (carregando) return;
-        if (!Application.CanStreamedLevelBeLoaded(ProgressoJogo.CenaJogo))
+        if (!Application.CanStreamedLevelBeLoaded(ProgressoJogo.CenaIntegrada))
         {
             AbrirDialogo("A cena do jogo não está disponível nesta versão.", "Voltar", FecharDialogo);
             return;
@@ -137,7 +137,7 @@ public class MenuManager : MonoBehaviour
         FecharDialogo();
         Time.timeScale = 1;
         // O personagem assume o cursor quando a fase estiver pronta, nunca no clique do menu.
-        SceneManager.LoadSceneAsync(ProgressoJogo.CenaJogo, LoadSceneMode.Single);
+        SceneManager.LoadSceneAsync(ProgressoJogo.CenaIntegrada, LoadSceneMode.Single);
     }
 
     public void MostrarCreditos()

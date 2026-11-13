@@ -67,7 +67,7 @@ public class VidaEndy : MonoBehaviour
         vidaMaxima = Mathf.Max(1, vidaMaxima);
         vidaAtual = vidaMaxima;
         // Também integra cenas já abertas no editor antes de o autosave ser instalado.
-        if (gameObject.scene.path == ProgressoJogo.CenaJogo && AutosaveEndy.Instancia == null &&
+        if (ProgressoJogo.EhCenaJogo(gameObject.scene.path) && AutosaveEndy.Instancia == null &&
             GetComponent<InventarioEndy>() != null && GetComponent<AutosaveEndy>() == null)
             gameObject.AddComponent<AutosaveEndy>();
         IniciarTransicaoNascimento();

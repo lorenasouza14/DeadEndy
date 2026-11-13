@@ -29,7 +29,7 @@ public class AutosaveEndy : MonoBehaviour
     GameObject hud;
     TMP_Text textoStatus;
     float ocultarStatusEm;
-    public bool ContextoDeJogo => gameObject.scene.path == ProgressoJogo.CenaJogo &&
+    public bool ContextoDeJogo => ProgressoJogo.EhCenaJogo(gameObject.scene.path) &&
         SceneManager.GetActiveScene() == gameObject.scene && !MenuManager.EstaAberto;
 
     void OnValidate() { intervalo = Mathf.Max(300f, intervalo); }
@@ -129,7 +129,7 @@ public class AutosaveEndy : MonoBehaviour
     {
         if (EmCombate || movimento == null || !movimento.Grounded || !movimento.enabled ||
             Time.timeScale == 0 || InteracaoBau.PuzzleAtivo || inventario.ExecutandoAcao ||
-            inventario.ItemNaMao != InventarioEndy.TipoItemNaMao.Nenhum || inventario.TemEfeitoDePocao ||
+            inventario.ItemNaMao != InventarioEndy.TipoItemNaMao.Nenhum || inventario.TemBanana || inventario.TemEfeitoDePocao ||
             AreiaMovedica.EndyNaAreia || (vida != null && Time.unscaledTime - vida.UltimoDanoEm < 5f)) return false;
         if (chefe == null || !chefe.EncolhimentoConcluido)
             foreach (var entrada in entradas)
