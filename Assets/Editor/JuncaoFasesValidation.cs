@@ -23,6 +23,12 @@ public static class JuncaoFasesValidation
     }
     static void AoMudarModo(PlayModeStateChange state)
     {
+        if(state==PlayModeStateChange.EnteredEditMode && SessionState.GetBool("Juncao.RestaurarCenaInicial",false))
+        {
+            SessionState.SetBool("Juncao.RestaurarCenaInicial",false);
+            string anterior=SessionState.GetString("Juncao.CenaInicialAnterior","");
+            EditorSceneManager.playModeStartScene=string.IsNullOrEmpty(anterior)?null:AssetDatabase.LoadAssetAtPath<SceneAsset>(anterior);
+        }
         if(state!=PlayModeStateChange.EnteredPlayMode || !SessionState.GetBool("Juncao.ValidarPlay",false))return;
         SessionState.SetBool("Juncao.ValidarPlay",false);
         foreach(var save in Object.FindObjectsByType<AutosaveEndy>(FindObjectsInactive.Include)) save.enabled=false;
@@ -32,7 +38,10 @@ public static class JuncaoFasesValidation
     {
         const string request="Logs/juncao/comando.txt";
         if(EditorApplication.isCompiling || EditorApplication.isUpdating || EditorApplication.isPlayingOrWillChangePlaymode || !File.Exists(request))return;
-        string command=File.ReadAllText(request).Trim();File.Delete(request);Relatorio.Clear();
+        string command;
+        try{command=File.ReadAllText(request).Trim();File.Delete(request);}
+        catch(IOException){return;}
+        Relatorio.Clear();
         if(command=="estado")
         {
             var text=new StringBuilder();
@@ -42,11 +51,93 @@ public static class JuncaoFasesValidation
         else if(command=="terrenos") InspecionarTerrenos();
         else if(command=="unir") UnirTerrenos();
         else if(command=="validar") Validar();
+        else if(command=="inspecionar-itens") InspecionarItens();
+        else if(command=="ajustar-alavanca") AjustarAlavanca();
+        else if(command=="refresh") AssetDatabase.Refresh();
         else if(command=="play")
         {
             if(SceneManager.GetActiveScene().path!=Cena)throw new Exception("Abra a cena unificada antes do teste em Play.");
-            SessionState.SetBool("Juncao.ValidarPlay",true);EditorApplication.EnterPlaymode();
+            IniciarTeste(false);
         }
+        else if(command=="testar-alavanca")
+        {
+            IniciarTeste(true);
+        }
+    }
+    static void IniciarTeste(bool alavanca)
+    {
+        SessionState.SetString("Juncao.CenaInicialAnterior",AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene));
+        SessionState.SetBool("Juncao.RestaurarCenaInicial",true);
+        EditorSceneManager.playModeStartScene=AssetDatabase.LoadAssetAtPath<SceneAsset>(Cena);
+        SessionState.SetBool("Juncao.ValidarAlavanca",alavanca);
+        SessionState.SetBool("Juncao.ValidarPlay",true);EditorApplication.EnterPlaymode();
+    }
+
+    static void InspecionarItens()
+    {
+        var atual=SceneManager.GetSceneByPath(Cena);
+        var origem=EditorSceneManager.OpenPreviewScene(ProgressoJogo.CenaJogo);
+        try
+        {
+            var text=new StringBuilder();
+            var antiga=NaCena<Transform>(origem).Single(t=>t.name=="SM_Env_Rock_Ramp_02" && (t.position-new Vector3(-57.32f,1.96f,195.36f)).sqrMagnitude<.01f);
+            var nova=NaCena<Transform>(atual).Single(t=>t.name==ArmadilhasRampaSetup.NomePedra);
+            text.AppendLine($"RAMPA ORIGINAL pos={antiga.position:F4} rot={antiga.eulerAngles:F4} scale={antiga.lossyScale:F4}");
+            text.AppendLine($"RAMPA UNIFICADA pos={nova.position:F4} rot={nova.eulerAngles:F4} scale={nova.lossyScale:F4}");
+            foreach(var alavanca in NaCena<AlavancaTriangulo>(atual))
+            {
+                var original=NaCena<AlavancaTriangulo>(origem).Single(l=>l.idSave==alavanca.idSave);
+                var local=antiga.InverseTransformPoint(original.transform.position);
+                text.AppendLine($"ALAVANCA {alavanca.name} pos={alavanca.transform.position:F4} original={original.transform.position:F4} localNaRampa={local:F4} remapeada={nova.TransformPoint(local):F4}");
+                foreach(var col in alavanca.GetComponents<Collider>())text.AppendLine($" collider={col.GetType().Name} trigger={col.isTrigger} bounds={col.bounds}");
+                foreach(var hit in Physics.RaycastAll(alavanca.transform.position+Vector3.up*40,Vector3.down,80,~0,QueryTriggerInteraction.Ignore).OrderBy(h=>h.distance))text.AppendLine($" solo={Caminho(hit.transform)} ponto={hit.point:F4}");
+            }
+            foreach(var t in NaCena<Transform>(atual).Where(t=>t.GetComponent<BananaSopa>()!=null || t.GetComponent<AltarRuinas>()!=null || t.name.StartsWith("Moita armadilha")))text.AppendLine($"OBJ {Caminho(t)} pos={t.position:F4}");
+            File.WriteAllText("Logs/juncao/itens-regiao.txt",text.ToString());
+        }
+        finally{EditorSceneManager.ClosePreviewScene(origem);}
+    }
+
+    [MenuItem("Tools/Mapa/Juncao/Integrar alavanca da primeira fase a rampa")]
+    public static void AjustarAlavanca()
+    {
+        var cena=SceneManager.GetSceneByPath(Cena);
+        if(!cena.IsValid() || !cena.isLoaded || EditorApplication.isPlayingOrWillChangePlaymode)throw new Exception("Abra a juncao fora de Play.");
+        var origem=EditorSceneManager.OpenPreviewScene(ProgressoJogo.CenaJogo);
+        try
+        {
+            var original=NaCena<AlavancaTriangulo>(origem).Single(l=>l.indiceDaLuz==2);
+            var alavanca=NaCena<AlavancaTriangulo>(cena).Single(l=>l.idSave==original.idSave);
+            var rampa=NaCena<Transform>(cena).Single(t=>t.name==ArmadilhasRampaSetup.NomePedra).GetComponent<MeshCollider>();
+            Physics.SyncTransforms();
+            var ray=new Ray(original.transform.position+Vector3.up*40,Vector3.down);
+            Exigir(rampa.Raycast(ray,out var hit,80),"Superficie da pedra ampliada encontrada acima da alavanca original");
+            Exigir(hit.normal.y>.5f,"Alavanca fica sobre uma superficie caminhavel");
+            Directory.CreateDirectory("Logs/juncao");EditorSceneManager.SaveScene(cena,"Logs/juncao/antes-alavanca-rampa.unity",true);
+            Undo.RecordObject(alavanca.transform,"Integrar alavanca com a pedra das traps");
+            alavanca.transform.SetPositionAndRotation(hit.point,original.transform.rotation);
+            // Encosta a malha da base na superficie, sem enterrar o pivô nem deixar a alavanca flutuando.
+            var baseMesh=alavanca.GetComponentsInChildren<MeshFilter>(true).Single(m=>m.name=="Switch_base");
+            var tamanho=baseMesh.sharedMesh.bounds.size;
+            var eixo=tamanho.x<tamanho.y && tamanho.x<tamanho.z?Vector3.right:tamanho.y<tamanho.z?Vector3.up:Vector3.forward;
+            var normalBase=baseMesh.transform.TransformDirection(eixo);
+            if(normalBase.y<0)normalBase=-normalBase;
+            alavanca.transform.rotation=Quaternion.FromToRotation(normalBase,hit.normal)*alavanca.transform.rotation;
+            float minimo=baseMesh.sharedMesh.vertices.Min(v=>Vector3.Dot(baseMesh.transform.TransformPoint(v)-hit.point,hit.normal));
+            alavanca.transform.position+=hit.normal*(.015f-minimo);
+            Physics.SyncTransforms();
+            float margem=NaCena<ArmadilhaMola>(cena).Min(t=>Vector3.Distance(t.transform.position,alavanca.transform.position));
+            Exigir(margem>2f,"Alavanca separada da trap mais proxima: "+margem.ToString("F2")+" m");
+            Exigir(alavanca.gerenciadorCentral!=null && alavanca.haste!=null && alavanca.isActiveAndEnabled,"Haste, luz 2 e gerenciador do puzzle preservados");
+            Relatorio.AppendLine("Alavanca ajustada: "+alavanca.transform.position.ToString("F4")+" normal="+hit.normal.ToString("F4"));
+            EditorUtility.SetDirty(alavanca.transform);EditorSceneManager.MarkSceneDirty(cena);EditorSceneManager.SaveScene(cena);
+            Selection.activeGameObject=alavanca.gameObject;
+            if(SceneView.lastActiveSceneView!=null)SceneView.lastActiveSceneView.LookAt(alavanca.transform.position,Quaternion.Euler(25,-30,0),8);
+            Renderizar("alavanca-traps",alavanca.transform.position+new Vector3(5,4,6),alavanca.transform.position+Vector3.up*.5f,0);
+            EditorSceneManager.SaveScene(cena);
+            File.WriteAllText("Logs/juncao/alavanca-ajustada.txt",Relatorio.ToString());
+        }
+        finally{EditorSceneManager.ClosePreviewScene(origem);}
     }
 
     [MenuItem("Tools/Mapa/Juncao/Combinar terrenos das duas fases")]
@@ -84,7 +175,8 @@ public static class JuncaoFasesValidation
             for(int y=0;y<n;y++)for(int x=0;x<n;x++)if(Mathf.Abs(final[y,x]-resultado[y,x])>0.000001f)throw new Exception("Altura perdida ao salvar terreno");
             Exigir(true,$"Relevo combinado: {aplicados} amostras do gorila; todas as alteracoes da primeira fase preservadas");
             File.WriteAllText("Logs/juncao/terreno-unificado.txt",Relatorio.ToString());
-            Validar();
+            for(int i=0;i<SceneManager.sceneCount;i++)Exigir(!SceneManager.GetSceneAt(i).isDirty,"Cenas salvas antes de recompor a juncao");
+            EditorSceneManager.OpenScene(Cena);AjustarAlavanca();Validar();
         }
         catch(Exception e){Falhar(e);}
     }
@@ -185,6 +277,13 @@ public static class JuncaoFasesValidation
             foreach(var trap in NaCena<ArmadilhaMola>(cena)) Exigir(trap.pontoDeQueda!=null, "Destino da armadilha: "+Caminho(trap.transform));
             var sopa=NaCena<CaldeiraoSopa>(cena).Single();
             Exigir(sopa.jogador==player[0] && sopa.bananasDaReceita.Length==3 && sopa.bananasDaReceita.All(x=>x!=null) && sopa.gorila!=null, "Receita, gorila e jogador conectados");
+            var alavancaRampa=NaCena<AlavancaTriangulo>(cena).Single(l=>l.indiceDaLuz==2);
+            var rampa=NaCena<Transform>(cena).Single(t=>t.name==ArmadilhasRampaSetup.NomePedra).GetComponent<MeshCollider>();
+            Physics.SyncTransforms();
+            Exigir(rampa.Raycast(new Ray(alavancaRampa.transform.position+Vector3.up*40,Vector3.down),out var apoioAlavanca,80),"Alavanca da fase 1 permanece na pedra das traps");
+            var meshBase=alavancaRampa.GetComponentsInChildren<MeshFilter>(true).Single(m=>m.name=="Switch_base");
+            float folgaBase=meshBase.sharedMesh.vertices.Min(v=>Vector3.Dot(meshBase.transform.TransformPoint(v)-apoioAlavanca.point,apoioAlavanca.normal));
+            Exigir(folgaBase>=-.02f && folgaBase<.08f,"Base da alavanca apoiada sobre a pedra, sem ficar enterrada");
             Relatorio.AppendLine("GameObjects="+NaCena<Transform>(cena).Length+" traps="+NaCena<ArmadilhaMola>(cena).Length+" altares="+NaCena<AltarRuinas>(cena).Length);
             Physics.SyncTransforms();
             Renderizar("mapa",new Vector3(-5,330,100),new Vector3(-5,0,100),205);
@@ -216,8 +315,56 @@ public class JuncaoFasesPlayProbe:MonoBehaviour
 {
     readonly StringBuilder report=new StringBuilder();
     readonly System.Collections.Generic.List<string> erros=new System.Collections.Generic.List<string>();
-    void Awake(){Application.logMessageReceived+=RegistrarErro;StartCoroutine(Executar());}
-    void RegistrarErro(string texto,string pilha,LogType tipo){if(tipo==LogType.Error||tipo==LogType.Exception||tipo==LogType.Assert)erros.Add(texto);}
+    void Awake(){Application.logMessageReceived+=RegistrarErro;StartCoroutine(SessionState.GetBool("Juncao.ValidarAlavanca",false)?TestarAlavanca():Executar());}
+    void RegistrarErro(string texto,string pilha,LogType tipo)
+    {
+        if(tipo!=LogType.Error && tipo!=LogType.Exception && tipo!=LogType.Assert)return;
+        if(pilha.Contains("CaveGroundDoctor.Inspect") || pilha.Contains("PlayerSceneDoctor.Inspect") || pilha.Contains("RepairMiningURP.Run"))
+        {report.AppendLine("AVISO: ferramenta antiga do editor: "+texto);return;}
+        erros.Add(texto);
+    }
+    System.Collections.IEnumerator TestarAlavanca()
+    {
+        SessionState.SetBool("Juncao.ValidarAlavanca",false);
+        yield return new WaitForSecondsRealtime(2);
+        AlavancaTriangulo lever=null;
+        try
+        {
+            var scene=SceneManager.GetActiveScene();
+            var roots=scene.GetRootGameObjects();
+            var player=roots.SelectMany(g=>g.GetComponentsInChildren<InventarioEndy>(true)).Single();
+            lever=roots.SelectMany(g=>g.GetComponentsInChildren<AlavancaTriangulo>(true)).Single(l=>l.indiceDaLuz==2);
+            var collider=player.GetComponent<CharacterController>();
+            var movement=player.GetComponent<StarterAssets.ThirdPersonController>();movement.enabled=false;
+            var rampa=roots.SelectMany(g=>g.GetComponentsInChildren<Transform>(true)).Single(t=>t.name==ArmadilhasRampaSetup.NomePedra).GetComponent<MeshCollider>();
+            var alvo=lever.transform.position+new Vector3(-.5f,0,.6f);
+            Exigir(rampa.Raycast(new Ray(alvo+Vector3.up*20,Vector3.down),out var hit,40),"Existe chao acessivel ao lado da alavanca");
+            collider.enabled=false;player.transform.position=hit.point+Vector3.up*.04f;collider.enabled=true;
+            Physics.SyncTransforms();collider.Move(Vector3.down*.03f);
+            var center=player.transform.TransformPoint(collider.center);float radius=collider.radius*Mathf.Max(player.transform.lossyScale.x,player.transform.lossyScale.z);
+            float half=Mathf.Max(0,collider.height*player.transform.lossyScale.y*.5f-radius);
+            var overlaps=Physics.OverlapCapsule(center+Vector3.up*half,center-Vector3.up*half,radius,~0,QueryTriggerInteraction.Collide);
+            Exigir(overlaps.Contains(lever.GetComponent<Collider>()),"Capsula do Endy alcanca o gatilho da alavanca sobre a pedra");
+            Exigir(!overlaps.Any(c=>c.GetComponentInParent<ArmadilhaMola>()!=null),"Interacao com a alavanca nao exige pisar em uma trap");
+            lever.SendMessage("OnTriggerEnter",collider);
+            Exigir(lever.MostrarDica,"Aviso de interacao fica disponivel");
+            lever.SendMessage("PuxarAlavanca");
+        }
+        catch(Exception e){report.AppendLine("FAIL: "+e);}
+        yield return new WaitForSecondsRealtime(1);
+        try
+        {
+            Exigir(lever!=null && lever.Concluida,"Alavanca conclui animacao de acionamento");
+            Exigir(lever.gerenciadorCentral.fogoDasTochas[2].activeSelf,"Alavanca acende a terceira tocha do puzzle da fase 1");
+            Exigir(erros.Count==0,"Sem erros de jogo durante a interacao: "+string.Join(" | ",erros));
+        }
+        catch(Exception e){report.AppendLine("FAIL: "+e);}
+        finally
+        {
+            Application.logMessageReceived-=RegistrarErro;
+            File.WriteAllText("Logs/juncao/alavanca-play.txt",report.ToString());EditorApplication.ExitPlaymode();
+        }
+    }
     void Exigir(bool ok,string texto){report.AppendLine((ok?"PASS: ":"FAIL: ")+texto);if(!ok)throw new Exception(texto);}
     System.Collections.IEnumerator Executar()
     {
