@@ -8,6 +8,7 @@ using UnityEngine.InputSystem;
 
 public class InteracaoBau : MonoBehaviour
 {
+    [HideInInspector] public string idSave;
     [Header("Configurações do Puzzle")]
     [Tooltip("A barra (Slider) que criamos dentro do Canvas do baú")]
     public Slider barraPuzzle;
@@ -16,13 +17,13 @@ public class InteracaoBau : MonoBehaviour
     public float velocidadePonteiro = 1.5f;
 
     [Tooltip("Ponto mínimo da zona de acerto (0.0 a 1.0)")]
-    public float zonaVerdeMin = 0.4f;
+    public float zonaVerdeMin = 0.35f;
     [Tooltip("Ponto máximo da zona de acerto (0.0 a 1.0)")]
-    public float zonaVerdeMax = 0.6f;
+    public float zonaVerdeMax = 0.65f;
 
     [Header("Dificuldade a cada acerto")]
     [Range(0.1f, 1f)] public float fatorLarguraPorAcerto = 0.7f;
-    [Range(0.01f, 1f)] public float larguraMinimaZona = 0.06f;
+    [Range(0.01f, 1f)] public float larguraMinimaZona = 0.09f;
     [Min(0f)] public float aumentoVelocidadePorAcerto = 0.5f;
     private float zonaInicialMin, zonaInicialMax;
     private RectTransform marcadorZona;
@@ -79,6 +80,7 @@ public class InteracaoBau : MonoBehaviour
 
     void Awake()
     {
+        if (string.IsNullOrEmpty(idSave)) idSave = AutosaveEndy.Identificar(this);
         if (barraPuzzle == null) barraPuzzle = GetComponentInChildren<Slider>(true);
         if (barraPuzzle != null)
         {
@@ -100,7 +102,11 @@ public class InteracaoBau : MonoBehaviour
         AtualizarDificuldade();
         // Garante que ambos começam invisíveis, mas o Canvas (o pai) fica ligado!
         if (objetoSlider != null) objetoSlider.SetActive(false);
-        if (iconeTeclaE != null) iconeTeclaE.SetActive(false);
+        if (iconeTeclaE != null)
+        {
+            iconeTeclaE.SetActive(false);
+            TeclaInteracao.Aplicar(iconeTeclaE.GetComponentInChildren<TMPro.TMP_Text>(true));
+        }
 
         posicaoFixaPai = transform.position;
         if (animBau != null)
@@ -186,6 +192,8 @@ public class InteracaoBau : MonoBehaviour
     void IniciarPuzzle()
     {
         if (barraPuzzle == null || (puzzleAtual != null && puzzleAtual != this)) return;
+        if (movimentoJogador != null) AnimacaoInteracaoEndy.Tocar(movimentoJogador.GetComponent<InventarioEndy>());
+        AutosaveEndy.Instancia?.EntrarNaArena();
         PararFeedbackErro();
         puzzleAtual = this;
         if (movimentoJogador != null) movimentoJogador.BloquearPulo = true;
@@ -365,6 +373,22 @@ public class InteracaoBau : MonoBehaviour
         if (localFundo == null) localFundo = transform.Find("Chest_Bottom");
         if (localFundo == null) localFundo = transform;
         if (GerenciadorDeBaus.Instancia != null) GerenciadorDeBaus.Instancia.FazerItemNascer(localFundo);
+    }
+
+    public void RestaurarAberto()
+    {
+        StopAllCoroutines();
+        bauAberto = true;
+        fazendoPuzzle = false;
+        if (objetoSlider != null) objetoSlider.SetActive(false);
+        if (iconeTeclaE != null) iconeTeclaE.SetActive(false);
+        if (animBau != null)
+        {
+            animBau.speed = 1;
+            animBau.Play("Chest_Open_Close", 0, 0);
+            animBau.Update(0.65f);
+            animBau.speed = 0;
+        }
     }
 
     IEnumerator TremerBauRapido()

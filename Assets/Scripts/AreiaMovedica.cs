@@ -8,6 +8,7 @@ public class AreiaMovedica : MonoBehaviour
     // Variáveis 'static' são compartilhadas por TODAS as poças ao mesmo tempo!
     // Assim, uma poça nunca apaga a velocidade original que a primeira poça salvou.
     private static int pocasPisadas = 0;
+    public static bool EndyNaAreia => pocasPisadas > 0 && controleSalvo != null;
     private static float velocidadeOriginal;
     private static float sprintOriginal;
     private static ThirdPersonController controleSalvo;

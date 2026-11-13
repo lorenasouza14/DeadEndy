@@ -53,7 +53,7 @@ public class EfeitoPirulito : MonoBehaviour
         if (dono != null && collision.transform.IsChildOf(dono)) return;
         acertou = true;
         var chefe = collision.collider.GetComponentInParent<CaranguejoChefe>();
-        if (chefe != null) chefe.FicarCalmo(tempoDePaz);
+        if (chefe != null) chefe.FicarCalmo(tempoDePaz, this);
         Destroy(gameObject);
     }
 }

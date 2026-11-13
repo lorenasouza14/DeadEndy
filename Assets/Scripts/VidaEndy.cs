@@ -11,7 +11,15 @@ public class VidaEndy : MonoBehaviour
     private bool estaMorto = false;
     public bool EstaMorto => estaMorto;
     public float VidaAtual => vidaAtual;
-    public float FracaoVida => vidaAtual / Mathf.Max(1, vidaMaxima);
+    public float UltimoDanoEm { get; private set; } = float.NegativeInfinity;
+
+    public void RestaurarVidaDoSave(float quantidade)
+    {
+        if (float.IsNaN(quantidade) || float.IsInfinity(quantidade) || quantidade <= 0f) return;
+        vidaAtual = Mathf.Min(quantidade, vidaMaxima);
+        tempoAteRecuperar = esperaSemDano;
+    }
+    public float FracaoVida => (float)vidaAtual / Mathf.Max(1, vidaMaxima);
     public bool VidaBaixa => !estaMorto && FracaoVida <= limiteVidaBaixa;
     public bool EstaRegenerando { get; private set; }
 
@@ -36,6 +44,12 @@ public class VidaEndy : MonoBehaviour
     [Header("Tempos de Animação")]
     public float tempoAnimacaoMorte = 2.5f;
 
+    [Header("Nascimento - despertar")]
+    [Min(0f)] public float tempoTelaPretaAoNascer = 0.35f;
+    [Min(0f)] public float duracaoClarearAoNascer = 2f;
+    private GameObject telaNascimento;
+    private Coroutine rotinaNascimento;
+
     [Header("Física e Movimento")]
     public MonoBehaviour scriptDeMovimento; // O script que faz ele andar
     public CharacterController controleDeColisao; // A cápsula que o mantém em pé
@@ -52,6 +66,70 @@ public class VidaEndy : MonoBehaviour
     {
         vidaMaxima = Mathf.Max(1, vidaMaxima);
         vidaAtual = vidaMaxima;
+        // Também integra cenas já abertas no editor antes de o autosave ser instalado.
+        if (gameObject.scene.path == ProgressoJogo.CenaJogo && AutosaveEndy.Instancia == null &&
+            GetComponent<InventarioEndy>() != null && GetComponent<AutosaveEndy>() == null)
+            gameObject.AddComponent<AutosaveEndy>();
+        IniciarTransicaoNascimento();
+    }
+
+    // Também pode ser chamado por um respawn futuro que reutilize o personagem.
+    public void IniciarTransicaoNascimento()
+    {
+        EncerrarTransicaoNascimento();
+        if (!isActiveAndEnabled || estaMorto ||
+            (tempoTelaPretaAoNascer <= 0f && duracaoClarearAoNascer <= 0f)) return;
+
+        // Canvas independente da escala do Endy e já preto antes do primeiro frame.
+        telaNascimento = new GameObject("Despertar do Endy", typeof(RectTransform), typeof(Canvas));
+        telaNascimento.layer = 5;
+        var canvas = telaNascimento.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 32760;
+        var fundo = new GameObject("Tela preta", typeof(RectTransform), typeof(Image));
+        fundo.layer = 5;
+        fundo.transform.SetParent(telaNascimento.transform, false);
+        var imagem = fundo.GetComponent<Image>();
+        imagem.color = Color.black;
+        imagem.raycastTarget = false;
+        imagem.rectTransform.anchorMin = Vector2.zero;
+        imagem.rectTransform.anchorMax = Vector2.one;
+        imagem.rectTransform.offsetMin = imagem.rectTransform.offsetMax = Vector2.zero;
+        rotinaNascimento = StartCoroutine(ClarearNascimento(imagem));
+    }
+
+    System.Collections.IEnumerator ClarearNascimento(Image imagem)
+    {
+        // Deixa a câmera se posicionar sob o preto antes de revelar o personagem.
+        yield return null;
+        if (tempoTelaPretaAoNascer > 0f)
+            yield return new WaitForSecondsRealtime(tempoTelaPretaAoNascer);
+
+        float duracao = Mathf.Max(0f, duracaoClarearAoNascer);
+        for (float tempo = 0f; tempo < duracao; tempo += Time.unscaledDeltaTime)
+        {
+            float opacidade = 1f - Mathf.SmoothStep(0f, 1f, tempo / duracao);
+            imagem.color = new Color(0f, 0f, 0f, opacidade);
+            yield return null;
+        }
+
+        rotinaNascimento = null;
+        RemoverTelaNascimento();
+    }
+
+    void RemoverTelaNascimento()
+    {
+        if (telaNascimento == null) return;
+        telaNascimento.SetActive(false);
+        Destroy(telaNascimento);
+        telaNascimento = null;
+    }
+
+    void EncerrarTransicaoNascimento()
+    {
+        if (rotinaNascimento != null) StopCoroutine(rotinaNascimento);
+        rotinaNascimento = null;
+        RemoverTelaNascimento();
     }
 
     void OnEnable()
@@ -71,10 +149,6 @@ public class VidaEndy : MonoBehaviour
         }
         if (telaVermelha != null) telaVermelha.raycastTarget = false;
 
-        if (animEndy != null)
-        {
-            animEndy.SetTrigger("Nascer");
-        }
     }
 
     public void TomarDano()
@@ -88,6 +162,7 @@ public class VidaEndy : MonoBehaviour
         if (estaMorto || Time.timeScale <= 0f || quantidade <= 0f ||
             float.IsNaN(quantidade) || float.IsInfinity(quantidade)) return;
 
+        UltimoDanoEm = Time.unscaledTime;
         vidaAtual = Mathf.Max(0f, vidaAtual - quantidade);
         // Tres parcelas de 1/3 podem deixar um residuo de ponto flutuante.
         if (vidaAtual <= vidaMaxima * 0.000001f) vidaAtual = 0f;
@@ -144,6 +219,7 @@ public class VidaEndy : MonoBehaviour
     {
         if (movimentoQueda != null) movimentoQueda.AoSofrerDanoDeQueda -= TomarDano;
         if (menuPause != null) menuPause.Retornar();
+        EncerrarTransicaoNascimento();
         tempoFlash = 0f;
         AtualizarFlash();
         if (indicador != null) indicador.Ocultar();
@@ -153,6 +229,7 @@ public class VidaEndy : MonoBehaviour
     {
         if (menuPause != null) menuPause.Retornar();
         estaMorto = true;
+        EncerrarTransicaoNascimento();
         vidaAtual = 0;
         EstaRegenerando = false;
         tempoFlash = 0f;

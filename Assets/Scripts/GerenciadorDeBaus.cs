@@ -66,8 +66,7 @@ public class GerenciadorDeBaus : MonoBehaviour
             AjusteDeItem ajuste = itemSorteado.GetComponent<AjusteDeItem>();
             if (ajuste != null)
             {
-                itemSorteado.transform.localPosition = ajuste.posicaoCustomizada;
-                itemSorteado.transform.localEulerAngles = ajuste.rotacaoCustomizada;
+                ajuste.Aplicar();
             }
             else
             {

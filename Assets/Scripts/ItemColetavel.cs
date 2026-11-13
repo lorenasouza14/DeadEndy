@@ -14,6 +14,10 @@ public class ItemColetavel : MonoBehaviour
     public bool ehRadio;
     private InventarioEndy inventario;
     private readonly HashSet<Collider> contatos = new HashSet<Collider>();
+    private BrilhoColetavel brilho;
+
+    void Awake() { brilho = new BrilhoColetavel(gameObject); }
+    void LateUpdate() { brilho.Desenhar(Camera.main); }
 
     void Update()
     {
@@ -32,11 +36,20 @@ public class ItemColetavel : MonoBehaviour
 #else
             bool recolher = Input.GetKeyDown(KeyCode.Q);
 #endif
-            if (recolher && radio != null && radio.Colocado) inventario.ColetarRadio(radio);
+            var destino = inventario; // Recolher desativa o item e limpa a referência de proximidade.
+            if (recolher && radio != null && radio.Colocado && destino.ColetarRadio(radio))
+                AnimacaoInteracaoEndy.Tocar(destino);
         }
     }
 
     public bool TentarColetar(InventarioEndy destino)
+    {
+        bool coletou = Coletar(destino);
+        if (coletou) AnimacaoInteracaoEndy.Tocar(destino);
+        return coletou;
+    }
+
+    bool Coletar(InventarioEndy destino)
     {
         if (destino == null || !isActiveAndEnabled) return false;
         var banana = GetComponentInParent<BananaSopa>();

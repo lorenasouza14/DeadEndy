@@ -18,6 +18,49 @@ public static class PotionWorkflowValidation
         EditorApplication.playModeStateChanged += OnPlayModeChanged;
     }
 
+    public static void RunChestSpawnBatch()
+    {
+        if (!Application.isBatchMode) throw new InvalidOperationException("Validação reservada ao modo batch.");
+        try
+        {
+            EditorSceneManager.OpenScene("Assets/Cenario/PNB_Tropical_Jungle/Scenes/Demo_Day.unity");
+            var manager = Object.FindAnyObjectByType<GerenciadorDeBaus>();
+            Check(manager != null && manager.baus.Length == 5, "Cinco baús da cena encontrados");
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Baus/Prefabs/Lollipop_01.prefab");
+            manager.itemPrimeiro = prefab;
+            manager.itensDoMeio = new[] { prefab, prefab, prefab };
+            manager.itemUltimo = prefab;
+            manager.SendMessage("Start");
+            foreach (Transform chest in manager.baus)
+            {
+                Transform bottom = chest.Find("Chest_Animated/Chest_Bottom");
+                Check(bottom != null, "Fundo encontrado: " + chest.name);
+                manager.FazerItemNascer(bottom);
+                var candy = bottom.GetComponentInChildren<EfeitoPirulito>();
+                Check(candy != null, "Spawn real criou o pirulito: " + chest.name);
+                var adjustment = candy.GetComponent<AjusteDeItem>();
+                Bounds bounds = adjustment.CalcularLimites(bottom);
+                Bounds chestBounds = bottom.GetComponent<MeshFilter>().sharedMesh.bounds;
+                Check(Mathf.Abs(bounds.center.x - adjustment.posicaoCustomizada.x) < 0.001f &&
+                    Mathf.Abs(bounds.center.z - adjustment.posicaoCustomizada.z) < 0.001f &&
+                    Mathf.Abs(bounds.min.y - adjustment.posicaoCustomizada.y) < 0.001f,
+                    "Spawn centraliza a malha e respeita a altura: " + chest.name);
+                Check(bounds.min.x > chestBounds.min.x && bounds.max.x < chestBounds.max.x &&
+                    bounds.min.z > chestBounds.min.z && bounds.max.z < chestBounds.max.z &&
+                    bounds.min.y > chestBounds.min.y && bounds.max.y < chestBounds.max.y,
+                    "Pirulito cabe dentro do baú: " + chest.name);
+                Object.DestroyImmediate(candy.gameObject);
+            }
+            Debug.Log("PASS: spawn do pirulito nos cinco baús");
+            EditorApplication.Exit(0);
+        }
+        catch (Exception error)
+        {
+            Debug.LogException(error);
+            EditorApplication.Exit(1);
+        }
+    }
+
     public static void RunBatch()
     {
         if (!Application.isBatchMode) throw new InvalidOperationException("Validação reservada ao modo batch.");
@@ -192,7 +235,7 @@ public class PotionWorkflowValidationRunner : MonoBehaviour
         inventory.BeberPocao();
         Check(player.transform.localScale == Vector3.one * 0.5f && !inventory.temPocao, "Beber A encolhe Endy e libera a mão");
         yield return new WaitForSeconds(0.2f);
-        Check(player.transform.localScale == Vector3.one, "Tamanho restaurado após o efeito");
+        Check(inventory.EstaEncolhido && player.transform.localScale == Vector3.one * 0.5f, "Endy continua encolhido após a duração antiga");
 
         float baseSpeed = movement.MoveSpeed;
         blue.tempoDeEfeito = 0.1f;
