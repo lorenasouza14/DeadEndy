@@ -12,8 +12,12 @@ public partial class GorilaGuardiao
     [Min(0.1f)] public float tempoAdormecer = 0.8f;
     [Tooltip("Transicao visivel para Idle. O gorila so pode iniciar o ataque depois deste tempo.")]
     [Min(0.1f)] public float tempoAcordar = 1.5f;
-    public string estadoDormindo = "Base Layer.Rest";
-    public int valorDormindo = 5;
+    public string estadoDormindo = "Base Layer.Animal_Gorilla@Die";
+    public int valorDormindo = 8;
+    [Tooltip("Espera terminar Die e mantem a pose deitado ate acordar, sem repetir a queda.")]
+    public bool manterPoseFinalSono = true;
+    [Tooltip("Bolhas junto ao focinho, visiveis somente enquanto esta dormindo.")]
+    public ParticleSystem bolhasRonco;
 
     [Header("Audicao durante o sono")]
     [Tooltip("Opcional. Sem referencia, usa o centro de deteccao do gorila.")]
@@ -31,17 +35,21 @@ public partial class GorilaGuardiao
     private int hashDormindo;
     private float tempoEstadoSono;
     private float ruidoAcumulado;
+    private bool poseSonoCongelada;
+    private float velocidadeAnimacaoAntesSono = 1f;
     private Vector3 CentroAudicao => centroAudicao != null ? centroAudicao.position : Centro;
 
     private void PrepararSono()
     {
+        RestaurarAnimacaoSono();
+        PararBolhasRonco();
         sonoPreparado = false;
         EstadoSono = EstadoSonoGorila.Acordado;
         if (!usarCicloSono || !configurado) return;
         hashDormindo = Animator.StringToHash(estadoDormindo);
         if (!animGorila.HasState(0, hashDormindo))
         {
-            Debug.LogError("GorilaGuardiao: estado de sono ausente. Use Base Layer.Rest no Gorilla.controller original.", this);
+            Debug.LogError("GorilaGuardiao: estado de sono ausente: " + estadoDormindo, this);
             usarCicloSono = false;
             return;
         }
@@ -91,10 +99,21 @@ public partial class GorilaGuardiao
                 }
                 return false;
             case EstadoSonoGorila.Adormecendo:
-                if (tempoEstadoSono <= 0f)
+                var pose = animGorila.GetCurrentAnimatorStateInfo(0);
+                bool terminouDeitar = !manterPoseFinalSono ||
+                    (!animGorila.IsInTransition(0) && pose.fullPathHash == hashDormindo && pose.normalizedTime >= 0.98f);
+                if (tempoEstadoSono <= 0f && terminouDeitar)
                 {
+                    if (manterPoseFinalSono)
+                    {
+                        velocidadeAnimacaoAntesSono = animGorila.speed;
+                        animGorila.Play(hashDormindo, 0, 0.999f);
+                        animGorila.speed = 0f;
+                        poseSonoCongelada = true;
+                    }
                     EstadoSono = EstadoSonoGorila.Dormindo;
                     tempoEstadoSono = SortearDuracao(intervaloDormindo);
+                    if (bolhasRonco != null) bolhasRonco.Play(true);
                 }
                 return true;
             case EstadoSonoGorila.Dormindo:
@@ -136,6 +155,8 @@ public partial class GorilaGuardiao
 
     private void Acordar()
     {
+        RestaurarAnimacaoSono();
+        PararBolhasRonco();
         EstadoSono = EstadoSonoGorila.Acordando;
         tempoEstadoSono = Mathf.Max(0.1f, tempoAcordar);
         ruidoAcumulado = 0f;
@@ -145,10 +166,24 @@ public partial class GorilaGuardiao
 
     private void InterromperSono()
     {
+        RestaurarAnimacaoSono();
+        PararBolhasRonco();
         if (sonoPreparado && EstadoSono != EstadoSonoGorila.Acordado) VoltarAoRepouso();
         sonoPreparado = false;
         EstadoSono = EstadoSonoGorila.Acordado;
         ruidoAcumulado = 0f;
+    }
+
+    private void RestaurarAnimacaoSono()
+    {
+        if (!poseSonoCongelada) return;
+        if (animGorila != null) animGorila.speed = velocidadeAnimacaoAntesSono;
+        poseSonoCongelada = false;
+    }
+
+    private void PararBolhasRonco()
+    {
+        if (bolhasRonco != null) bolhasRonco.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
     }
 
     private void DesenharAudicao()

@@ -1,6 +1,6 @@
 # Gorila: sono e aproximacao silenciosa
 
-A instancia do gorila em `Demo_day_fase_gorilla` ja esta salva com **Usar Ciclo Sono marcado** e **Causar Dano desmarcado**. Os passos abaixo servem para conferir ou ajustar. O primeiro sono ocorre depois de 20 a 35 segundos de jogo; observe parado ou fora do raio de audicao para nao acorda-lo durante a aproximacao.
+A instancia do gorila em `Demo_day_fase_gorilla` ja esta salva com **Usar Ciclo Sono marcado** e **Causar Dano marcado**. Os passos abaixo servem para conferir ou ajustar. O primeiro sono ocorre depois de 20 a 35 segundos de jogo; observe parado ou fora do raio de audicao para nao acorda-lo durante a aproximacao.
 
 O comportamento foi integrado ao `GorilaGuardiao` existente. A caminhada lenta foi integrada ao `ThirdPersonController` do Endy. Os arquivos `.Sono.cs` e `.Furtividade.cs` completam esses componentes: **nao tente adiciona-los separadamente no Inspector**.
 
@@ -17,8 +17,8 @@ O comportamento foi integrado ao `GorilaGuardiao` existente. A caminhada lenta f
 | Intervalo Dormindo | X = 8, Y = 12 segundos |
 | Tempo Adormecer | 0,8 segundo |
 | Tempo Acordar | 1,5 segundo |
-| Estado Dormindo | `Base Layer.Rest` |
-| Valor Dormindo | **5** |
+| Estado Dormindo | `Base Layer.Animal_Gorilla@Die` |
+| Valor Dormindo | **8** |
 | Raio Audicao | 7 metros |
 | Velocidade Que Acorda | 1,6 m/s |
 | Tolerancia Ruido | 0,1 segundo |
@@ -32,9 +32,9 @@ O comportamento foi integrado ao `GorilaGuardiao` existente. A caminhada lenta f
 
 ## O que acontece no jogo
 
-- Comeca acordado. Ao terminar o intervalo, entra em Rest e permanece em repouso.
+- Comeca acordado. Ao terminar o intervalo, toca Die, termina de deitar e permanece na pose final durante o sono. Esse uso e apenas visual: nao mata nem desativa o gorila.
 - Nao ha contagem, mensagem, bocejo de aviso nem sinal antecipado de despertar.
-- Ao terminar o sono ou ouvir Endy, faz uma transicao gradual de Rest para Idle. Somente depois de **Tempo Acordar** pode iniciar Attack. O contato continua respeitando **Momento Impacto** da animacao original.
+- Ao terminar o sono ou ouvir Endy, faz uma transicao gradual da pose final de Die para Idle. Somente depois de **Tempo Acordar** pode iniciar Attack. O contato continua respeitando **Momento Impacto** da animacao original.
 - Dentro da esfera amarela, velocidade horizontal real acima do limite acorda o gorila. Pular ou esquivar tambem acorda. Ficar parado ou andar devagar nao acorda. Fora da esfera, movimento nao interfere.
 - Apertar Ctrl no ultimo instante nao interrompe instantaneamente a inercia: reduza a velocidade antes de entrar na area.
 - O gorila nao persegue nem aplica pancada a distancia. Recuar para fora do alcance antes do contato evita o arremesso. Ele nao inicia outro ataque enquanto Endy ainda esta sendo arremessado.
@@ -46,3 +46,9 @@ O comportamento foi integrado ao `GorilaGuardiao` existente. A caminhada lenta f
 Para testar sem esperar tanto, coloque temporariamente Intervalo Acordado em (3, 3). No Play Mode: espere dormir, aproxime-se com Ctrl, solte Ctrl e ande, observe a transicao e recue. Repita ficando perto para receber o golpe, conferindo que cada acerto retira 1/3 da vida maxima. Corra longe do gorila e confira que ele permanece dormindo. Restaure (20, 35) para o ritmo final.
 
 O menu **Tools > Gorila > Validar sono e furtividade** executa verificacoes isoladas numa cena temporaria e grava `Logs/gorila-sono-validation.txt`. Ele nao configura nem salva a fase. O menu anterior **Validar ataque e arremesso** continua cobrindo o ataque com dano habilitado.
+
+## Bolhas de ronco
+
+A configuracao atual foi aplicada em **juncao_fase1-2**, a cena aberta durante a alteracao. Ela usa o filho **Bolhas de ronco** no osso **head**, associado a **Bolhas Ronco** em Gorila Guardiao. Sao bolhas pequenas, translucidas, com contorno e brilho, que sobem devagar. Elas aparecem somente em Dormindo e sao removidas ao acordar, desativar a guarda ou preparar a sopa. Nao ha audio de ronco.
+
+**Manter Pose Final Sono** espera a animacao terminar e segura o ultimo quadro. A velocidade original do Animator e restaurada antes de acordar, atacar ou caminhar para a sopa. Os 8 a 12 segundos de sono contam depois de deitar. O menu **Tools > Gorila > Configurar sono Die e bolhas** reaplica apenas essa apresentacao, preservando os intervalos e o dano configurados. Alteracao aplicada sem executar testes em Play Mode, a pedido do usuario.

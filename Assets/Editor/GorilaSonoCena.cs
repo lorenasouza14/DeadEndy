@@ -28,8 +28,9 @@ public static class GorilaSonoCena
         g.usarCicloSono = true;
         g.causarDano = true;
         g.guardandoCaverna = true;
-        g.estadoDormindo = "Base Layer.Rest";
-        g.valorDormindo = 5;
+        g.estadoDormindo = "Base Layer.Animal_Gorilla@Die";
+        g.valorDormindo = 8;
+        g.manterPoseFinalSono = true;
         g.intervaloAcordado = new Vector2(20, 35);
         g.intervaloDormindo = new Vector2(8, 12);
         g.tempoAdormecer = 0.8f;
@@ -40,7 +41,7 @@ public static class GorilaSonoCena
         EditorSceneManager.SaveScene(g.gameObject.scene);
         Selection.activeGameObject = g.gameObject;
         Directory.CreateDirectory("Logs");
-        File.WriteAllText(Relatorio, "Configuracao salva: sono ativo, dano de 1/3 ativo, Rest=5, acordado 20-35s, dormindo 8-12s.\n");
+        File.WriteAllText(Relatorio, "Configuracao salva: sono ativo, dano de 1/3 ativo, Die=8, acordado 20-35s, dormindo 8-12s.\n");
         Debug.Log("Sono ativado no gorila da caverna e cena salva.", g);
     }
 
@@ -66,9 +67,9 @@ public static class GorilaSonoCena
         }
         if (gorila.EstaDormindo && !dormiu)
         {
-            if (!gorila.animGorila.GetCurrentAnimatorStateInfo(0).IsName("Base Layer.Rest")) return;
+            if (!gorila.animGorila.GetCurrentAnimatorStateInfo(0).IsName(gorila.estadoDormindo)) return;
             dormiu = true;
-            File.AppendAllText(Relatorio, $"PASS: dormiu naturalmente aos {Time.time:F1}s; Animator em Rest.\n");
+            File.AppendAllText(Relatorio, $"PASS: dormiu naturalmente aos {Time.time:F1}s; Animator em {gorila.estadoDormindo}.\n");
         }
         if (dormiu && gorila.EstadoSono == GorilaGuardiao.EstadoSonoGorila.Acordando) acordando = true;
         if (acordando && gorila.EstadoSono == GorilaGuardiao.EstadoSonoGorila.Acordado)
