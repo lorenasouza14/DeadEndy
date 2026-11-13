@@ -43,7 +43,9 @@ public partial class InventarioEndy
     {
         if (!TemBanana) return;
         var vida = GetComponent<VidaEndy>();
-        if ((vida != null && vida.EstaMorto) || (movimento != null && movimento.EstaArremessado)) DevolverBanana();
+        // O golpe interrompe a interacao, mas nao desfaz uma coleta ja concluida.
+        // PodeInteragirComSopa libera a entrega quando o arremesso terminar.
+        if (vida != null && vida.EstaMorto) DevolverBanana();
     }
 
     public void DevolverBanana()

@@ -2,8 +2,12 @@
 
 O gorila fica no posto, vira para Endy e toca o ataque do asset quando ele entra
 no alcance. No momento configurado da animação, verifica novamente distância e
-paredes: se acertar, chama `VidaEndy.TomarDano()` uma vez e arremessa Endy.
+paredes: se acertar, chama `VidaEndy.TomarDano(vidaMaxima / 3f)` uma vez e arremessa Endy.
 Depois termina o movimento e espera antes de atacar novamente.
+
+Com **Causar Dano** ativo, cada acerto retira 33,33% da vida maxima, inclusive com maximos que nao sao divisiveis por tres. Tres acertos sem cura entre eles sao fatais. A regeneracao continua funcionando, limitada ao maximo. Outros inimigos que chamam `TomarDano()` continuam retirando um ponto. Depois da sopa, o gorila docil nao causa dano nem arremessa.
+
+Validacao: **Tools > Gorila > Testar dano de um terco na fase** verifica fracoes, cura e tres ataques reais em Play Mode. Relatorio: `Logs/gorila-dano-terco.txt`.
 
 ## Configuração no Unity
 
@@ -76,14 +80,14 @@ mesmo se o arquivo importado estiver com Loop Time ativado.
 
 ## Teste na fase
 
-- Aproxime Endy: gorila vira, bate, desconta uma vida e lança Endy para fora.
+- Aproxime Endy: gorila vira, bate, desconta um terço da vida máxima e lança Endy para fora.
 - Segure movimento ou tente AA/DD durante o impacto: não deve cancelar o arremesso.
 - Saia da esfera antes do contato: gorila erra, sem dano nem arremesso.
-- Fique perto por vários ataques: apenas um ponto de dano por animação.
+- Fique perto por vários ataques: apenas uma aplicação de dano (1/3 da vida máxima) por animação.
 - Teste perto de paredes: o golpe não atravessa obstáculos e a cápsula limita o arremesso.
 - Pause durante o arremesso: deslocamento e ataque devem congelar.
 - Desmarque Guardando Caverna durante a preparação: não deve aplicar o golpe pendente.
-- Teste com uma vida: prevalece a morte existente, sem reativar movimento/cápsula
+- Teste com um terço da vida ou menos: prevalece a morte existente, sem reativar movimento/cápsula
   nem arremessar o corpo. Vida Endy regenera por padrão; desmarque Regenerar Vida
   temporariamente se quiser observar a contagem sem recuperação.
 

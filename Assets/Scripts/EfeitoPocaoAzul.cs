@@ -18,6 +18,7 @@ public class EfeitoPocaoAzul : MonoBehaviour
 
     void Update()
     {
+        if (Time.timeScale <= 0f) return;
         if (jogadorPerto && !jaFoiUsada)
         {
             if (Input.GetKeyDown(KeyCode.E))

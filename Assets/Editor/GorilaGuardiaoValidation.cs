@@ -87,9 +87,9 @@ public static class GorilaGuardiaoValidation
             frame(0.2f);
             Check(life.VidaAtual == 5, "Preparacao da animacao nao causa dano antecipado");
             frame(0.5f);
-            Check(life.VidaAtual == 4 && movement.EstaArremessado, "Impacto da animacao tira exatamente uma vida e inicia arremesso");
+            Check(Mathf.Approximately(life.FracaoVida, 2f / 3f) && movement.EstaArremessado, "Impacto da animacao tira um terco da vida maxima e inicia arremesso");
             frame(0.7f);
-            Check(life.VidaAtual == 4, "Mesmo ataque nao causa dano repetido");
+            Check(Mathf.Approximately(life.FracaoVida, 2f / 3f), "Mesmo ataque nao causa dano repetido");
             frame(1f);
             Check(!guard.EstaAtacando && animator.GetInteger("animation") == 0, "Fim do clip retorna ao repouso");
             Check((float)typeof(GorilaGuardiao).GetField("proximoAtaque", Private).GetValue(guard) > Time.time,
@@ -108,7 +108,7 @@ public static class GorilaGuardiaoValidation
             player.transform.position = origin + Vector3.forward * 10f;
             Physics.SyncTransforms();
             frame(0.5f);
-            Check(life.VidaAtual == 4, "Sair do alcance antes do impacto evita dano");
+            Check(Mathf.Approximately(life.FracaoVida, 2f / 3f), "Sair do alcance antes do impacto evita dano");
             Call(guard, "CancelarAtaque");
 
             player.transform.position = origin + Vector3.forward * 2f;
@@ -123,7 +123,7 @@ public static class GorilaGuardiaoValidation
             Call(guard, "IniciarAtaque");
             guard.DefinirGuarda(false);
             frame(0.5f);
-            Check(life.VidaAtual == 4 && !guard.EstaAtacando, "Distracao cancela golpe pendente");
+            Check(Mathf.Approximately(life.FracaoVida, 2f / 3f) && !guard.EstaAtacando, "Distracao cancela golpe pendente");
             guard.DefinirGuarda(true);
             var outside = new GameObject("Ponto de expulsao");
             outside.transform.position = origin + Vector3.left * 10f;
@@ -150,6 +150,12 @@ public static class GorilaGuardiaoValidation
             Check(!movement.IsDodging && movement.EstaArremessado, "Impacto cancela esquiva em andamento");
             Call(movement, "OnDisable");
             Check(!movement.EstaArremessado, "Desativar movimento limpa arremesso pendente");
+            player.transform.position = origin + Vector3.forward * 2f;
+            Physics.SyncTransforms();
+            float antesDaSopa = life.VidaAtual;
+            guard.TornarDocilPelaSopa();
+            Call(guard, "AplicarImpacto");
+            Check(life.VidaAtual == antesDaSopa && !movement.EstaArremessado, "Gorila docil nao causa dano nem arremesso");
             Set(life, "estaMorto", true);
             Check(!(bool)Call(guard, "AlvoAoAlcance"), "Guardiao ignora Endy morto");
 

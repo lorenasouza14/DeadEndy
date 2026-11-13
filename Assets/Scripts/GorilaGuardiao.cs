@@ -31,7 +31,7 @@ public partial class GorilaGuardiao : MonoBehaviour
     [Range(0.01f, 0.99f)] public float momentoImpacto = 0.4f;
 
     [Header("Arremesso do Endy")]
-    [Tooltip("Desmarque no desafio furtivo: o golpe apenas arremessa, sem retirar vida.")]
+    [Tooltip("Cada impacto retira um terco da vida maxima do Endy. Desmarcado: apenas arremessa.")]
     public bool causarDano = true;
     [Min(0f)] public float velocidadeArremesso = 12f;
     [Min(0f)] public float impulsoVertical = 5f;
@@ -196,7 +196,7 @@ public partial class GorilaGuardiao : MonoBehaviour
             ? pontoDeExpulsao.position - movimentoEndy.transform.position
             : movimentoEndy.transform.position - transform.position;
         if (Vector3.ProjectOnPlane(direcao, Vector3.up).sqrMagnitude < 0.0001f) direcao = transform.forward;
-        if (causarDano) alvoEndy.TomarDano();
+        if (causarDano) alvoEndy.TomarDano(alvoEndy.vidaMaxima / 3f);
         // A morte existente desliga movimento e capsula; nao reativa nenhum dos dois.
         if (!alvoEndy.EstaMorto)
             movimentoEndy.ReceberArremesso(direcao, velocidadeArremesso, impulsoVertical, duracaoArremesso, desaceleracao);

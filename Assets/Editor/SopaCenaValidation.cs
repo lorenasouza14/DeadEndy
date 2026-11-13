@@ -29,8 +29,7 @@ public static class SopaCenaValidation
     static BananaSopa traps, ruinas, santuario;
     static StarterAssetsInputs entradas;
     static PlayerInput playerInput;
-    static Vector3 origemTraps;
-    static int vida;
+    static float vida;
     static bool inicializado;
 
     static SopaCenaValidation() { EditorApplication.update += Atualizar; }
@@ -130,9 +129,9 @@ public static class SopaCenaValidation
         sopa = UnityEngine.Object.FindAnyObjectByType<CaldeiraoSopa>(); guarda = sopa.gorila.GetComponent<GorilaGuardiao>(); puzzle = UnityEngine.Object.FindAnyObjectByType<PuzzleAltaresRuinas>();
         traps = sopa.bananasDaReceita.Single(b => b.monolito == null && b.gorilaQueProtege == null);
         ruinas = sopa.bananasDaReceita.Single(b => b.monolito != null); santuario = sopa.bananasDaReceita.Single(b => b.gorilaQueProtege != null);
-        origemTraps = traps.transform.position; vida = inv.GetComponent<VidaEndy>().VidaAtual;
+        vida = inv.GetComponent<VidaEndy>().VidaAtual;
         Exigir(sopa.ReceitaValida() && sopa.Quantidade == 0 && !sopa.vaporSopa.isPlaying, "Configuracao inicial invalida.");
-        Exigir(guarda.usarCicloSono && !guarda.causarDano && controle.permitirCaminhadaLenta, "Sono/furtividade/sem dano devem ser preservados.");
+        Exigir(guarda.usarCicloSono && guarda.causarDano && controle.permitirCaminhadaLenta, "Sono/furtividade/dano devem estar ativos.");
         Exigir(sopa.bananasDaReceita.All(b => b.GetComponentsInChildren<ItemColetavel>(true).Length == 1 && b.GetComponentsInChildren<DicaInteracao>(true).Length == 1), "Sensores duplicados.");
         Exigir(!ruinas.DesafioLiberado && !santuario.DesafioLiberado, "Desafios devem iniciar bloqueados.");
         Perto(santuario); yield return Tecla(Key.E); Exigir(!inv.TemBanana, "Coletou santuario acordado.");
@@ -149,13 +148,15 @@ public static class SopaCenaValidation
         ScreenCapture.CaptureScreenshot("Logs/sopa-banana-na-mao.png"); yield return 2f;
         Mover(new Vector3(15.5f,8,130.3f), guarda.transform.position);
         float limite = Time.time + 55;
-        while (!controle.EstaArremessado && Time.time < limite) yield return null;
+        vida = inv.GetComponent<VidaEndy>().VidaAtual;
+        while (!controle.EstaArremessado && Time.time < limite) { vida = inv.GetComponent<VidaEndy>().VidaAtual; yield return null; }
         Exigir(controle.EstaArremessado, "Gorila nao arremessou Endy proximo."); yield return 0.2f;
-        Exigir(!inv.TemBanana && Vector3.Distance(traps.transform.position,origemTraps)<0.01f, "Arremesso nao devolveu fruta.");
-        Exigir(inv.GetComponent<VidaEndy>().VidaAtual == vida, "Pancada tirou vida.");
-        Log("PASS: pancada real do gorila devolve banana sem tirar vida.");
+        Exigir(inv.BananaNaMao == traps && traps.NaMao && traps.gameObject.activeInHierarchy &&
+            traps.transform.parent == inv.encaixeMao, "Pancada removeu banana do totem da mao.");
+        Exigir(!inv.EntregarBanana(sopa) && sopa.Quantidade == 0, "Entrega permitida durante arremesso.");
+        Exigir(Mathf.Approximately(inv.GetComponent<VidaEndy>().VidaAtual, vida - inv.GetComponent<VidaEndy>().vidaMaxima / 3f), "Pancada deve tirar um terco da vida maxima.");
+        Log("PASS: pancada real preserva banana na mao e tira um terco da vida maxima.");
         while(controle.EstaArremessado) yield return null;
-        Perto(traps); yield return 0.7f; yield return Tecla(Key.E); Exigir(inv.BananaNaMao==traps, "Fruta nao pode ser recuperada.");
         yield return Depositar(1);
         var solucao = new List<int>(); int melhor = 100;
         for(int a=0;a<4;a++) for(int b=0;b<4;b++) for(int c=0;c<4;c++)
@@ -191,14 +192,14 @@ public static class SopaCenaValidation
         float acordou=Time.time; yield return 0.6f; Exigir(!guarda.EstaAtacando,"Ataque antecipado no despertar.");
         Log("PASS: movimento rapido acorda, com transicao antes de atacar.");
         Mover(new Vector3(15.5f,8,130.3f), guarda.transform.position); limite=Time.time+10;
-        while(!controle.EstaArremessado && Time.time<limite) yield return null;
+        vida = inv.GetComponent<VidaEndy>().VidaAtual;
+        while(!controle.EstaArremessado && Time.time<limite) { vida = inv.GetComponent<VidaEndy>().VidaAtual; yield return null; }
         Exigir(controle.EstaArremessado && Time.time-acordou>=guarda.tempoAcordar,"Golpe apos despertar ausente."); yield return 0.2f;
-        Exigir(!inv.TemBanana && inv.GetComponent<VidaEndy>().VidaAtual==vida,"Santuario nao devolveu banana/alterou vida.");
+        Exigir(inv.BananaNaMao == santuario && santuario.NaMao && santuario.gameObject.activeInHierarchy &&
+            santuario.transform.parent == inv.encaixeMao && Mathf.Approximately(inv.GetComponent<VidaEndy>().VidaAtual, vida - inv.GetComponent<VidaEndy>().vidaMaxima / 3f),
+            "Golpe removeu banana do santuario ou aplicou dano incorreto.");
         while(controle.EstaArremessado) yield return null;
-        Mover(new Vector3(20,8,129), santuario.Centro);
-        limite=Time.time+55; while(!guarda.EstaDormindo && Time.time<limite) yield return null;
-        Exigir(guarda.EstaDormindo,"Segundo ciclo de sono ausente."); Perto(santuario); yield return 0.5f; yield return Tecla(Key.E);
-        Exigir(inv.BananaNaMao==santuario,"Nao recuperou banana do santuario."); yield return Depositar(3);
+        yield return Depositar(3);
         Exigir(sopa.SopaPronta && sopa.vaporSopa.isPlaying && guarda.DocilPelaSopa,"Sopa pronta nao ativou efeitos/docilidade.");
         limite=Time.time+40; float maiorErroChao=0;
         while(!sopa.gorila.PassagemLiberada && Time.time<limite)

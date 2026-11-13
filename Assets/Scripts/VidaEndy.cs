@@ -7,11 +7,11 @@ public class VidaEndy : MonoBehaviour
 {
     [Header("Configurações de Vida")]
     public int vidaMaxima = 5;
-    private int vidaAtual;
+    private float vidaAtual;
     private bool estaMorto = false;
     public bool EstaMorto => estaMorto;
-    public int VidaAtual => vidaAtual;
-    public float FracaoVida => (float)vidaAtual / Mathf.Max(1, vidaMaxima);
+    public float VidaAtual => vidaAtual;
+    public float FracaoVida => vidaAtual / Mathf.Max(1, vidaMaxima);
     public bool VidaBaixa => !estaMorto && FracaoVida <= limiteVidaBaixa;
     public bool EstaRegenerando { get; private set; }
 
@@ -26,6 +26,8 @@ public class VidaEndy : MonoBehaviour
     private float tempoAteRecuperar;
     private float tempoFlash;
     private IndicadorVidaEndy indicador;
+    private GerenciadorPause menuPause;
+    private StarterAssets.ThirdPersonController movimentoQueda;
 
     [Header("Componentes")]
     public Animator animEndy;
@@ -52,8 +54,15 @@ public class VidaEndy : MonoBehaviour
         vidaAtual = vidaMaxima;
     }
 
+    void OnEnable()
+    {
+        movimentoQueda = GetComponent<StarterAssets.ThirdPersonController>();
+        if (movimentoQueda != null) movimentoQueda.AoSofrerDanoDeQueda += TomarDano;
+    }
+
     void Start()
     {
+        menuPause = GerenciadorPause.Instalar(this);
         if (mostrarIndicadorVida)
         {
             indicador = GetComponent<IndicadorVidaEndy>();
@@ -70,10 +79,18 @@ public class VidaEndy : MonoBehaviour
 
     public void TomarDano()
     {
-        // Se já está morto, ignora golpes extras
-        if (estaMorto) return;
+        TomarDano(1f);
+    }
 
-        vidaAtual = Mathf.Max(0, vidaAtual - 1);
+    public void TomarDano(float quantidade)
+    {
+        // Se já está morto, ignora golpes extras
+        if (estaMorto || Time.timeScale <= 0f || quantidade <= 0f ||
+            float.IsNaN(quantidade) || float.IsInfinity(quantidade)) return;
+
+        vidaAtual = Mathf.Max(0f, vidaAtual - quantidade);
+        // Tres parcelas de 1/3 podem deixar um residuo de ponto flutuante.
+        if (vidaAtual <= vidaMaxima * 0.000001f) vidaAtual = 0f;
         tempoAteRecuperar = Mathf.Max(0f, esperaSemDano);
         EstaRegenerando = false;
         tempoFlash = 0.15f;
@@ -111,7 +128,7 @@ public class VidaEndy : MonoBehaviour
         tempoAteRecuperar -= delta;
         while (tempoAteRecuperar <= 0f && vidaAtual < vidaMaxima)
         {
-            vidaAtual++;
+            vidaAtual = Mathf.Min(vidaMaxima, vidaAtual + 1f);
             EstaRegenerando = vidaAtual < vidaMaxima;
             tempoAteRecuperar += Mathf.Max(0.05f, intervaloRecuperacao);
         }
@@ -125,6 +142,8 @@ public class VidaEndy : MonoBehaviour
 
     void OnDisable()
     {
+        if (movimentoQueda != null) movimentoQueda.AoSofrerDanoDeQueda -= TomarDano;
+        if (menuPause != null) menuPause.Retornar();
         tempoFlash = 0f;
         AtualizarFlash();
         if (indicador != null) indicador.Ocultar();
@@ -132,6 +151,7 @@ public class VidaEndy : MonoBehaviour
 
     System.Collections.IEnumerator RotinaMorte()
     {
+        if (menuPause != null) menuPause.Retornar();
         estaMorto = true;
         vidaAtual = 0;
         EstaRegenerando = false;

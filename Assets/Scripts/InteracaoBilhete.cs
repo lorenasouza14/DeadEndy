@@ -11,6 +11,7 @@ public class InteracaoBilhete : MonoBehaviour
 
     void Update()
     {
+        if (Time.timeScale <= 0f) return;
         // Usando o sistema clássico com a tecla E que já está funcionando no seu projeto
         if (pertoDoObjeto && Input.GetKeyDown(KeyCode.E))
         {

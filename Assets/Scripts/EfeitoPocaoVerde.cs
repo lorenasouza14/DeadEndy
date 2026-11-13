@@ -14,6 +14,7 @@ public class EfeitoPocaoVerde : MonoBehaviour
 
     void Update()
     {
+        if (Time.timeScale <= 0f) return;
         // Se o jogador apertar F na área da poção
         if (jogadorPerto && Input.GetKeyDown(KeyCode.F))
         {

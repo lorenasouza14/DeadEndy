@@ -84,6 +84,7 @@ namespace StarterAssets
 
         [Tooltip("For locking the camera position on all axis")]
         public bool LockCameraPosition = false;
+        public bool GameplayPaused { get; set; }
 
         // cinemachine
         private float _cinemachineTargetYaw;
@@ -165,19 +166,23 @@ namespace StarterAssets
 
         private void Update()
         {
+            if (GameplayPaused || Time.deltaTime <= 0f) return;
             RestoreDodgePose();
             _animator = CharacterAnimator != null ? CharacterAnimator : GetComponent<Animator>();
             _hasAnimator = _animator != null;
 
+            PrepararMedicaoQueda();
             GroundedCheck();
-            if (MoveKnockback(Time.deltaTime)) return;
+            if (MoveKnockback(Time.deltaTime)) { ConcluirMedicaoQueda(); return; }
             ReadDodgeInput();
             JumpAndGravity();
             Move();
+            ConcluirMedicaoQueda();
         }
 
         private void LateUpdate()
         {
+            if (GameplayPaused) return;
             CameraRotation();
             AnimateDodge();
         }

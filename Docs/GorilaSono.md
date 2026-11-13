@@ -7,7 +7,7 @@ O comportamento foi integrado ao `GorilaGuardiao` existente. A caminhada lenta f
 ## Configuracao na cena
 
 1. Fora do Play Mode, abra `Demo_day_fase_gorilla`. Expanda o grupo da entrada da caverna e selecione a instancia do gorila que ja tem **Gorila Guardiao**. O componente fica no gorila, nao no altar, na banana ou no santuario inteiro.
-2. No **Gorila Guardiao**, mantenha **Guardando Caverna** marcado, marque **Usar Ciclo Sono** e **desmarque Causar Dano**. Essa ultima opcao faz o golpe arremessar sem tirar vida; os demais inimigos continuam com seu dano normal.
+2. No **Gorila Guardiao**, mantenha **Guardando Caverna** marcado, marque **Usar Ciclo Sono** e **Causar Dano**. Cada impacto retira exatamente **1/3 da vida maxima** e arremessa Endy; os demais inimigos continuam com seu dano normal.
 3. Confirme **Anim Gorila** apontando para o Animator da instancia da Hierarchy e **Alvo Endy** apontando para o objeto com Vida Endy. Mantenha o controller `Assets/Suriyun/Animations_Cute_Animals/Gorilla/Gorilla.controller`, sem scripts de demonstracao disputando a animacao.
 4. Em **Desafio furtivo - sono**, use os valores abaixo. `X` e o tempo minimo e `Y` o maximo. O script sorteia um novo tempo a cada ciclo.
 
@@ -43,6 +43,6 @@ O comportamento foi integrado ao `GorilaGuardiao` existente. A caminhada lenta f
 
 ## Conferencia rapida
 
-Para testar sem esperar tanto, coloque temporariamente Intervalo Acordado em (3, 3). No Play Mode: espere dormir, aproxime-se com Ctrl, solte Ctrl e ande, observe a transicao e recue. Repita ficando perto para receber o golpe, conferindo que a vida nao cai. Corra longe do gorila e confira que ele permanece dormindo. Restaure (20, 35) para o ritmo final.
+Para testar sem esperar tanto, coloque temporariamente Intervalo Acordado em (3, 3). No Play Mode: espere dormir, aproxime-se com Ctrl, solte Ctrl e ande, observe a transicao e recue. Repita ficando perto para receber o golpe, conferindo que cada acerto retira 1/3 da vida maxima. Corra longe do gorila e confira que ele permanece dormindo. Restaure (20, 35) para o ritmo final.
 
 O menu **Tools > Gorila > Validar sono e furtividade** executa verificacoes isoladas numa cena temporaria e grava `Logs/gorila-sono-validation.txt`. Ele nao configura nem salva a fase. O menu anterior **Validar ataque e arremesso** continua cobrindo o ataque com dano habilitado.

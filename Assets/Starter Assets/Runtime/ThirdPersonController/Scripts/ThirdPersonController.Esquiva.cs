@@ -162,6 +162,7 @@ namespace StarterAssets
 
         private void OnDisable()
         {
+            ReiniciarMedicaoQueda();
             CancelDodge();
             CancelKnockback();
         }

@@ -130,8 +130,13 @@ public static class SopaGorilaValidation
             Check(itens[1].TentarColetar(inventario), "Banana caida do monolito pode ser transportada");
             movimento.ReceberArremesso(Vector3.back, 5, 2, 1, 8);
             Call(inventario, "AtualizarBananaCarregada");
-            Check(!inventario.TemBanana && !bananas[1].NaMao, "Pancada devolve banana ao local da coleta sem perde-la");
+            Check(inventario.BananaNaMao == bananas[1] && bananas[1].NaMao && bananas[1].transform.parent == mao,
+                "Pancada preserva banana do monolito na mao");
+            Set(inventario, "frameColeta", -1);
+            Check(!inventario.EntregarBanana(caldeirao) && caldeirao.Quantidade == 0,
+                "Arremesso bloqueia entrega sem consumir banana");
             Call(movimento, "CancelKnockback");
+            inventario.DevolverBanana(); // Limpa a preparacao para testar as tres entregas abaixo.
             for (int i = 0; i < 3; i++)
             {
                 Set(inventario, "frameColeta", -1);
@@ -141,11 +146,23 @@ public static class SopaGorilaValidation
                 Check(itens[i].TentarColetar(inventario), "Coleta banana " + (i + 1));
                 Check(!itens[(i + 1) % 3].TentarColetar(inventario), "Nao carrega segunda banana");
                 Set(inventario, "frameColeta", -1);
+                for (int golpe = 0; golpe < 2; golpe++)
+                {
+                    movimento.ReceberArremesso(Vector3.back, 5, 2, 1, 8);
+                    Call(inventario, "AtualizarBananaCarregada");
+                    Check(inventario.BananaNaMao == bananas[i] && bananas[i].NaMao && !bananas[i].Depositada &&
+                        bananas[i].gameObject.activeInHierarchy && bananas[i].transform.parent == mao &&
+                        !bananas[i].GetComponent<Collider>().enabled,
+                        "Golpe repetido preserva banana " + (i + 1) + " visivel e sem colisao na mao");
+                    Check(!inventario.EntregarBanana(caldeirao) && caldeirao.Quantidade == i,
+                        "Golpe nao deposita nem altera progresso da sopa");
+                    Call(movimento, "CancelKnockback");
+                }
                 panela.transform.position = origem + Vector3.right * 10;
                 Check(!inventario.EntregarBanana(caldeirao), "Deposito distante rejeitado");
                 panela.transform.position = origem + Vector3.right;
                 Check(inventario.EntregarBanana(caldeirao) && caldeirao.Quantidade == i + 1 && !inventario.TemBanana,
-                    "Entrega unica incrementa receita e libera mao");
+                    "Entrega apos golpes, sem nova coleta, incrementa receita uma vez e libera mao");
                 Check(!inventario.EntregarBanana(caldeirao), "Nao conta entrega repetida");
                 if (i < 2) Check(!guarda.DocilPelaSopa && bloqueio.enabled, "Antes da terceira banana gorila continua guardando passagem");
             }

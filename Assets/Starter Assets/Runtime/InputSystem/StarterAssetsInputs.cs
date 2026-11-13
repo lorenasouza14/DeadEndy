@@ -12,6 +12,7 @@ namespace StarterAssets
 		public Vector2 look;
 		public bool jump;
 		public bool sprint;
+		public bool gameplayInputBlocked { get; set; }
 
 		[Header("Movement Settings")]
 		public bool analogMovement;
@@ -48,22 +49,22 @@ namespace StarterAssets
 
 		public void MoveInput(Vector2 newMoveDirection)
 		{
-			move = newMoveDirection;
+			move = gameplayInputBlocked ? Vector2.zero : newMoveDirection;
 		} 
 
 		public void LookInput(Vector2 newLookDirection)
 		{
-			look = newLookDirection;
+			look = gameplayInputBlocked ? Vector2.zero : newLookDirection;
 		}
 
 		public void JumpInput(bool newJumpState)
 		{
-			jump = newJumpState;
+			jump = !gameplayInputBlocked && newJumpState;
 		}
 
 		public void SprintInput(bool newSprintState)
 		{
-			sprint = newSprintState;
+			sprint = !gameplayInputBlocked && newSprintState;
 		}
 		
 		private void OnApplicationFocus(bool hasFocus)

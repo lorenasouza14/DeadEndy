@@ -89,7 +89,7 @@ public class HealthFeedbackValidationRunner : MonoBehaviour
         Check(life.VidaAtual == 3 && life.VidaBaixa && !life.EstaRegenerando, "30% ativa alerta sem curar durante golpes");
         yield return new WaitForSeconds(0.65f);
         Time.timeScale = 0;
-        int beforePause = life.VidaAtual;
+        float beforePause = life.VidaAtual;
         yield return new WaitForSecondsRealtime(0.25f);
         Check(life.VidaAtual == beforePause, "Pausa nao recupera vida");
         yield return new WaitForEndOfFrame();

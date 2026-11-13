@@ -40,7 +40,7 @@ No objeto que ja possui **Inventario Endy**, mantenha **Encaixe Mao** preenchido
 
 Nao adicione `InventarioEndy.Banana.cs` como componente: ele e uma extensao do componente existente. O mesmo vale para os arquivos parciais de sono e caminhada lenta.
 
-Se a mao estiver ocupada com pocao, radio, trompete ou pirulito, e preciso usar/depositar o objeto primeiro. Bananas nao usam R ou F: a entrega e feita com E no caldeirao. Se Endy receber arremesso ou morrer antes da entrega, a banana volta para onde foi pega, sem perder progresso das bananas ja depositadas.
+Se a mao estiver ocupada com pocao, radio, trompete ou pirulito, e preciso usar/depositar o objeto primeiro. Bananas nao usam R ou F: a entrega e feita com E no caldeirao. Se Endy receber um golpe ou arremesso, a banana permanece na mao e pode ser entregue assim que ele se recuperar, sem precisar coleta-la novamente. Se morrer ou o inventario for desativado antes da entrega, a banana volta para onde foi pega, sem perder progresso das bananas ja depositadas.
 
 ## 3. Preparar a caminhada do gorila
 
@@ -72,7 +72,7 @@ Se a mao estiver ocupada com pocao, radio, trompete ou pirulito, e preciso usar/
 - Pegue a banana das armadilhas com E: ela aparece na mao. Outra banana nao pode ser pega simultaneamente.
 - No caldeirao, aperte E novamente: a mao fica livre e o contador passa para 1/3.
 - Resolva as ruinas, espere a banana cair e parar, leve-a ao caldeirao: 2/3.
-- Espere o gorila dormir, aproxime-se com Ctrl e pegue a banana do santuario. Se ele acertar Endy no caminho, a banana volta ao local de coleta.
+- Espere o gorila dormir, aproxime-se com Ctrl e pegue a banana do santuario. Se ele acertar Endy no caminho, a banana deve permanecer visivel na mao. Depois do arremesso, leve-a diretamente ao caldeirao e confirme a entrega com E. Repita com a banana do totem e a das ruinas: golpes nao devem exigir uma nova coleta nem duplicar o contador.
 - Entregue a terceira banana: o gorila fica docil, vai ate o ponto final e come. Confirme que Endy consegue atravessar a entrada e que o gorila nao volta a atacar.
 - A ordem das tres entregas e livre. O contador, o estado docil e os desafios sao estados da partida: reiniciar a cena reinicia a fase. Nao foi acrescentado salvamento entre partidas.
 

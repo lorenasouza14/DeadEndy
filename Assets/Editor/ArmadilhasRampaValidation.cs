@@ -17,7 +17,7 @@ public static class ArmadilhasRampaValidation
     private static CharacterController capsulaPlay;
     private static VidaEndy vidaPlay;
     private static int indicePlay;
-    private static int vidaInicial;
+    private static float vidaInicial;
     private static float proximoTeste;
     private static float inicioTeste;
     private static bool posicionado;
@@ -158,7 +158,7 @@ public static class ArmadilhasRampaValidation
             Campo(movimento, "_controller", capsula);
             var vida = jogador.AddComponent<VidaEndy>();
             Chamar(vida, "Awake");
-            int vidaAntes = vida.VidaAtual;
+            float vidaAntes = vida.VidaAtual;
 
             foreach (var trap in traps)
             foreach (float passo in new[] { 1f / 60f, 1f / 30f, 0.1f })

@@ -26,7 +26,7 @@ public static class GorilaSonoCena
         var g = candidatos[0];
         Undo.RecordObject(g, "Ativar sono do gorila");
         g.usarCicloSono = true;
-        g.causarDano = false;
+        g.causarDano = true;
         g.guardandoCaverna = true;
         g.estadoDormindo = "Base Layer.Rest";
         g.valorDormindo = 5;
@@ -40,7 +40,7 @@ public static class GorilaSonoCena
         EditorSceneManager.SaveScene(g.gameObject.scene);
         Selection.activeGameObject = g.gameObject;
         Directory.CreateDirectory("Logs");
-        File.WriteAllText(Relatorio, "Configuracao salva: sono ativo, dano desativado, Rest=5, acordado 20-35s, dormindo 8-12s.\n");
+        File.WriteAllText(Relatorio, "Configuracao salva: sono ativo, dano de 1/3 ativo, Rest=5, acordado 20-35s, dormindo 8-12s.\n");
         Debug.Log("Sono ativado no gorila da caverna e cena salva.", g);
     }
 
