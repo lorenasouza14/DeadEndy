@@ -21,6 +21,9 @@ public class AutosaveEndy : MonoBehaviour
     AlavancaTriangulo[] alavancas;
     InteracaoBau[] baus;
     GatilhoArena[] entradas;
+    PuzzleAltaresRuinas[] ruinas;
+    CaldeiraoSopa[] sopas;
+    BananaSopa[] bananas;
     DadosJogo carregado;
     bool novaPartida, saveInvalido, arena, pendente, temPontoSeguro;
     Vector3 pontoSeguro;
@@ -82,6 +85,9 @@ public class AutosaveEndy : MonoBehaviour
         alavancas = NaCena<AlavancaTriangulo>();
         baus = NaCena<InteracaoBau>();
         entradas = NaCena<GatilhoArena>();
+        ruinas = NaCena<PuzzleAltaresRuinas>();
+        sopas = NaCena<CaldeiraoSopa>();
+        bananas = NaCena<BananaSopa>();
         if (carregado != null)
         {
             if (vida != null) vida.RestaurarVidaDoSave(carregado.vida);
@@ -101,6 +107,16 @@ public class AutosaveEndy : MonoBehaviour
             {
                 diario.RestaurarPagina(carregado.paginaDiario);
                 diario.RestaurarLeitura(carregado.diarioLido);
+            }
+            if (carregado.gorila != null)
+            {
+                foreach (var puzzle in ruinas)
+                    puzzle.RestaurarProgresso(carregado.gorila.ruinas.FirstOrDefault(r => r.id == puzzle.idSave));
+                foreach (var sopa in sopas)
+                    sopa.RestaurarProgresso(carregado.gorila.sopas.FirstOrDefault(s => s.id == sopa.idSave));
+                if (!string.IsNullOrEmpty(carregado.gorila.bananaNaMao))
+                    inventario.RestaurarBananaNaMao(bananas.FirstOrDefault(b => b.idSave == carregado.gorila.bananaNaMao));
+                Physics.SyncTransforms();
             }
             pendente = false;
         }
@@ -129,7 +145,7 @@ public class AutosaveEndy : MonoBehaviour
     {
         if (EmCombate || movimento == null || !movimento.Grounded || !movimento.enabled ||
             Time.timeScale == 0 || InteracaoBau.PuzzleAtivo || inventario.ExecutandoAcao ||
-            inventario.ItemNaMao != InventarioEndy.TipoItemNaMao.Nenhum || inventario.TemBanana || inventario.TemEfeitoDePocao ||
+            inventario.ItemNaMao != InventarioEndy.TipoItemNaMao.Nenhum || inventario.TemEfeitoDePocao ||
             AreiaMovedica.EndyNaAreia || (vida != null && Time.unscaledTime - vida.UltimoDanoEm < 5f)) return false;
         if (chefe == null || !chefe.EncolhimentoConcluido)
             foreach (var entrada in entradas)
@@ -178,7 +194,7 @@ public class AutosaveEndy : MonoBehaviour
         bool venceu = chefe != null && chefe.EncolhimentoConcluido;
         var dados = new DadosJogo
         {
-            versao = 1, jogo = "DeadEndy", cena = gameObject.scene.path, salvoEmUtc = DateTime.UtcNow.ToString("O"),
+            versao = 2, jogo = "DeadEndy", cena = gameObject.scene.path, salvoEmUtc = DateTime.UtcNow.ToString("O"),
             x = pontoSeguro.x, y = pontoSeguro.y, z = pontoSeguro.z, direcao = direcaoSegura, vida = vidaSegura,
             temDiario = inventario.temDiario, paginaDiario = diario != null ? diario.PaginaEsquerda : 0,
             diarioLido = inventario.temDiario && diario != null && diario.FoiLido,
@@ -188,7 +204,13 @@ public class AutosaveEndy : MonoBehaviour
             chefeZ = chefe != null ? chefe.transform.position.z : 0,
             bauDiarioAberto = recompensa != null && recompensa.bau != null && recompensa.bau.Aberto,
             alavancas = alavancas.Where(a => a.Concluida).Select(a => a.idSave).ToArray(),
-            baus = venceu ? baus.Where(b => b.BauAberto).Select(b => b.idSave).ToArray() : new string[0]
+            baus = venceu ? baus.Where(b => b.BauAberto).Select(b => b.idSave).ToArray() : new string[0],
+            gorila = new DadosGorila
+            {
+                bananaNaMao = inventario.TemBanana ? inventario.BananaNaMao.idSave : null,
+                ruinas = ruinas.Select(r => r.CapturarProgresso()).Where(r => r != null).ToArray(),
+                sopas = sopas.Select(s => s.CapturarProgresso()).ToArray()
+            }
         };
         bool salvo = ProgressoJogo.Salvar(dados, novaPartida, out string erro);
         pendente = false;

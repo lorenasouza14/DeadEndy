@@ -46,6 +46,20 @@ public class MonolitoDesmoronavel : MonoBehaviour
         return true;
     }
 
+    public void RestaurarConcluido()
+    {
+        if (!preparado) return;
+        Iniciado = Desabou = Concluido = true;
+        corpoInteiro.gameObject.SetActive(false);
+        fragmentos.SetActive(false);
+        if (poeira != null) poeira.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        // A fruta volta a cair livremente, sem repetir o puzzle ou os fragmentos.
+        // Se ja foi coletada/entregue, a restauracao do inventario/sopa a retira em seguida.
+        banana.isKinematic = false;
+        banana.useGravity = true;
+        banana.WakeUp();
+    }
+
     private void Update()
     {
         if (!Iniciado || Concluido || Time.deltaTime <= 0f) return;

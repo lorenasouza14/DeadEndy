@@ -57,6 +57,28 @@ public class GorilaSopa : MonoBehaviour
 
     private void Update() { Avancar(Time.deltaTime); }
 
+    public void RestaurarPassagemLiberada()
+    {
+        if (!Configurado) return;
+        Guarda.TornarDocilPelaSopa();
+        transform.position = percurso[percurso.Length - 1].position;
+        Vector3 frente = Vector3.ProjectOnPlane(olharParaSopa.position - transform.position, Vector3.up);
+        if (frente.sqrMagnitude > 0.0001f) transform.rotation = Quaternion.LookRotation(frente);
+        ComecarAComer();
+        Anim.Play(estadoComer, 0, 0f);
+    }
+
+    private void ComecarAComer()
+    {
+        Etapa = EtapaSopa.Comendo;
+        Anim.SetInteger(Guarda.parametroAnimacao, valorComer);
+        Anim.CrossFadeInFixedTime(estadoComer, 0.25f, 0, 0f);
+        if (bloqueiosDaCaverna != null)
+            foreach (var col in bloqueiosDaCaverna) if (col != null) col.enabled = false;
+        if (visuaisDosBloqueios != null)
+            foreach (var visual in visuaisDosBloqueios) if (visual != null) visual.enabled = false;
+    }
+
     private void Avancar(float delta)
     {
         if (delta <= 0f || Etapa == EtapaSopa.Esperando || !Configurado) return;
@@ -79,13 +101,8 @@ public class GorilaSopa : MonoBehaviour
                 destino++;
                 if (destino == percurso.Length)
                 {
-                    Etapa = EtapaSopa.Comendo;
-                    Anim.SetInteger(Guarda.parametroAnimacao, valorComer);
-                    Anim.CrossFadeInFixedTime(estadoComer, 0.25f, 0, 0f);
-                    if (bloqueiosDaCaverna != null)
-                        foreach (var col in bloqueiosDaCaverna) if (col != null) col.enabled = false;
-                    if (visuaisDosBloqueios != null)
-                        foreach (var visual in visuaisDosBloqueios) if (visual != null) visual.enabled = false;
+                    ComecarAComer();
+                    AutosaveEndy.Instancia?.SolicitarAutosave();
                 }
             }
         }

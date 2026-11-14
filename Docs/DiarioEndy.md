@@ -41,6 +41,14 @@ Imagens que já contenham uma dupla inteira precisam ser separadas em duas.
 
 ## Manutenção e validação
 
+`Tools > Diario > Atualizar imagens das paginas` atribui as 12 imagens
+`Assets/Imagens/pagina1.png` a `pagina12.png` aos diários das cenas de jogo
+abertas e salva essas cenas fora do Play Mode. Uma cópia anterior fica em
+`Logs/diario-paginas-before-*.unity`. Use esse comando se a cena aberta ainda
+mantiver a lista antiga depois de uma alteração externa.
+As páginas 8–12 apresentam caverna, ruínas, caldeirão, guardião dormindo e morro,
+nessa ordem.
+
 `Tools > Diario > Configurar diario na cena` reconecta os componentes na cena
 aberta sem substituir as páginas configuradas. Antes de salvar, cria uma cópia
 da cena em `Logs/diario-before-*.unity`.

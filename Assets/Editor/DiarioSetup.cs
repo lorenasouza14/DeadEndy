@@ -15,6 +15,45 @@ public static class DiarioSetup
     const string Pendente = "DiarioSetup.Validar";
     static DiarioSetup() { EditorApplication.playModeStateChanged += MudouModo; }
 
+    [MenuItem("Tools/Diario/Atualizar imagens das paginas")]
+    public static void AtualizarPaginas()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode)
+            throw new InvalidOperationException("Saia do Play Mode antes de atualizar as páginas.");
+
+        var paginas = Enumerable.Range(1, 12).Select(i =>
+            AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/Imagens/pagina{i}.png")).ToArray();
+        if (paginas.Any(p => p == null))
+            throw new InvalidOperationException("Uma das 12 imagens do diário não foi importada como Sprite.");
+
+        var livros = Object.FindObjectsByType<DiarioEndy>(FindObjectsInactive.Include)
+            .Where(l => ProgressoJogo.EhCenaJogo(l.gameObject.scene.path)).ToArray();
+        if (livros.Length == 0)
+            throw new InvalidOperationException("Abra uma das cenas do jogo antes de atualizar o diário.");
+
+        Directory.CreateDirectory("Logs");
+        string relatorio = "";
+        foreach (var grupo in livros.GroupBy(l => l.gameObject.scene))
+        {
+            var scene = grupo.Key;
+            EditorSceneManager.SaveScene(scene,
+                $"Logs/diario-paginas-before-{scene.name}-{DateTime.Now:yyyyMMdd-HHmmss}.unity", true);
+            foreach (var livro in grupo)
+            {
+                relatorio += $"{scene.name}/{livro.name}: {livro.TotalPaginas} -> {paginas.Length} páginas\n";
+                Undo.RecordObject(livro, "Atualizar páginas do diário");
+                livro.paginas = (Sprite[])paginas.Clone();
+                PrefabUtility.RecordPrefabInstancePropertyModifications(livro);
+                EditorUtility.SetDirty(livro);
+            }
+            EditorSceneManager.MarkSceneDirty(scene);
+            if (!EditorSceneManager.SaveScene(scene))
+                throw new IOException("Não foi possível salvar as páginas em " + scene.path);
+        }
+        File.WriteAllText("Logs/diario-paginas.txt", relatorio);
+        Debug.Log(relatorio);
+    }
+
     [MenuItem("Tools/Diario/Configurar diario na cena")]
     public static void Configurar()
     {

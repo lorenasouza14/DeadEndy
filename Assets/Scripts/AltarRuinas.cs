@@ -27,6 +27,13 @@ public class AltarRuinas : MonoBehaviour
 
     public Quaternion RotacaoDestino => rotacaoAlinhadaLocal * Quaternion.Euler(0f, Passos * 90f, 0f);
     public void Avancar() { Passos = (Passos + 1) % 4; }
+    public void RestaurarPassos(int passos)
+    {
+        Passos = Mathf.Clamp(passos, 0, 3);
+        pivo.localRotation = RotacaoDestino;
+        AnimarAlavanca(0f);
+        MostrarFeixe(false);
+    }
     public void AnimarAlavanca(float progresso)
     {
         caboAlavanca.localRotation = repousoAlavanca * Quaternion.Euler(0f, 0f, -45f * Mathf.Sin(progresso * Mathf.PI));

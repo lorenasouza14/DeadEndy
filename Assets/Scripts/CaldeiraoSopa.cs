@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
@@ -7,6 +8,7 @@ using UnityEngine.InputSystem;
 [DisallowMultipleComponent]
 public class CaldeiraoSopa : MonoBehaviour
 {
+    [HideInInspector] public string idSave;
     [Tooltip("Exatamente as tres bananas dos desafios, sem repetir referencias.")]
     public BananaSopa[] bananasDaReceita = new BananaSopa[3];
     public GorilaSopa gorila;
@@ -21,6 +23,39 @@ public class CaldeiraoSopa : MonoBehaviour
     public bool SopaPronta => Quantidade == 3;
     public Vector3 PontoInteracao => pontoInteracao != null ? pontoInteracao.position : transform.position + Vector3.up;
     private readonly HashSet<BananaSopa> recebidas = new HashSet<BananaSopa>();
+
+    private void Awake()
+    {
+        if (string.IsNullOrEmpty(idSave)) idSave = AutosaveEndy.Identificar(this);
+    }
+
+    public DadosSopa CapturarProgresso()
+    {
+        return new DadosSopa { id = idSave, bananas = recebidas.Select(b => b.idSave).ToArray(),
+            passagemLiberada = gorila != null && gorila.PassagemLiberada };
+    }
+
+    public void RestaurarProgresso(DadosSopa dados)
+    {
+        if (dados == null || !ReceitaValida()) return;
+        recebidas.Clear();
+        foreach (var banana in bananasDaReceita)
+            if (System.Array.IndexOf(dados.bananas, banana.idSave) >= 0)
+            {
+                recebidas.Add(banana);
+                banana.RestaurarDepositada();
+            }
+        if (!SopaPronta) return;
+        MostrarSopaPronta();
+        if (dados.passagemLiberada) gorila.RestaurarPassagemLiberada();
+        else gorila.AtrairPelaSopa(this);
+    }
+
+    private void MostrarSopaPronta()
+    {
+        if (visualSopaPronta != null) visualSopaPronta.SetActive(true);
+        if (vaporSopa != null) vaporSopa.Play();
+    }
 
     private void Start()
     {
@@ -53,8 +88,7 @@ public class CaldeiraoSopa : MonoBehaviour
         banana.Consumir();
         if (SopaPronta)
         {
-            if (visualSopaPronta != null) visualSopaPronta.SetActive(true);
-            if (vaporSopa != null) vaporSopa.Play();
+            MostrarSopaPronta();
             gorila.AtrairPelaSopa(this);
         }
         return true;

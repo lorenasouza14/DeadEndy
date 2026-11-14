@@ -3,6 +3,7 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class BananaSopa : MonoBehaviour
 {
+    [HideInInspector] public string idSave;
     [Header("Desafio de origem (preencha somente o correspondente)")]
     public GorilaGuardiao gorilaQueProtege;
     public MonolitoDesmoronavel monolito;
@@ -20,6 +21,19 @@ public class BananaSopa : MonoBehaviour
     private bool[] colisoesAtivas;
     private Rigidbody corpo;
     private bool eraCinematico;
+
+    private void Awake()
+    {
+        if (string.IsNullOrEmpty(idSave)) idSave = AutosaveEndy.Identificar(this);
+    }
+
+    public void RestaurarDepositada()
+    {
+        if (NaMao) RestaurarTransform();
+        Depositada = true;
+        NaMao = false;
+        gameObject.SetActive(false);
+    }
 
     public Vector3 Centro
     {
@@ -49,6 +63,8 @@ public class BananaSopa : MonoBehaviour
 
     internal void ColocarNaMao(Transform mao)
     {
+        // O identificador precisa permanecer o da cena, mesmo depois de mudar de pai.
+        if (string.IsNullOrEmpty(idSave)) idSave = AutosaveEndy.Identificar(this);
         paiOriginal = transform.parent;
         posicaoOriginal = transform.localPosition;
         rotacaoOriginal = transform.localRotation;

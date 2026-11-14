@@ -7,6 +7,7 @@ using UnityEngine.InputSystem;
 [DisallowMultipleComponent]
 public class PuzzleAltaresRuinas : MonoBehaviour
 {
+    [HideInInspector] public string idSave;
     public AltarRuinas[] altares;
     public MonolitoDesmoronavel monolito;
     public ThirdPersonController jogador;
@@ -21,6 +22,28 @@ public class PuzzleAltaresRuinas : MonoBehaviour
     private Quaternion inicioSegundo;
     private VidaEndy vida;
     private bool preparado;
+
+    private void Awake()
+    {
+        if (string.IsNullOrEmpty(idSave)) idSave = AutosaveEndy.Identificar(this);
+    }
+
+    public DadosRuinas CapturarProgresso()
+    {
+        if (!preparado) return null;
+        return new DadosRuinas { id = idSave, resolvido = Resolvido,
+            passos = System.Array.ConvertAll(altares, a => a.Passos) };
+    }
+
+    public void RestaurarProgresso(DadosRuinas dados)
+    {
+        if (!preparado || dados == null || dados.passos == null || dados.passos.Length != altares.Length) return;
+        indiceGirando = -1;
+        AltarProximo = null;
+        for (int i = 0; i < altares.Length; i++) altares[i].RestaurarPassos(dados.passos[i]);
+        Resolvido = dados.resolvido;
+        if (Resolvido) monolito.RestaurarConcluido();
+    }
 
     private void Start()
     {
@@ -119,7 +142,11 @@ public class PuzzleAltaresRuinas : MonoBehaviour
         primeiro.pivo.localRotation = Quaternion.Slerp(inicioPrimeiro, primeiro.RotacaoDestino, suave);
         segundo.pivo.localRotation = Quaternion.Slerp(inicioSegundo, segundo.RotacaoDestino, suave);
         primeiro.AnimarAlavanca(t);
-        if (t >= 1f) indiceGirando = -1;
+        if (t >= 1f)
+        {
+            indiceGirando = -1;
+            AutosaveEndy.Instancia?.SolicitarAutosave();
+        }
     }
 
     private void LateUpdate()
@@ -138,6 +165,7 @@ public class PuzzleAltaresRuinas : MonoBehaviour
             Resolvido = true;
             AltarProximo = null;
             monolito.Desmoronar();
+            AutosaveEndy.Instancia?.SolicitarAutosave();
         }
     }
 

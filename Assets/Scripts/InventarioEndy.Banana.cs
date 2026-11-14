@@ -25,6 +25,17 @@ public partial class InventarioEndy
         BananaNaMao = banana;
         banana.ColocarNaMao(encaixeMao);
         frameColeta = Time.frameCount;
+        AutosaveEndy.Instancia?.SolicitarAutosave();
+        return true;
+    }
+
+    public bool RestaurarBananaNaMao(BananaSopa banana)
+    {
+        if (banana == null || banana.Depositada || TemBanana || !PodeColetarPocao || encaixeMao == null) return false;
+        banana.gameObject.SetActive(true);
+        BananaNaMao = banana;
+        banana.ColocarNaMao(encaixeMao);
+        frameColeta = Time.frameCount;
         return true;
     }
 
@@ -36,6 +47,7 @@ public partial class InventarioEndy
         if (!caldeirao.ReceberBanana(this, banana)) return false;
         BananaNaMao = null;
         frameColeta = Time.frameCount;
+        AutosaveEndy.Instancia?.SolicitarAutosave();
         return true;
     }
 
