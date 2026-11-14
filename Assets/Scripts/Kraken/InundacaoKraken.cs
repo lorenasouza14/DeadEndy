@@ -7,7 +7,7 @@ using StarterAssets;
 [DefaultExecutionOrder(-30)]
 public class InundacaoKraken : MonoBehaviour
 {
-    public enum EtapaMare { Repouso, Avisando, Mergulhando, Subindo, Cheia, Baixando, Emergindo }
+    public enum EtapaMare { Repouso, Avisando, Mergulhando, Subindo, Cheia, Baixando, Emergindo, AguardandoSubida }
     [Header("Referencias")]
     public Transform superficieAgua;
     public Renderer malhaAgua;
@@ -16,8 +16,10 @@ public class InundacaoKraken : MonoBehaviour
     public LineRenderer ondaMergulho;
     public Transform centroKraken;
     [Header("Tempos para subir nas rochas")]
-    [Min(.1f)] public float tempoAviso = 7f;
-    [Min(.1f)] public float tempoMergulho = 3f;
+    [Min(.1f)] public float tempoAviso = 3f;
+    [Min(.1f)] public float tempoMergulho = 1.8f;
+    [Tooltip("Espera apos o Kraken terminar de afundar, antes da agua subir.")]
+    [Min(0)] public float atrasoAposMergulho = 3.5f;
     [Min(.1f)] public float tempoSubida = 4f;
     [Min(.1f)] public float tempoCheia = 8f;
     [Min(.1f)] public float tempoDescida = 4f;
@@ -34,6 +36,7 @@ public class InundacaoKraken : MonoBehaviour
 
     public EtapaMare Fase { get; private set; }
     public bool EmExecucao { get; private set; }
+    public bool EmFuga { get; private set; }
     public bool Pendente => isActiveAndEnabled && pendentes > 0;
     public int SolicitacoesPendentes => pendentes;
     public float MergulhoNormalizado { get; private set; }
@@ -47,9 +50,11 @@ public class InundacaoKraken : MonoBehaviour
     {
         get
         {
-            if (Fase == EtapaMare.Avisando) return "O KRAKEN VAI AFUNDAR!\nSuba nas rochas marcadas: " + Mathf.CeilToInt(TempoRestante) + "s";
+            if (EmFuga) return Fase == EtapaMare.Subindo ? "A CAVERNA ESTA DESMORONANDO!\nA agua esta subindo: corra e escale as pedras!" : "A agua parou de subir.\nO patamar de descanso esta acima da agua.";
+            if (Fase == EtapaMare.Avisando) return "O KRAKEN VAI AFUNDAR!\nSuba nas rochas: " + Mathf.CeilToInt(TempoRestante) + "s";
             if (Fase == EtapaMare.Mergulhando) return "ELE ESTA MERGULHANDO!\nSuba nas rochas: a agua vai subir!";
-            if (Fase == EtapaMare.Subindo) return "A AGUA ESTA SUBINDO!\nFique no alto das rochas marcadas.";
+            if (Fase == EtapaMare.AguardandoSubida) return "O KRAKEN AFUNDOU!\nA agua vai subir: fique no alto das rochas.";
+            if (Fase == EtapaMare.Subindo) return "A AGUA ESTA SUBINDO!\nFique no alto das rochas.";
             if (Fase == EtapaMare.Cheia) return "AGUA PERIGOSA! Fique nas rochas.\nA cheia dura mais " + Mathf.CeilToInt(TempoRestante) + "s";
             if (Fase == EtapaMare.Baixando) return "A agua esta baixando.\nEspere para descer das rochas.";
             if (Fase == EtapaMare.Emergindo) return "O Kraken esta voltando!";
@@ -61,6 +66,7 @@ public class InundacaoKraken : MonoBehaviour
     int pendentes;
     bool cancelado, iniciado;
     float proximoDano;
+    float inicioFuga, duracaoFuga, nivelInicioFuga, nivelFimFuga;
     ThirdPersonController jogador;
     VidaJogadorKraken vida;
     CharacterController capsula;
@@ -77,28 +83,42 @@ public class InundacaoKraken : MonoBehaviour
     }
     public void Solicitar()
     {
-        if (isActiveAndEnabled && iniciado) pendentes++;
+        if (isActiveAndEnabled && iniciado && !EmFuga) pendentes++;
     }
-    public IEnumerator Executar()
+    public IEnumerator Executar(float multiplicadorVelocidade = 1f)
     {
-        if (!iniciado || !isActiveAndEnabled || EmExecucao || pendentes <= 0) yield break;
+        if (!iniciado || !isActiveAndEnabled || EmExecucao || EmFuga || pendentes <= 0) yield break;
+        float ritmo = Mathf.Max(1f, multiplicadorVelocidade);
         pendentes--; cancelado = false; EmExecucao = true; proximoDano = Time.time;
         MostrarRefugios(true);
         try
         {
-            yield return Transicao(EtapaMare.Avisando, tempoAviso, p => PreparacaoNormalizada = p);
+            yield return Transicao(EtapaMare.Avisando, tempoAviso / ritmo, p => PreparacaoNormalizada = p);
             if (cancelado) yield break;
-            yield return Transicao(EtapaMare.Mergulhando, tempoMergulho, p => MergulhoNormalizado = p);
+            yield return Transicao(EtapaMare.Mergulhando, tempoMergulho / ritmo, p => MergulhoNormalizado = p);
             if (cancelado) yield break;
-            yield return Transicao(EtapaMare.Subindo, tempoSubida, p => DefinirNivel(Mathf.Lerp(NivelInicial, nivelMaximo, p)));
+            // A espera so comeca depois que o mergulho chegou a 100%.
+            yield return Transicao(EtapaMare.AguardandoSubida, atrasoAposMergulho / ritmo, p => { });
             if (cancelado) yield break;
-            yield return Transicao(EtapaMare.Cheia, tempoCheia, p => { });
+            yield return Transicao(EtapaMare.Subindo, tempoSubida / ritmo, p => DefinirNivel(Mathf.Lerp(NivelInicial, nivelMaximo, p)));
             if (cancelado) yield break;
-            yield return Transicao(EtapaMare.Baixando, tempoDescida, p => DefinirNivel(Mathf.Lerp(nivelMaximo, NivelInicial, p)));
+            yield return Transicao(EtapaMare.Cheia, tempoCheia / ritmo, p => { });
             if (cancelado) yield break;
-            yield return Transicao(EtapaMare.Emergindo, tempoRetorno, p => { MergulhoNormalizado = 1 - p; PreparacaoNormalizada = 1 - p; });
+            yield return Transicao(EtapaMare.Baixando, tempoDescida / ritmo, p => DefinirNivel(Mathf.Lerp(nivelMaximo, NivelInicial, p)));
+            if (cancelado) yield break;
+            yield return Transicao(EtapaMare.Emergindo, tempoRetorno / ritmo, p => { MergulhoNormalizado = 1 - p; PreparacaoNormalizada = 1 - p; });
         }
-        finally { RestaurarAmbiente(); }
+        finally { if (!EmFuga) RestaurarAmbiente(); }
+    }
+    public bool IniciarSubidaDeFuga(float nivelDestino, float duracao)
+    {
+        if (!iniciado || !isActiveAndEnabled || EmFuga || nivelDestino <= NivelAtual) return false;
+        CancelarERestaurar();
+        EmFuga = true; EmExecucao = true; Fase = EtapaMare.Subindo;
+        inicioFuga = Time.time; duracaoFuga = Mathf.Max(1, duracao);
+        nivelInicioFuga = NivelAtual; nivelFimFuga = nivelDestino;
+        TempoRestante = duracaoFuga; proximoDano = Time.time;
+        return true;
     }
     IEnumerator Transicao(EtapaMare fase, float duracao, Action<float> atualizar)
     {
@@ -129,6 +149,13 @@ public class InundacaoKraken : MonoBehaviour
     {
         if (!iniciado) return;
         LocalizarJogador();
+        if (EmFuga)
+        {
+            float progresso = Mathf.Clamp01((Time.time - inicioFuga) / duracaoFuga);
+            DefinirNivel(Mathf.Lerp(nivelInicioFuga, nivelFimFuga, progresso));
+            TempoRestante = Mathf.Max(0, duracaoFuga - (Time.time - inicioFuga));
+            Fase = progresso < 1 ? EtapaMare.Subindo : EtapaMare.Cheia;
+        }
         bool dentro = false;
         float profundidade = 0, altura = 2;
         if (jogador && capsula && vida && !vida.Morto)
@@ -159,7 +186,7 @@ public class InundacaoKraken : MonoBehaviour
             ondaMergulho.SetPosition(i, new Vector3(centroKraken.position.x + Mathf.Cos(a)*raio, NivelAtual+.16f, centroKraken.position.z + Mathf.Sin(a)*raio));
         }
     }
-    void MostrarRefugios(bool mostrar) { if (marcasRefugios != null) foreach (var marca in marcasRefugios) if (marca) marca.SetActive(mostrar); }
+    void MostrarRefugios(bool mostrar) { if (marcasRefugios != null) foreach (var marca in marcasRefugios) if (marca) marca.SetActive(false); }
     void RestaurarAmbiente()
     {
         if (!iniciado) return;
@@ -171,7 +198,7 @@ public class InundacaoKraken : MonoBehaviour
         MostrarRefugios(false);
         if (ondaMergulho) ondaMergulho.enabled = false;
     }
-    public void CancelarERestaurar() { cancelado = true; pendentes = 0; RestaurarAmbiente(); }
+    public void CancelarERestaurar() { EmFuga = false; cancelado = true; pendentes = 0; RestaurarAmbiente(); }
     void OnDisable() { CancelarERestaurar(); }
     void OnGUI()
     {

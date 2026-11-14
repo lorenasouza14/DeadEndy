@@ -63,6 +63,8 @@ public class TrocarMundo : MonoBehaviour
     public void TrocarCena()
     {
         if (instancia != this || trocando) return;
+        var vida = GetComponent<VidaJogadorKraken>();
+        if (vida && vida.Morto) return;
         string atual = SceneManager.GetActiveScene().name;
         string destino = atual == mundo1 ? mundo2 : atual == mundo2 ? mundo1 : null;
         if (destino == null) return;

@@ -11,40 +11,75 @@ public class VidaJogadorKraken : MonoBehaviour
     public int VidaAtual { get; private set; }
     public bool Morto { get; private set; }
     float podeReceberEm;
+    string cenaParaReiniciar;
+
     void Awake() { VidaAtual = vidaMaxima; }
     public bool ReceberDano(int dano)
     {
         if (Morto || dano <= 0 || Time.time < podeReceberEm) return false;
         VidaAtual = Mathf.Max(0, VidaAtual - dano);
         podeReceberEm = Time.time + invulnerabilidade;
-        if (VidaAtual == 0) StartCoroutine(Renascer());
+        if (VidaAtual == 0) Morrer();
         return true;
     }
-    IEnumerator Renascer()
+    public void Morrer()
     {
+        if (Morto) return;
         Morto = true;
-        var controle = GetComponent<ThirdPersonController>();
-        bool estavaAtivo = controle && controle.enabled;
-        if (controle) controle.enabled = false;
-        yield return new WaitForSeconds(1.5f);
-        Transform entrada = null;
-        foreach (var root in SceneManager.GetActiveScene().GetRootGameObjects())
-            foreach (var t in root.GetComponentsInChildren<Transform>(true))
-                if (t.name == "PontoEntrada") entrada = t;
-        if (entrada)
+        VidaAtual = 0;
+        cenaParaReiniciar = SceneManager.GetActiveScene().path;
+        SceneManager.sceneLoaded += AoReiniciarCena;
+        StartCoroutine(ReiniciarFase());
+    }
+    IEnumerator ReiniciarFase()
+    {
+        // A inundacao roda na coroutine da batalha: interromper apenas a agua
+        // permite que o ataque seguinte continue durante a morte.
+        foreach (var batalha in FindObjectsByType<BatalhaKraken>(FindObjectsSortMode.None))
         {
-            var cc = GetComponent<CharacterController>();
-            bool estavaLigado = cc && cc.enabled;
-            if (cc) cc.enabled = false;
-            transform.SetPositionAndRotation(entrada.position, Quaternion.Euler(0, entrada.eulerAngles.y, 0));
-            Physics.SyncTransforms();
-            if (cc) cc.enabled = estavaLigado;
-            if (controle) controle.PrepararTrocaDeMundo(Camera.main);
-            foreach (var cam in FindObjectsByType<Unity.Cinemachine.CinemachineCamera>()) cam.PreviousStateIsValid = false;
+            batalha.StopAllCoroutines();
+            batalha.enabled = false;
         }
+        foreach (var captura in FindObjectsByType<CapturaJogadorKraken>(FindObjectsSortMode.None))
+            captura.Cancelar();
+        foreach (var agua in FindObjectsByType<InundacaoKraken>(FindObjectsSortMode.None))
+            agua.CancelarERestaurar();
+        var controle = GetComponent<ThirdPersonController>();
+        if (controle)
+        {
+            controle.DefinirMultiplicadorAgua(1);
+            controle.enabled = false;
+        }
+        yield return new WaitForSecondsRealtime(1.5f);
+        Time.timeScale = 1f;
+        // Recria tambem pilares, correntes, Kraken e todos os ataques pendentes.
+        SceneManager.LoadScene(cenaParaReiniciar, LoadSceneMode.Single);
+    }
+    void AoReiniciarCena(Scene cena, LoadSceneMode modo)
+    {
+        if (cena.path != cenaParaReiniciar) return;
+        SceneManager.sceneLoaded -= AoReiniciarCena;
+        // TrocarMundo mantem o jogador vivo entre cenas; ele precisa de reset proprio.
+        var controle = GetComponent<ThirdPersonController>();
+        var capsula = GetComponent<CharacterController>();
+        if (capsula) capsula.enabled = false;
+        foreach (var raiz in cena.GetRootGameObjects())
+            foreach (var entrada in raiz.GetComponentsInChildren<Transform>(true))
+                if (entrada.name == "PontoEntrada" && entrada.gameObject.activeInHierarchy)
+                    transform.SetPositionAndRotation(entrada.position, Quaternion.Euler(0, entrada.eulerAngles.y, 0));
+        Physics.SyncTransforms();
+        if (capsula) capsula.enabled = true;
+        if (controle)
+        {
+            controle.DefinirMultiplicadorAgua(1);
+            controle.PrepararTrocaDeMundo(Camera.main);
+            controle.enabled = true;
+        }
+        foreach (var camera in FindObjectsByType<Unity.Cinemachine.CinemachineCamera>(FindObjectsSortMode.None))
+            camera.PreviousStateIsValid = false;
         VidaAtual = vidaMaxima;
         podeReceberEm = Time.time + invulnerabilidade;
         Morto = false;
-        if (controle) controle.enabled = estavaAtivo;
     }
+    void OnDestroy() { SceneManager.sceneLoaded -= AoReiniciarCena; }
 }

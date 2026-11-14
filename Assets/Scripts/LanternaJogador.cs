@@ -5,6 +5,7 @@ using UnityEngine.Rendering;
 /// Alterna a luz da lanterna com o botao esquerdo do mouse.
 /// Pode ficar no modelo da lanterna antes ou depois de ele ser colocado na mao.
 /// </summary>
+[DefaultExecutionOrder(350)]
 public class LanternaJogador : MonoBehaviour
 {
     public static LanternaJogador Instancia { get; private set; }
@@ -29,10 +30,18 @@ public class LanternaJogador : MonoBehaviour
     [SerializeField] private Color corDoFeixe = new Color(1f, 0.92f, 0.65f, 1f);
 
     private GameObject feixeVisual;
+    private Transform personagem;
+    public void AtualizarDirecao() { AlinharFeixeComPersonagem(); }
+    public bool Ligada => luzDaLanterna != null && luzDaLanterna.enabled;
+    public Transform AlvoDeMiraTemporario { get; set; }
+    public event System.Action<bool> EstadoAlterado;
+    public void DefinirLigada(bool ligada) { AtualizarLuz(ligada); }
 
     private void Awake()
     {
-        Instancia = this;
+        // Uma lanterna ja coletada pode acompanhar o jogador persistente de outra fase.
+        if (Instancia == null || !Instancia.foiColetada)
+            Instancia = this;
         if (luzDaLanterna == null)
             luzDaLanterna = GetComponentInChildren<Light>(true);
 
@@ -59,13 +68,38 @@ public class LanternaJogador : MonoBehaviour
 
     private void Update()
     {
-        // Só permite ligar/desligar se a lanterna já foi coletada
+        // Sï¿½ permite ligar/desligar se a lanterna jï¿½ foi coletada
         if (foiColetada && Input.GetMouseButtonDown(0))
             AtualizarLuz(!luzDaLanterna.enabled);
     }
 
+    private void LateUpdate()
+    {
+        AlinharFeixeComPersonagem();
+    }
+
+    private void AlinharFeixeComPersonagem()
+    {
+        if (!foiColetada || luzDaLanterna == null) return;
+        if (personagem == null || !transform.IsChildOf(personagem))
+        {
+            var controlador = GetComponentInParent<StarterAssets.ThirdPersonController>();
+            personagem = controlador != null ? controlador.transform : null;
+        }
+        if (personagem == null && AlvoDeMiraTemporario == null) return;
+
+        // A animacao do pulso nao deve desviar o feixe para os lados.
+        // O cone visivel e filho da luz e acompanha a mesma orientacao.
+        Vector3 frente = AlvoDeMiraTemporario != null
+            ? AlvoDeMiraTemporario.position-luzDaLanterna.transform.position
+            : Vector3.ProjectOnPlane(personagem.forward, Vector3.up);
+        if (frente.sqrMagnitude > .0001f)
+            luzDaLanterna.transform.rotation = Quaternion.LookRotation(frente, Vector3.up);
+    }
+
     private void AtualizarLuz(bool ligar)
     {
+        bool mudou = luzDaLanterna.enabled != ligar;
         luzDaLanterna.color = corDaLuz;
         luzDaLanterna.intensity = intensidade;
         luzDaLanterna.range = alcance;
@@ -74,11 +108,13 @@ public class LanternaJogador : MonoBehaviour
 
         if (feixeVisual != null)
             feixeVisual.SetActive(ligar && mostrarFeixe);
+        if (mudou) EstadoAlterado?.Invoke(ligar);
     }
 
     /// <summary>Verifica se um alvo esta dentro do foco e sem uma parede entre ele e a lanterna.</summary>
     public bool EstaIluminando(Vector3 pontoDoAlvo, Transform raizDoAlvo)
     {
+        AlinharFeixeComPersonagem();
         if (luzDaLanterna == null || !luzDaLanterna.enabled)
             return false;
 
@@ -91,7 +127,7 @@ public class LanternaJogador : MonoBehaviour
         if (Vector3.Angle(luzDaLanterna.transform.forward, ateAlvo) > luzDaLanterna.spotAngle * 0.5f)
             return false;
 
-        int layerMask = ~LayerMask.GetMask("Fumaca");
+        int layerMask = ~LayerMask.GetMask("Fumaca", "PonteFantasma");
 
         RaycastHit[] impactos = Physics.RaycastAll(
             origem,
@@ -101,16 +137,45 @@ public class LanternaJogador : MonoBehaviour
             QueryTriggerInteraction.Collide);
         System.Array.Sort(impactos, (a, b) => a.distance.CompareTo(b.distance));
 
+        bool alvoFantasma = raizDoAlvo && raizDoAlvo.GetComponentInParent<FantasmaCaverna>();
         foreach (RaycastHit impacto in impactos)
         {
-            if (impacto.transform.IsChildOf(transform))
+            if (impacto.transform.IsChildOf(transform) || (personagem && impacto.transform.IsChildOf(personagem)))
                 continue;
 
-            return impacto.transform == raizDoAlvo || impacto.transform.IsChildOf(raizDoAlvo);
+            if (impacto.transform == raizDoAlvo || impacto.transform.IsChildOf(raizDoAlvo)) return true;
+            // Fantasmas agrupados nao fazem sombra uns nos outros no foco da lanterna.
+            if (alvoFantasma && impacto.collider.GetComponentInParent<FantasmaCaverna>()) continue;
+            // So os fantasmas permitem que o feixe atravesse as irregularidades do piso.
+            if (alvoFantasma && PodeAtravessarPiso(impacto.collider, origem, pontoDoAlvo, impacto.normal)) continue;
+            return false;
         }
 
         // Sem collider no caminho: o alvo esta no foco da luz.
         return true;
+    }
+
+    private static bool PodeAtravessarPiso(Collider colisor, Vector3 origem, Vector3 alvo, Vector3 normal)
+    {
+        // Paredes, portas e pecas do puzzle continuam sendo obstaculos.
+        if (colisor.GetComponentInParent<PedraBrilhante>()) return false;
+        bool piso = false, rocha = false;
+        var filtro = colisor.GetComponent<MeshFilter>();
+        string malha = filtro && filtro.sharedMesh ? filtro.sharedMesh.name : "";
+        for (var t = colisor.transform; t; t = t.parent)
+        {
+            string nome = (t.name + " " + (t == colisor.transform ? malha : "")).ToLowerInvariant();
+            if (nome.Contains("wall") || nome.Contains("parede") || nome.Contains("door")
+                || nome.Contains("porta") || nome.Contains("ceiling") || nome.Contains("teto")) return false;
+            piso |= nome.Contains("ground") || nome.Contains("floor") || nome.Contains("piso") || nome.Contains("chao");
+            rocha |= nome.Contains("rock") || nome.Contains("stone") || nome.Contains("rocha")
+                || nome.Contains("pedra") || nome.Contains("stalagmite") || nome.Contains("mountain");
+        }
+        if (piso) return true;
+        // A face caminhavel do terreno tambem conta como piso, mesmo em uma malha grande.
+        if (normal.y >= .45f && colisor.bounds.min.y <= Mathf.Max(origem.y, alvo.y)) return true;
+        // Inclui as laterais dos colisores convexos das rochas baixas, mesmo com normal vertical.
+        return rocha && colisor.bounds.max.y <= Mathf.Max(origem.y, alvo.y) + .35f;
     }
 
     private void CriarFeixeVisual()
@@ -187,5 +252,7 @@ public class LanternaJogador : MonoBehaviour
     public void ColetarLanterna()
     {
         foiColetada = true;
+        AlinharFeixeComPersonagem();
+        Instancia = this;
     }
 }

@@ -61,8 +61,26 @@ public class PedraBrilhante : MonoBehaviour
     /// <summary>Quantidade de pedras acertadas na tentativa atual.</summary>
     public static int ProgressoAtual => proximaCor;
 
+    /// <summary>Cor que o jogador deve escolher agora; nulo depois da conclusao.</summary>
+    public static CorDaSequencia? ProximaCorEsperada => proximaCor < OrdemCorreta.Length
+        ? OrdemCorreta[Mathf.Max(0, proximaCor)] : (CorDaSequencia?)null;
+    public static event System.Action ProgressoAlterado;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ReiniciarEstadoDoPuzzle()
+    {
+        PedrasDoPuzzle.Clear();
+        proximaCor = 0;
+        ProgressoAlterado = null;
+    }
+
     private void Awake()
     {
+        if (PedrasDoPuzzle.Count == 0)
+        {
+            proximaCor = 0;
+            ProgressoAlterado?.Invoke();
+        }
         if (!PedrasDoPuzzle.Contains(this))
             PedrasDoPuzzle.Add(this);
 
@@ -75,6 +93,11 @@ public class PedraBrilhante : MonoBehaviour
     private void OnDestroy()
     {
         PedrasDoPuzzle.Remove(this);
+        if (PedrasDoPuzzle.Count == 0)
+        {
+            proximaCor = 0;
+            ProgressoAlterado?.Invoke();
+        }
     }
 
     private void PrepararRenderizadores()
@@ -174,9 +197,10 @@ public class PedraBrilhante : MonoBehaviour
             TocarSomDeErro();
             ApagarTodasAsPedras();
             proximaCor = 0;
+            ProgressoAlterado?.Invoke();
             Debug.Log("Sequencia incorreta. Tente novamente.");
 
-            // Dispara o som e o tremor automático na câmara do player
+            // Dispara o som e o tremor automï¿½tico na cï¿½mara do player
             JogadorErrouSequencia();
             return;
         }
@@ -192,6 +216,7 @@ public class PedraBrilhante : MonoBehaviour
 
         Acender();
         proximaCor++;
+        ProgressoAlterado?.Invoke();
 
         if (proximaCor == OrdemCorreta.Length)
         {

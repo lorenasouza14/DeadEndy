@@ -12,22 +12,52 @@ public class GerenciadorFantasmasCaverna : MonoBehaviour
     [SerializeField] private Transform[] pontosDeSpawn;
 
     [Header("Quantidade")]
-    [SerializeField, Min(1)] private int maximoDeFantasmas = 3;
+    [SerializeField, Min(1)] private int maximoDeFantasmas = 12;
     [SerializeField, Min(0.5f)] private float intervaloInicialDeSpawn = 16f;
     [SerializeField, Min(0.5f)] private float intervaloMinimoDeSpawn = 7f;
     [SerializeField, Min(0f)] private float reducaoDoIntervaloPorPedra = 1.5f;
 
+    [Header("Horda final apos concluir a sequencia")]
+    [SerializeField] private Transform[] pontosDaHordaFinal;
+    [SerializeField, Min(1)] private int maximoDaHordaFinal = 25;
+    [SerializeField, Min(.5f)] private float intervaloDaHordaFinal = 5f;
+    private bool hordaFinalAtiva;
+    private Coroutine contagemInicial;
+    public bool HordaFinalAtiva => hordaFinalAtiva;
+    private int LimiteAtual => hordaFinalAtiva ? maximoDaHordaFinal : maximoDeFantasmas;
+    private Transform[] PontosAtuais => hordaFinalAtiva ? pontosDaHordaFinal : pontosDeSpawn;
+
     [Header("Movimento e lanterna")]
     [SerializeField, Min(0f)] private float velocidadeBase = 1.2f;
     [SerializeField, Min(0f)] private float aumentoDeVelocidadePorPedra = 0.25f;
-    [SerializeField, Min(0.1f)] private float segundosNoFeixeParaSumir = 3f;
+    [SerializeField, Range(.05f, 1f)] private float duracaoDaMorte = .35f;
 
     private readonly List<FantasmaCaverna> fantasmasAtivos = new List<FantasmaCaverna>();
     private Transform jogador;
     private float proximoSpawn;
+    private int proximoPontoDeSpawn;
 
     // Controle de fluxo da pedra vermelha
     private bool spawnsAtivados = false;
+
+    private void OnEnable()
+    {
+        PedraBrilhante.ProgressoAlterado += ConferirHordaFinal;
+        ConferirHordaFinal();
+    }
+    private void OnDisable()
+    {
+        PedraBrilhante.ProgressoAlterado -= ConferirHordaFinal;
+    }
+    private void ConferirHordaFinal()
+    {
+        if (hordaFinalAtiva || PedraBrilhante.ProximaCorEsperada.HasValue) return;
+        hordaFinalAtiva = true;
+        spawnsAtivados = true;
+        proximoPontoDeSpawn = 0;
+        if (contagemInicial != null) { StopCoroutine(contagemInicial); contagemInicial = null; }
+        proximoSpawn = Time.time + Mathf.Max(.5f, intervaloDaHordaFinal);
+    }
 
     private void Start()
     {
@@ -35,14 +65,15 @@ public class GerenciadorFantasmasCaverna : MonoBehaviour
             FindFirstObjectByType<StarterAssets.ThirdPersonController>();
         if (controlador != null)
             jogador = controlador.transform;
+        ConferirHordaFinal();
     }
 
     // Método chamado pelo script da pedra vermelha quando o jogador acerta a sequência
     public void AtivarSpawnsAposPedraVermelha()
     {
-        if (!spawnsAtivados)
+        if (!spawnsAtivados && !hordaFinalAtiva && contagemInicial == null)
         {
-            StartCoroutine(ContagemRegressivaParaSpawn());
+            contagemInicial = StartCoroutine(ContagemRegressivaParaSpawn());
         }
     }
 
@@ -51,6 +82,8 @@ public class GerenciadorFantasmasCaverna : MonoBehaviour
         
         yield return new WaitForSeconds(35f);
 
+        contagemInicial = null;
+        if (hordaFinalAtiva) yield break;
         spawnsAtivados = true;
         proximoSpawn = Time.time; // Libera o spawn imediato após passar o minuto
     }
@@ -71,28 +104,41 @@ public class GerenciadorFantasmasCaverna : MonoBehaviour
                 jogador = controlador.transform;
         }
 
-        if (prefabDoFantasma == null || jogador == null || pontosDeSpawn == null || pontosDeSpawn.Length == 0)
+        if (prefabDoFantasma == null || jogador == null || PontosAtuais == null || PontosAtuais.Length == 0)
             return;
 
-        if (fantasmasAtivos.Count < maximoDeFantasmas && Time.time >= proximoSpawn)
+        if (fantasmasAtivos.Count < LimiteAtual && Time.time >= proximoSpawn)
         {
-            CriarFantasma();
-            proximoSpawn = Time.time + IntervaloAtualDeSpawn();
+            if (CriarFantasma())
+                proximoSpawn = Time.time + IntervaloAtualDeSpawn();
         }
     }
 
     private float IntervaloAtualDeSpawn()
     {
+        if (hordaFinalAtiva) return Mathf.Max(.5f, intervaloDaHordaFinal);
         return Mathf.Max(
             intervaloMinimoDeSpawn,
             intervaloInicialDeSpawn - PedraBrilhante.ProgressoAtual * reducaoDoIntervaloPorPedra);
     }
 
-    private void CriarFantasma()
+    private bool CriarFantasma()
     {
-        Transform ponto = pontosDeSpawn[Random.Range(0, pontosDeSpawn.Length)];
-        if (ponto == null)
-            return;
+        fantasmasAtivos.RemoveAll(fantasma => fantasma == null);
+        var pontos = PontosAtuais;
+        if (!prefabDoFantasma || !jogador || pontos == null || pontos.Length == 0
+            || fantasmasAtivos.Count >= LimiteAtual) return false;
+
+        // Usa todos os pontos em rodizio; referencias vazias ou desativadas nao travam o spawn.
+        Transform ponto = null;
+        for (int tentativa = 0; tentativa < pontos.Length; tentativa++)
+        {
+            int indice = proximoPontoDeSpawn % pontos.Length;
+            proximoPontoDeSpawn = (indice + 1) % pontos.Length;
+            var candidato = pontos[indice];
+            if (candidato && candidato.gameObject.activeInHierarchy) { ponto = candidato; break; }
+        }
+        if (!ponto) return false;
 
         GameObject objeto = Instantiate(prefabDoFantasma, ponto.position, ponto.rotation);
         FantasmaCaverna fantasma = objeto.GetComponent<FantasmaCaverna>();
@@ -104,8 +150,9 @@ public class GerenciadorFantasmasCaverna : MonoBehaviour
             this,
             velocidadeBase,
             aumentoDeVelocidadePorPedra,
-            segundosNoFeixeParaSumir);
+            duracaoDaMorte);
         fantasmasAtivos.Add(fantasma);
+        return true;
     }
 
     public void RemoverFantasma(FantasmaCaverna fantasma)

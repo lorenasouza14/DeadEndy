@@ -24,11 +24,7 @@ public class InteracaoBauLanterna : MonoBehaviour
 
     private void Awake()
     {
-        StarterAssets.ThirdPersonController controlador =
-            FindFirstObjectByType<StarterAssets.ThirdPersonController>();
-
-        if (controlador != null)
-            jogador = controlador.transform;
+        LocalizarJogadorEMao();
     }
 
     private void Update()
@@ -88,12 +84,20 @@ public class InteracaoBauLanterna : MonoBehaviour
 
     private void EntregarLanterna()
     {
+        // A troca de mundo pode substituir o jogador que estava salvo na cena.
+        LocalizarJogadorEMao();
         if (lanternaNoBau == null || maoDireita == null)
         {
             Debug.LogWarning("Arraste a lanterna e a mao direita nos campos do bau.");
             return;
         }
 
+        var equipada = jogador != null ? jogador.GetComponentInChildren<LanternaJogador>(true) : null;
+        if (equipada != null && equipada.foiColetada && equipada.gameObject != lanternaNoBau)
+        {
+            lanternaNoBau.SetActive(false);
+            return;
+        }
         Rigidbody corpo = lanternaNoBau.GetComponent<Rigidbody>();
         if (corpo != null)
         {
@@ -106,7 +110,29 @@ public class InteracaoBauLanterna : MonoBehaviour
         lanternaNoBau.transform.localEulerAngles = rotacaoNaMao;
         lanternaNoBau.SetActive(true);
 
-        if (LanternaJogador.Instancia != null)
-            LanternaJogador.Instancia.ColetarLanterna();
+        var controle = lanternaNoBau.GetComponent<LanternaJogador>();
+        if (controle != null)
+            controle.ColetarLanterna();
+    }
+
+    private void LocalizarJogadorEMao()
+    {
+        var controlador = FindAnyObjectByType<StarterAssets.ThirdPersonController>();
+        if (controlador == null) return;
+        jogador = controlador.transform;
+        // O encaixe pertence ao esqueleto do modelo visivel, nao ao renderizador do braco.
+        foreach (Transform t in jogador.GetComponentsInChildren<Transform>(true))
+            if (t.name == "handslot.r") { maoDireita = t; break; }
+        if (maoDireita == null || !maoDireita.IsChildOf(jogador) || maoDireita.name == "Ranger_ArmRight")
+        {
+            maoDireita = null;
+            foreach (var anim in jogador.GetComponentsInChildren<Animator>(true))
+                if (anim.isHuman && anim.avatar != null && anim.avatar.isValid)
+                {
+                    maoDireita = anim.GetBoneTransform(HumanBodyBones.RightHand);
+                    if (maoDireita != null) break;
+                }
+        }
+        animEndy = jogador.GetComponent<Animator>();
     }
 }
