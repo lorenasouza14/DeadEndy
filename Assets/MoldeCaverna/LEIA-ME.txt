@@ -1,0 +1,49 @@
+MOLDE DE CAVERNA PARA UNITY
+
+COMO USAR
+1. Extraia o ZIP e copie a pasta MoldeCaverna inteira para Assets do seu projeto.
+2. Aguarde a Unity importar os OBJ e compilar o script da pasta Editor.
+3. Abra Tools > Caverna > Criar molde na cena.
+4. O objeto Molde Caverna aparece com piso, paredes, materiais simples e MeshColliders.
+5. O teto Cave_Roof vem desativado. Ative-o na Hierarchy para fechar a caverna.
+6. Salve sua cena. Se quiser um prefab, arraste Molde Caverna da Hierarchy para Assets.
+
+Tambem e possivel arrastar os tres OBJ manualmente para a cena, todos na mesma
+posicao e escala, sem usar o script. Nesse caso, adicione materiais e colisores.
+
+ESTRUTURA
+Sala central e oito salas menores, seguindo a conectividade do desenho:
+- Entrada ao norte, com curva suave.
+- Ramo oeste bifurcado para duas salas.
+- Ramo nordeste ligando duas salas em sequencia.
+- Ramo sudeste com bifurcacao para uma sala interna e uma sala distante.
+- Ramo sudoeste terminando em uma sala.
+- Passagem sul para a sala final e depois para a saida.
+Sem estatuas, baus, espelhos, ponte, barreiras ou outros aderecos.
+
+ESCALA E EDICAO
+1 unidade = 1 metro. Sala central aproximadamente 26 x 24 m.
+Salas menores aproximadamente 14 m de diametro. Corredores entre 4,6 e 5,2 m.
+Paredes aproximadamente 5 m. Piso plano em Y=0. Norte na direcao +Z.
+Altere a escala do objeto pai para ajustar o tamanho do conjunto.
+O contorno e irregular e os corredores sao sinuosos; trata-se de um blockout,
+sem texturas de pedra ou acabamento rochoso. Piso, paredes e teto sao separados.
+Para mudar individualmente o formato das salas, edite os OBJ no Blender ou
+outro editor de malhas. Os objetos nao sao volumes parametricos na Unity.
+
+LIMITACOES
+As paredes sao superficies voltadas para dentro, adequadas para o interior.
+As extremidades da entrada e da saida estao fechadas por paredes: sao pontos
+de inicio/fim do molde, nao portais para outra cena. Remova as faces no editor
+de malhas se precisar conectar o molde a um ambiente externo.
+O teto e simples; nao inclui estalactites ou abobadas. Iluminacao, personagem,
+NavMesh e gameplay devem ser configurados no seu projeto.
+O script usa APIs usuais de Editor; nao foi executado em uma instalacao Unity.
+A geometria foi verificada quanto a conectividade, bordas e faces compartilhadas.
+
+ARQUIVOS
+Meshes/Cave_Floor.obj - piso continuo.
+Meshes/Cave_Walls.obj - paredes internas.
+Meshes/Cave_Roof.obj - teto opcional.
+Editor/CaveBlockoutSetup.cs - montagem automatica na Unity.
+Vista_Superior.png - planta do molde.
