@@ -6,7 +6,7 @@ Para mudar uma passagem, mova, gire ou redimensione o próprio cubo. Para criar 
 
 A largura, a espessura e a direção seguem o cubo. Somente a altura da colisão recebe uma margem durante a partida (10 metros acima e abaixo, configurável no componente), evitando passar por baixo ou saltar a parede. As dimensões salvas do cubo não são alteradas.
 
-A área dos cinco baús abre após acender as três tochas. A entrada norte fica aproximadamente 12,6 metros depois da alavanca do norte, antes de contornar o relevo e avistar a arena. O bloqueio lateral continua ativo até completar as tochas. Perto de um bloqueio aparece o objetivo que falta. A primeira abertura do diário registra diarioLido no autosave; saves sem esse campo continuam válidos e pedem abrir novamente o diário.
+A área dos cinco baús abre após acender as três tochas. A entrada norte fica aproximadamente 12,6 metros depois da alavanca do norte, antes de contornar o relevo e avistar a arena. O bloqueio lateral continua ativo até completar as tochas. A primeira abertura do diário registra diarioLido no autosave; saves sem esse campo continuam válidos e pedem abrir novamente o diário.
 
 A correção de checkpoint usa apenas as novas colisões da floresta e a área dos baús. A região inteira do antigo contorno não provoca mais retorno ao início.
 

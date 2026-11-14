@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -16,8 +15,6 @@ public class LimitesPrimeiraFase : MonoBehaviour
     readonly List<BoxCollider> murosFloresta = new List<BoxCollider>();
     readonly List<BoxCollider> murosBaus = new List<BoxCollider>();
     DiarioEndy diario;
-    GameObject hud;
-    TMP_Text aviso;
     public bool FlorestaLiberada => endy != null && endy.temDiario && diario != null && diario.FoiLido;
     public bool BausLiberados => tochas != null && tochas.Concluido;
 
@@ -115,46 +112,8 @@ public class LimitesPrimeiraFase : MonoBehaviour
     void Update()
     {
         AtualizarBloqueios();
-        if (endy == null || !endy.isActiveAndEnabled || MenuManager.EstaAberto || Time.timeScale == 0)
-        { if (hud != null) hud.SetActive(false); return; }
-        var vida = endy.GetComponent<VidaEndy>();
-        if (vida != null && vida.EstaMorto) { if (hud != null) hud.SetActive(false); return; }
-        Vector3 ponto = endy.transform.position + Vector3.up;
-        float menor = 3f;
-        string mensagem = null;
-        foreach (var col in murosBaus)
-            if (col != null && col.enabled && col.gameObject.activeInHierarchy && Vector3.Distance(ponto, col.ClosestPoint(ponto)) < menor)
-            { menor = Vector3.Distance(ponto, col.ClosestPoint(ponto)); mensagem = "Preciso acender as três tochas antes de seguir para os baús."; }
-        foreach (var col in murosFloresta)
-            if (col != null && col.enabled && col.gameObject.activeInHierarchy && Vector3.Distance(ponto, col.ClosestPoint(ponto)) < menor)
-            { menor = Vector3.Distance(ponto, col.ClosestPoint(ponto)); mensagem = endy.temDiario ?
-                "Preciso ler o diário antes de entrar na floresta.  [J] Ler diário" :
-                "Preciso encontrar e ler o diário antes de entrar na floresta."; }
-        if (mensagem != null && hud == null) CriarAviso();
-        if (hud != null) { hud.SetActive(mensagem != null); if (mensagem != null) aviso.text = mensagem; }
     }
 
-    void CriarAviso()
-    {
-        hud = new GameObject("Aviso de caminho bloqueado", typeof(RectTransform), typeof(Canvas), typeof(UnityEngine.UI.CanvasScaler));
-        hud.transform.SetParent(transform, false);
-        hud.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
-        hud.GetComponent<Canvas>().sortingOrder = 80;
-        var scaler = hud.GetComponent<UnityEngine.UI.CanvasScaler>();
-        scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1600,900);
-        var go = new GameObject("Mensagem", typeof(RectTransform), typeof(TextMeshProUGUI));
-        go.transform.SetParent(hud.transform, false);
-        aviso = go.GetComponent<TextMeshProUGUI>();
-        var fonte = endy.GetComponent<IndicadorItemEndy>();
-        if (fonte != null && fonte.fonte != null) aviso.font = fonte.fonte;
-        aviso.fontSize = 28; aviso.alignment = TextAlignmentOptions.Center; aviso.raycastTarget = false;
-        aviso.color = new Color(1,0.91f,0.76f); aviso.outlineWidth = 0.22f; aviso.outlineColor = new Color(0.15f,0.08f,0.03f);
-        var rect = aviso.rectTransform; rect.anchorMin = rect.anchorMax = new Vector2(0.5f,0);
-        rect.pivot = new Vector2(0.5f,0); rect.anchoredPosition = new Vector2(0,115); rect.sizeDelta = new Vector2(1150,90);
-    }
-
-    void OnDisable() { if (hud != null) hud.SetActive(false); }
     void OnDrawGizmosSelected()
     {
         Desenhar(areaBaus, Color.yellow);

@@ -67,21 +67,33 @@ public class IndicadorItemEndy : MonoBehaviour
     {
         var painel = Rect("Dica da fase", areaSegura, Vector2.one, Vector2.one,
             Vector2.zero, Vector2.zero);
-        painel.anchorMin = new Vector2(0.5f, 1f);
-        painel.offsetMin = new Vector2(0, -212);
+        painel.anchorMin = new Vector2(0.45f, 1f);
+        painel.offsetMin = new Vector2(0, -80);
         painel.offsetMax = new Vector2(-36, -80);
-        var direita = new Vector2(1, 0.5f);
-        var imagem = Picture("Lâmpada", painel, direita, direita, Vector2.zero, new Vector2(86, 86));
-        imagem.sprite = lampada;
-        mensagem = Text("Mensagem", painel, "", 36, Creme, Vector2.zero);
-        mensagem.rectTransform.anchorMin = Vector2.zero;
-        mensagem.rectTransform.anchorMax = Vector2.one;
-        mensagem.rectTransform.offsetMin = Vector2.zero;
-        mensagem.rectTransform.offsetMax = new Vector2(-108, 0);
+        var fundo = painel.gameObject.AddComponent<Image>();
+        fundo.sprite = Resources.Load<Sprite>("FundoDicaFase");
+        fundo.type = Image.Type.Sliced;
+        fundo.raycastTarget = false;
+        var linha = painel.gameObject.AddComponent<HorizontalLayoutGroup>();
+        linha.padding = new RectOffset(42, 32, 19, 25);
+        linha.spacing = 24;
+        linha.childAlignment = TextAnchor.MiddleRight;
+        linha.childControlWidth = linha.childControlHeight = true;
+        linha.childForceExpandWidth = linha.childForceExpandHeight = false;
+        painel.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        mensagem = Text("Mensagem", painel, "", 48, Creme, Vector2.zero);
+        mensagem.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
         mensagem.alignment = TextAlignmentOptions.MidlineRight;
         mensagem.textWrappingMode = TextWrappingModes.Normal;
         mensagem.outlineColor = new Color(0.2f, 0.1f, 0.05f);
         mensagem.outlineWidth = 0.18f;
+        if (lampada != null)
+        {
+            var imagem = Picture("Lâmpada", painel, Vector2.one, Vector2.one, Vector2.zero, Vector2.zero);
+            imagem.sprite = lampada;
+            var tamanho = imagem.gameObject.AddComponent<LayoutElement>();
+            tamanho.minWidth = tamanho.preferredWidth = tamanho.preferredHeight = 86;
+        }
         painel.gameObject.SetActive(false);
         return painel.gameObject;
     }

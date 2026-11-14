@@ -7,6 +7,7 @@ public class DicaInteracao : MonoBehaviour
 {
     public GameObject modeloAviso;
     private Canvas canvas;
+    private RectTransform painel;
     private TMP_Text texto;
     private ItemColetavel item;
     private InteracaoBilhete bilhete;
@@ -31,7 +32,7 @@ public class DicaInteracao : MonoBehaviour
         go.layer = 5;
         canvas = go.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.WorldSpace;
-        ((RectTransform)go.transform).sizeDelta = new Vector2(360, 90);
+        painel = (RectTransform)go.transform;
         GameObject aviso = modeloAviso != null ? Instantiate(modeloAviso, go.transform, false) :
             new GameObject("Texto", typeof(RectTransform), typeof(TextMeshProUGUI));
         aviso.transform.SetParent(go.transform, false);
@@ -39,10 +40,12 @@ public class DicaInteracao : MonoBehaviour
         var rect = aviso.GetComponent<RectTransform>();
         rect.anchorMin = Vector2.zero;
         rect.anchorMax = Vector2.one;
-        rect.offsetMin = rect.offsetMax = Vector2.zero;
+        rect.offsetMin = new Vector2(12, 6);
+        rect.offsetMax = -rect.offsetMin;
         texto = aviso.GetComponent<TMP_Text>();
         texto.alignment = TextAlignmentOptions.Center;
-        texto.fontSize = 24;
+        texto.fontSize = 32;
+        texto.textWrappingMode = TextWrappingModes.Normal;
         texto.raycastTarget = false;
         texto.outlineWidth = 0.15f;
         TeclaInteracao.Aplicar(texto);
@@ -57,7 +60,14 @@ public class DicaInteracao : MonoBehaviour
         if (canvas == null) return;
         canvas.gameObject.SetActive(!string.IsNullOrEmpty(dica));
         if (!canvas.gameObject.activeSelf) return;
-        texto.text = dica;
+        if (texto.text != dica)
+        {
+            texto.text = dica;
+            const float larguraMaxima = 420f;
+            float largura = Mathf.Min(larguraMaxima, Mathf.Ceil(texto.preferredWidth));
+            painel.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, largura + 24);
+            painel.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, Mathf.Ceil(texto.preferredHeight) + 12);
+        }
         Bounds bounds = new Bounds(transform.position, Vector3.zero);
         foreach (var mesh in malhas)
             if (mesh != null && mesh.enabled && mesh.gameObject.activeInHierarchy) bounds.Encapsulate(mesh.bounds);
