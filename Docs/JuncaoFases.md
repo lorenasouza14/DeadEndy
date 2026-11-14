@@ -47,3 +47,18 @@ cenário não acrescenta persistência dos puzzles de bananas, altares ou sopa.
   ancestral temporário para essa etapa.
 
 Relatórios da junção e da verificação em execução ficam em `Logs/juncao`.
+
+## Passagem para a caverna
+
+Ao encostar em `fase_gorila/entrada_caverna/fundo_entrada_caverna`, Endy carrega
+`Assets/Scenes/Recuperadas/Level_Cave_3.unity`. O sensor filho
+`GatilhoEntradaCaverna` acompanha o painel e permanece ativo quando o gorila
+desliga a barreira original. Somente o jogador vivo e ativo aciona a passagem.
+
+A fase anterior é descarregada. A caverna usa seu próprio personagem, câmera e
+`PontoEntrada`, conforme configurados em `TrocarMundo`. A passagem não altera o
+sistema de salvamento existente nem transfere o inventário entre as cenas.
+
+`Tools > Mapa > Caverna > Testar passagem em Play Mode` verifica o contato físico,
+a rejeição de outros objetos, o carregamento da caverna e o personagem/câmera de
+destino. O relatório fica em `Logs/entrada-caverna/play.txt`.
