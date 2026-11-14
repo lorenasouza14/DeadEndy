@@ -5,7 +5,7 @@ using Unity.Cinemachine;
 using UnityEngine.InputSystem;
 #endif
 
-[DisallowMultipleComponent]
+[DefaultExecutionOrder(-200), DisallowMultipleComponent]
 [RequireComponent(typeof(CharacterController))]
 public class TrocarMundo : MonoBehaviour
 {
@@ -17,6 +17,7 @@ public class TrocarMundo : MonoBehaviour
     private CharacterController capsula;
     private bool trocando;
     private Scene cenaPreparada;
+    private AutosaveCaverna autosaveCaverna;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ReiniciarInstancia() { instancia = null; }
@@ -51,7 +52,7 @@ public class TrocarMundo : MonoBehaviour
 
     private void Update()
     {
-        if (instancia != this || trocando) return;
+        if (instancia != this || trocando || Time.timeScale == 0) return;
 #if ENABLE_INPUT_SYSTEM
         bool pressionou = Keyboard.current != null && Keyboard.current.zKey.wasPressedThisFrame;
 #else
@@ -74,6 +75,7 @@ public class TrocarMundo : MonoBehaviour
             return;
         }
         trocando = true;
+        if (autosaveCaverna != null) autosaveCaverna.TentarSalvar();
         SceneManager.LoadScene(destino, LoadSceneMode.Single);
     }
 
@@ -94,9 +96,20 @@ public class TrocarMundo : MonoBehaviour
                     entrada = t;
                 }
         if (entrada == null) { Falhar("Crie um PontoEntrada ativo sobre o chao de " + cena.name); return; }
+        var destino = new Pose(entrada.position, Quaternion.Euler(0, entrada.eulerAngles.y, 0));
+        var vida = GetComponent<VidaJogadorKraken>();
+        if (vida == null) vida = gameObject.AddComponent<VidaJogadorKraken>();
+        if (!MenuManager.EstaAberto) GerenciadorPause.Instalar(vida, cena);
+        if (cena.path == ProgressoJogo.CenaCaverna && !MenuManager.EstaAberto && cena == SceneManager.GetActiveScene())
+        {
+            var perigos = entrada.gameObject.AddComponent<PerigosContatoCaverna>();
+            perigos.Preparar(capsula, vida);
+            autosaveCaverna = entrada.gameObject.AddComponent<AutosaveCaverna>();
+            destino = autosaveCaverna.Preparar(controlador, destino, !trocando);
+        }
         bool estavaAtiva = capsula.enabled;
         capsula.enabled = false;
-        transform.SetPositionAndRotation(entrada.position, Quaternion.Euler(0f, entrada.eulerAngles.y, 0f));
+        transform.SetPositionAndRotation(destino.position, destino.rotation);
         Physics.SyncTransforms();
         capsula.enabled = estavaAtiva;
         if (controlador != null) controlador.PrepararTrocaDeMundo(Camera.main);

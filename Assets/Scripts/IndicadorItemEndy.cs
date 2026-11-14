@@ -7,7 +7,7 @@ using UnityEngine.UI;
 public class IndicadorItemEndy : MonoBehaviour
 {
     public TMP_FontAsset fonte;
-    public Sprite pocaoVerde, pocaoAzul, pirulito, trompete, radio, diario;
+    public Sprite pocaoVerde, pocaoAzul, pirulito, trompete, radio, diario, lanterna;
     private InventarioEndy inventario;
     private VidaEndy vida;
     private GameObject interfaceItem;
@@ -21,6 +21,7 @@ public class IndicadorItemEndy : MonoBehaviour
     private Vector2 ultimaResolucao;
     private static readonly Color Marrom = new Color(0.18f, 0.085f, 0.025f, 1f);
     private static readonly Color Creme = new Color(1f, 0.91f, 0.76f, 1f);
+    private static readonly Vector2 TamanhoIcone = new Vector2(144, 144);
     public bool Visivel => interfaceItem != null && interfaceItem.activeSelf && painelItem.gameObject.activeSelf;
     public Sprite IconeAtual => icone != null ? icone.sprite : null;
     public bool DiarioVisivel => interfaceItem != null && interfaceItem.activeSelf && iconeDiario.gameObject.activeSelf;
@@ -30,6 +31,7 @@ public class IndicadorItemEndy : MonoBehaviour
         inventario = GetComponent<InventarioEndy>();
         vida = GetComponent<VidaEndy>();
         interfaceItem = new GameObject("Itens do Endy", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(CanvasGroup));
+        if (GetComponent<TrocarMundo>() != null) DontDestroyOnLoad(interfaceItem);
         // Canvas independente da escala do personagem quando ele bebe a poção de encolher.
         var canvas = interfaceItem.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
@@ -43,20 +45,17 @@ public class IndicadorItemEndy : MonoBehaviour
         group.interactable = false;
         areaSegura = Rect("Área segura", interfaceItem.transform, Vector2.zero, Vector2.zero, Vector2.zero, Vector2.zero);
         painelItem = Rect("Item na mão", areaSegura, new Vector2(1, 0), new Vector2(1, 0), new Vector2(-48, 44), new Vector2(434, 144));
-        icone = Picture("Ícone do item", painelItem, new Vector2(1, 0.5f), new Vector2(1, 0.5f), Vector2.zero, new Vector2(144, 144));
+        icone = Picture("Ícone do item", painelItem, new Vector2(1, 0.5f), new Vector2(1, 0.5f), Vector2.zero, TamanhoIcone);
         var linhas = Rect("Ações", painelItem, new Vector2(0, 0.5f), new Vector2(0, 0.5f), Vector2.zero, new Vector2(270, 112));
         acoes = linhas.gameObject.AddComponent<CanvasGroup>();
         primeiraLinha = Row(linhas, "Ação principal", 28, "R", "Beber", out teclaPrincipal, out acaoPrincipal);
         segundaLinha = Row(linhas, "Arremesso", -28, "F", "Arremessar", out _, out _);
-        iconeDiario = Picture("Diário guardado", areaSegura, Vector2.zero, Vector2.zero, new Vector2(48, 44), new Vector2(80, 80));
+        var cantoDiario = new Vector2(48, 44);
+        iconeDiario = Picture("Diário guardado", areaSegura, Vector2.zero, Vector2.zero, cantoDiario, TamanhoIcone);
         iconeDiario.sprite = diario;
-        var dica = Text("Abrir diário", areaSegura, "[J] Ler diário", 28, Creme, new Vector2(250, 48));
-        dica.rectTransform.anchorMin = dica.rectTransform.anchorMax = Vector2.zero;
-        dica.rectTransform.pivot = Vector2.zero;
-        dica.rectTransform.anchoredPosition = new Vector2(144, 56);
-        dica.alignment = TextAlignmentOptions.MidlineLeft;
-        dica.outlineColor = Marrom;
-        dica.outlineWidth = 0.18f;
+        var dica = Row(areaSegura, "Abrir diário", 0, "J", "Ler diário", out _, out _);
+        dica.anchorMin = dica.anchorMax = Vector2.zero;
+        dica.anchoredPosition = cantoDiario + new Vector2(TamanhoIcone.x + 20, TamanhoIcone.y * 0.5f);
         dicaDiario = dica.gameObject;
         Atualizar();
     }
@@ -134,8 +133,14 @@ public class IndicadorItemEndy : MonoBehaviour
             case InventarioEndy.TipoItemNaMao.Pirulito: icone.sprite = pirulito; break;
             case InventarioEndy.TipoItemNaMao.Trompete: icone.sprite = trompete; break;
             case InventarioEndy.TipoItemNaMao.Radio: icone.sprite = radio; break;
+            case InventarioEndy.TipoItemNaMao.Lanterna:
+                icone.sprite = lanterna;
+                teclaPrincipal.text = "M1";
+                acaoPrincipal.text = "Ligar / apagar";
+                break;
             default: icone.sprite = null; break;
         }
+        teclaPrincipal.fontSize = item == InventarioEndy.TipoItemNaMao.Lanterna ? 22 : 29;
     }
 
     RectTransform Row(Transform parent, string name, float y, string key, string action, out TMP_Text keyText, out TMP_Text actionText)

@@ -7,6 +7,7 @@ public class CarrinhoTrilho : MonoBehaviour
     private int indiceAtual = 0;
 
     private bool aMover = false;
+    public bool EmViagem => aMover;
 
     void Update()
     {

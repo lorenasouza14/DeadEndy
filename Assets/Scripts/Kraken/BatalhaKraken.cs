@@ -62,6 +62,7 @@ public class BatalhaKraken : MonoBehaviour
     Vector3 ponta;
     bool vitoria, desapareceu;
     GUIStyle texto;
+    [SerializeField] Font fonteInterface;
     readonly List<TremorDesmoronamento> tremores = new List<TremorDesmoronamento>();
 
     void Start()
@@ -318,7 +319,7 @@ public class BatalhaKraken : MonoBehaviour
     }
     void OnGUI()
     {
-        if (texto == null) texto = new GUIStyle(GUI.skin.label) { fontSize = 18, wordWrap = true };
+        if (texto == null) texto = new GUIStyle(GUI.skin.label) { font = fonteInterface, fontSize = 18, wordWrap = true };
         bool mare = inundacao && inundacao.EmExecucao;
         GUI.Box(new Rect(16, 16, 440, mare ? 190 : 130), "");
         string mensagem = Estado == Etapa.Derrotado ? "Kraken derrotado! A touquinha caiu." : Estado == Etapa.ToucaCaindo ? "As correntes se soltaram!" : Estado == Etapa.Avisando || Estado == Etapa.Golpeando ? "DESVIE! Saia do circulo cinza." : "Atraia o golpe para perto de um pilar.";

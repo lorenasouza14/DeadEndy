@@ -58,6 +58,7 @@ public class LanternaJogador : MonoBehaviour
         luzDaLanterna.transform.localEulerAngles = rotacaoDaLuz;
         CriarFeixeVisual();
         AtualizarLuz(iniciarLigada);
+        if (foiColetada) ColetarLanterna();
     }
 
     private void OnDestroy()
@@ -69,7 +70,7 @@ public class LanternaJogador : MonoBehaviour
     private void Update()
     {
         // S� permite ligar/desligar se a lanterna j� foi coletada
-        if (foiColetada && Input.GetMouseButtonDown(0))
+        if (foiColetada && Time.timeScale > 0f && Input.GetMouseButtonDown(0))
             AtualizarLuz(!luzDaLanterna.enabled);
     }
 
@@ -254,5 +255,6 @@ public class LanternaJogador : MonoBehaviour
         foiColetada = true;
         AlinharFeixeComPersonagem();
         Instancia = this;
+        GetComponentInParent<InventarioEndy>()?.RegistrarLanterna(this);
     }
 }

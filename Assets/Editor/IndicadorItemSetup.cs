@@ -132,7 +132,7 @@ public class IndicadorItemValidation : MonoBehaviour
             var actions = canvas.GetComponentsInChildren<TMP_Text>().Select(t => t.text).ToArray();
             string[] expected = i < 2 ? new[] { "R", "Beber", "F", "Arremessar" } :
                 new[] { "F", i == 2 ? "Arremessar" : i == 3 ? "Tocar" : "Colocar" };
-            Check(actions.SequenceEqual(expected.Concat(new[] { "[J] Ler diário" })), "Somente teclas e ações disponíveis: " + names[i]);
+            Check(actions.SequenceEqual(expected.Concat(new[] { "J", "Ler diário" })), "Somente teclas e ações disponíveis: " + names[i]);
             Check(canvas.GetComponentsInChildren<TMP_Text>().All(t => t.font == hud.fonte), "Usa Doctor Soos: " + names[i]);
             yield return new WaitForEndOfFrame();
             ScreenCapture.CaptureScreenshot("Logs/item-hud-" + names[i] + ".png");

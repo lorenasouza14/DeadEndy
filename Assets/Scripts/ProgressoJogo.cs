@@ -17,10 +17,14 @@ public class DadosJogo
     public string[] alavancas, baus;
     // Ausente nos saves antigos: a fase do gorila comeca no estado original.
     public DadosGorila gorila;
+    public DadosCaverna caverna;
 
     public bool Valido()
     {
-        return (versao == 1 || versao == 2) && jogo == "DeadEndy" && ProgressoJogo.EhCenaJogo(cena) &&
+        bool faseValida = cena == ProgressoJogo.CenaCaverna
+            ? (versao == 3 || versao == 4) && caverna != null && caverna.Valido()
+            : (versao == 1 || versao == 2) && ProgressoJogo.EhCenaIlha(cena);
+        return faseValida && jogo == "DeadEndy" &&
             DateTime.TryParse(salvoEmUtc, null, System.Globalization.DateTimeStyles.RoundtripKind, out _) &&
             Finito(x) && Finito(y) && Finito(z) && Finito(direcao) &&
             Finito(chefeX) && Finito(chefeY) && Finito(chefeZ) &&
@@ -34,6 +38,16 @@ public class DadosJogo
     static bool Finito(float n) => !float.IsNaN(n) && !float.IsInfinity(n) && Math.Abs(n) < 1000000;
     static bool ListaValida(string[] lista) => lista != null && lista.Length <= 1000 &&
         Array.TrueForAll(lista, s => !string.IsNullOrWhiteSpace(s) && s.Length <= 512);
+}
+
+[Serializable]
+public class DadosCaverna
+{
+    public int pedrasAcesas;
+    public bool temLanterna, lanternaLigada, fantasmasDespertos;
+
+    public bool Valido() => pedrasAcesas >= 0 && pedrasAcesas <= 6 &&
+        (pedrasAcesas == 0 || fantasmasDespertos) && (!lanternaLigada || temLanterna);
 }
 
 [Serializable]
@@ -86,11 +100,14 @@ public static class ProgressoJogo
 {
     public const string CenaJogo = "Assets/Cenario/PNB_Tropical_Jungle/Scenes/Demo_Day.unity";
     public const string CenaIntegrada = "Assets/Cenario/PNB_Tropical_Jungle/Scenes/juncao_fase1-2.unity";
-    public static bool EhCenaJogo(string caminho) => caminho == CenaJogo || caminho == CenaIntegrada;
+    public const string CenaCaverna = "Assets/Scenes/Recuperadas/Level_Cave_3.unity";
+    public static bool EhCenaIlha(string caminho) => caminho == CenaJogo || caminho == CenaIntegrada;
+    public static bool EhCenaJogo(string caminho) => EhCenaIlha(caminho) || caminho == CenaCaverna;
     public const string CenaMenu = "Assets/MenuPrincipal.unity";
     public enum Entrada { Automatica, NovoJogo, Continuar }
     public static Entrada ProximaEntrada { get; private set; }
     static DadosJogo carregamento;
+    public static string CenaParaContinuar => carregamento?.cena == CenaCaverna ? CenaCaverna : CenaIntegrada;
     public static string Caminho => Path.Combine(Application.persistentDataPath,
         Application.isEditor ? "autosave-editor.json" : "autosave.json");
     public static bool ExisteArquivo => new ArquivoSave(Caminho).Existe;
@@ -142,6 +159,11 @@ public static class ProgressoJogo
     }
 
     public static void PrepararNovoJogo() { ProximaEntrada = Entrada.NovoJogo; carregamento = null; }
+    public static void PrepararEntradaCaverna(DadosJogo progressoDaIlha, bool novaPartida)
+    {
+        ProximaEntrada = novaPartida ? Entrada.NovoJogo : Entrada.Automatica;
+        carregamento = progressoDaIlha;
+    }
     public static bool PrepararContinuar(out string aviso)
     {
         if (!TentarCarregar(out var dados, out aviso)) return false;
@@ -156,6 +178,6 @@ public static class ProgressoJogo
         var dados = carregamento;
         if (!novoJogo && dados == null) TentarCarregar(out dados, out aviso);
         ReiniciarEstado();
-        return novoJogo ? null : dados;
+        return dados;
     }
 }

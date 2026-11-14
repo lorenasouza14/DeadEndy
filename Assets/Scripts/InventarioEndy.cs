@@ -6,10 +6,13 @@ using UnityEngine.InputSystem;
 
 public partial class InventarioEndy : MonoBehaviour
 {
-    public enum TipoItemNaMao { Nenhum, PocaoVerde, PocaoAzul, Pirulito, Trompete, Radio }
+    public enum TipoItemNaMao { Nenhum, PocaoVerde, PocaoAzul, Pirulito, Trompete, Radio, Lanterna }
+    public LanternaJogador Lanterna { get; private set; }
+    public void RegistrarLanterna(LanternaJogador lanterna) { Lanterna = lanterna; }
     public TipoItemNaMao ItemNaMao => TemRadio ? TipoItemNaMao.Radio :
         TemTrompete ? TipoItemNaMao.Trompete : TemPirulito ? TipoItemNaMao.Pirulito :
-        pocaoSegurada != null ? (pocaoSegurada.tipo == PocaoMagica.TipoPocao.Encolher ? TipoItemNaMao.PocaoVerde : TipoItemNaMao.PocaoAzul) : TipoItemNaMao.Nenhum;
+        pocaoSegurada != null ? (pocaoSegurada.tipo == PocaoMagica.TipoPocao.Encolher ? TipoItemNaMao.PocaoVerde : TipoItemNaMao.PocaoAzul) :
+        Lanterna != null ? TipoItemNaMao.Lanterna : TipoItemNaMao.Nenhum;
     public bool ExecutandoAcao => estaJogando || EstaBebendoPocao || EstaTocandoTrompete;
     public bool EstaEncolhido { get; private set; }
     public bool TemEfeitoDePocao => EstaEncolhido || fimVelocidade > 0f;

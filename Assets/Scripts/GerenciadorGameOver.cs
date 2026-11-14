@@ -1,9 +1,19 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 public class GerenciadorGameOver : MonoBehaviour
 {
     private bool reiniciando;
+
+    public static void MostrarNaFase()
+    {
+        var tela = Instantiate(Resources.Load<GerenciadorGameOver>("TelaGameOver"));
+        GerenciadorPause.GarantirEventSystem(tela.transform);
+        EventSystem.current.SetSelectedGameObject(tela.GetComponentInChildren<Button>().gameObject);
+        Time.timeScale = 0f;
+    }
 
     void OnEnable()
     {
@@ -15,7 +25,7 @@ public class GerenciadorGameOver : MonoBehaviour
     {
         if (reiniciando) return;
         reiniciando = true;
-        ProgressoJogo.PrepararContinuar(out _);
+        if (ProgressoJogo.EhCenaIlha(gameObject.scene.path)) ProgressoJogo.PrepararContinuar(out _);
         Debug.Log("Reiniciando a batalha...");
         Time.timeScale = 1f;
 

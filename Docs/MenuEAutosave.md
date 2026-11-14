@@ -1,9 +1,8 @@
 # Menu e salvamento automático
 
-Abra `Assets/MenuPrincipal.unity` e entre em Play Mode. O menu é a primeira
-cena habilitada no Build Settings; `Demo_Day` vem em seguida.
+Abra `Assets/MenuPrincipal.unity` e entre em Play Mode.
 
-- **Novo Jogo:** inicia `Demo_Day`. Se houver um arquivo anterior, pede confirmação.
+- **Novo Jogo** inicia a cena integrada `juncao_fase1-2`. Se houver um arquivo anterior, pede confirmação.
   O arquivo anterior só é substituído quando o primeiro checkpoint novo é gravado.
 - **Continuar:** carrega o último checkpoint válido. Fica apagado e indisponível
   quando não existe save utilizável.
@@ -39,9 +38,16 @@ Se já havia chegado, reaparece comendo no destino e a passagem continua aberta.
 Saves antigos continuam válidos, com a fase do gorila no estado inicial porque
 esses arquivos ainda não registravam suas conquistas.
 
+Ao atravessar para `Level_Cave_3`, o primeiro ponto seguro da caverna vira
+checkpoint. Coletar a lanterna, acertar uma pedra ou errar a sequência
+também solicita um save. **Continuar** reabre a caverna no último ponto seguro,
+com a lanterna no estado salvo, as pedras acesas e a dica das estátuas atualizada.
+A sexta pedra libera a porta e ativa a horda final. O arquivo também conserva
+o progresso da ilha e do gorila.
+
 O autosave periódico grava a cada **5 minutos (300 segundos) de jogo ativo**.
 Menu, pausa e tempo sem foco não contam no relógio. Não há gravação automática
-imediata só por entrar na cena ou clicar na janela. O jogo também salva nas
+imediata só por entrar na ilha ou clicar na janela. O jogo também salva nas
 conquistas acima, ao fechar o diário, ao pausar a aplicação e ao sair da partida.
 Esses checkpoints de progresso e saída continuam independentes do intervalo.
 A mensagem **Progresso salvo** só
@@ -90,7 +96,7 @@ e usa IDs derivados dos caminhos originais dos objetos quando o campo está vazi
 ## Verificação
 
 Execute `Tests/RunAutosaveChecks.ps1` no PowerShell para compilar os scripts com
-as referências locais do Unity e executar 44 verificações das classes reais de
+as referências locais do Unity e executar as verificações das classes reais de
 persistência. Elas usam arquivos isolados em `Logs/autosave-tests`, sem tocar no
 progresso do jogador. O relatório fica em `Logs/autosave-persistence-checks.txt`.
 

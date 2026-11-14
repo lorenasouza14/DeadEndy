@@ -294,8 +294,9 @@ namespace StarterAssets
             Vector3 targetDirection = Quaternion.Euler(0.0f, _targetRotation, 0.0f) * Vector3.forward;
 
             // move the player
-            _controller.Move(targetDirection.normalized * (_speed * Time.deltaTime) +
+            CollisionFlags contact = _controller.Move(targetDirection.normalized * (_speed * Time.deltaTime) +
                              new Vector3(0.0f, _verticalVelocity, 0.0f) * Time.deltaTime);
+            if ((contact & CollisionFlags.Above) != 0 && _verticalVelocity > 0f) _verticalVelocity = 0f;
 
             // update animator if using character
             if (_hasAnimator)
@@ -308,7 +309,8 @@ namespace StarterAssets
         private void JumpAndGravity()
         {
             if (BloquearPulo) _input.jump = false;
-            if (Grounded)
+            // The foot probe anticipates landing for animation. Only a landing can reset the fall or start a jump.
+            if (Grounded && _controller.isGrounded)
             {
                 // reset the fall timeout timer
                 _fallTimeoutDelta = FallTimeout;

@@ -27,7 +27,7 @@ public static class DiarioSetup
             throw new InvalidOperationException("Uma das 12 imagens do diário não foi importada como Sprite.");
 
         var livros = Object.FindObjectsByType<DiarioEndy>(FindObjectsInactive.Include)
-            .Where(l => ProgressoJogo.EhCenaJogo(l.gameObject.scene.path)).ToArray();
+            .Where(l => ProgressoJogo.EhCenaIlha(l.gameObject.scene.path)).ToArray();
         if (livros.Length == 0)
             throw new InvalidOperationException("Abra uma das cenas do jogo antes de atualizar o diário.");
 

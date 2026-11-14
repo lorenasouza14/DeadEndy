@@ -18,6 +18,9 @@ public class GerenciadorPause : MonoBehaviour
     public bool EstaPausado { get; private set; }
 
     private VidaEndy vida;
+    private VidaJogadorKraken vidaKraken;
+    private bool JogadorAtivo => vida != null ? vida.isActiveAndEnabled && !vida.EstaMorto :
+        vidaKraken != null && vidaKraken.isActiveAndEnabled && !vidaKraken.Morto;
     private StarterAssets.StarterAssetsInputs inputs;
     private MonoBehaviour movimento;
     private StarterAssets.ThirdPersonController controle;
@@ -31,8 +34,33 @@ public class GerenciadorPause : MonoBehaviour
     private bool audioPausadoAnterior, cursorVisivelAnterior, movimentoAtivoAnterior;
     private bool cursorLockedAnterior, cursorLookAnterior, bloqueioInputAnterior;
     private CursorLockMode travaCursorAnterior;
+#if ENABLE_INPUT_SYSTEM
+    private bool pausePressionado;
+#endif
 
     public static GerenciadorPause Instalar(VidaEndy jogador)
+    {
+        var menu = Instalar(jogador, jogador.scriptDeMovimento, jogador.gameObject.scene);
+        if (menu != null)
+        {
+            menu.vida = jogador;
+            menu.CriarInterface(jogador.telaGameOverUI != null ? jogador.telaGameOverUI.GetComponentInChildren<TMP_Text>(true) : null);
+        }
+        return menu;
+    }
+
+    public static GerenciadorPause Instalar(VidaJogadorKraken jogador, Scene cena)
+    {
+        var menu = Instalar(jogador, null, cena);
+        if (menu != null)
+        {
+            menu.vidaKraken = jogador;
+            menu.CriarInterface(null);
+        }
+        return menu;
+    }
+
+    static GerenciadorPause Instalar(MonoBehaviour jogador, MonoBehaviour movimento, Scene cena)
     {
         var prefab = Resources.Load<GerenciadorPause>("MenuPause");
         if (prefab == null)
@@ -42,25 +70,26 @@ public class GerenciadorPause : MonoBehaviour
         }
         var menu = Instantiate(prefab);
         menu.name = "MenuPause";
-        SceneManager.MoveGameObjectToScene(menu.gameObject, jogador.gameObject.scene);
-        menu.vida = jogador;
+        SceneManager.MoveGameObjectToScene(menu.gameObject, cena);
         menu.inputs = jogador.GetComponent<StarterAssets.StarterAssetsInputs>();
-        menu.movimento = jogador.scriptDeMovimento != null ? jogador.scriptDeMovimento : jogador.GetComponent<StarterAssets.ThirdPersonController>();
+        menu.movimento = movimento != null ? movimento : jogador.GetComponent<StarterAssets.ThirdPersonController>();
         menu.controle = menu.movimento as StarterAssets.ThirdPersonController;
-        menu.CriarInterface();
         return menu;
     }
 
     void Update()
     {
-        if (vida == null) { Destroy(gameObject); return; }
-        if (vida.EstaMorto || !vida.isActiveAndEnabled) { Retornar(); return; }
+        if (vida == null && vidaKraken == null) { Destroy(gameObject); return; }
 #if ENABLE_INPUT_SYSTEM
-        bool alternar = (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) ||
-            (Gamepad.current != null && Gamepad.current.startButton.wasPressedThisFrame);
+        var escape = Keyboard.current?.escapeKey;
+        var start = Gamepad.current?.startButton;
+        bool pressionado = escape?.isPressed == true || start?.isPressed == true;
+        bool alternar = !pausePressionado && (pressionado || escape?.wasPressedThisFrame == true || start?.wasPressedThisFrame == true);
+        pausePressionado = pressionado;
 #else
         bool alternar = Input.GetKeyDown(KeyCode.Escape);
 #endif
+        if (!JogadorAtivo) { Retornar(); return; }
         if (alternar)
         {
             if (EstaPausado) Retornar();
@@ -70,7 +99,7 @@ public class GerenciadorPause : MonoBehaviour
 
     public void Pausar()
     {
-        if (EstaPausado || vida == null || vida.EstaMorto || !vida.isActiveAndEnabled || Time.timeScale <= 0f) return;
+        if (EstaPausado || !JogadorAtivo || Time.timeScale <= 0f) return;
         escalaTempoAnterior = Time.timeScale;
         audioPausadoAnterior = AudioListener.pause;
         cursorVisivelAnterior = Cursor.visible;
@@ -100,7 +129,7 @@ public class GerenciadorPause : MonoBehaviour
         AudioListener.pause = true;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-        GarantirEventSystem();
+        GarantirEventSystem(transform);
         painel.SetActive(true);
         imagemVideo.color = Color.black;
         EventSystem.current.SetSelectedGameObject(retornar.gameObject);
@@ -126,7 +155,7 @@ public class GerenciadorPause : MonoBehaviour
             inputs.cursorInputForLook = cursorLookAnterior;
         }
         if (controle != null) controle.GameplayPaused = controlePausadoAnterior;
-        else if (movimento != null && vida != null && !vida.EstaMorto) movimento.enabled = movimentoAtivoAnterior;
+        else if (movimento != null && JogadorAtivo) movimento.enabled = movimentoAtivoAnterior;
         if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(selecaoAnterior);
     }
 
@@ -147,7 +176,13 @@ public class GerenciadorPause : MonoBehaviour
         inputs.jump = inputs.sprint = false;
     }
 
-    void OnDisable() { Retornar(); }
+    void OnDisable()
+    {
+#if ENABLE_INPUT_SYSTEM
+        pausePressionado = false;
+#endif
+        Retornar();
+    }
     void OnDestroy()
     {
         Retornar();
@@ -173,11 +208,11 @@ public class GerenciadorPause : MonoBehaviour
         // Os botoes permanecem disponiveis mesmo se o dispositivo nao decodificar o video.
     }
 
-    void GarantirEventSystem()
+    internal static void GarantirEventSystem(Transform dono)
     {
         if (EventSystem.current != null) return;
         var eventos = new GameObject("EventSystemPause", typeof(EventSystem));
-        eventos.transform.SetParent(transform, false);
+        eventos.transform.SetParent(dono, false);
 #if ENABLE_INPUT_SYSTEM
         eventos.AddComponent<InputSystemUIInputModule>();
 #else
@@ -185,7 +220,7 @@ public class GerenciadorPause : MonoBehaviour
 #endif
     }
 
-    void CriarInterface()
+    void CriarInterface(TMP_Text modelo)
     {
         painel = new GameObject("TelaPause", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
         painel.transform.SetParent(transform, false);
@@ -221,7 +256,6 @@ public class GerenciadorPause : MonoBehaviour
         video.prepareCompleted += VideoPreparado;
         video.errorReceived += ErroVideo;
 
-        TMP_Text modelo = vida.telaGameOverUI != null ? vida.telaGameOverUI.GetComponentInChildren<TMP_Text>(true) : null;
         retornar = CriarBotao("Retornar", new Vector2(-240f, -332f), modelo);
         var sair = CriarBotao("Sair", new Vector2(240f, -332f), modelo);
         retornar.onClick.AddListener(Retornar);

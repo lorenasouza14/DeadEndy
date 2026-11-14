@@ -15,6 +15,8 @@ public class DicaInteracao : MonoBehaviour
     private CaldeiraoSopa caldeirao;
     private AlavancaTriangulo alavanca;
     private BauDiario bauDiario;
+    private InteracaoBauLanterna bauLanterna;
+    private InteracaoCarrinho carrinho;
     private Renderer[] malhas;
     public bool Visivel => canvas != null && canvas.gameObject.activeSelf;
 
@@ -26,6 +28,8 @@ public class DicaInteracao : MonoBehaviour
         caldeirao = GetComponent<CaldeiraoSopa>();
         alavanca = GetComponent<AlavancaTriangulo>();
         bauDiario = GetComponent<BauDiario>();
+        bauLanterna = GetComponent<InteracaoBauLanterna>();
+        carrinho = GetComponent<InteracaoCarrinho>();
         malhas = GetComponentsInChildren<Renderer>(true);
         var go = new GameObject("Aviso de interação", typeof(RectTransform), typeof(Canvas));
         go.transform.SetParent(transform, false);
@@ -56,7 +60,9 @@ public class DicaInteracao : MonoBehaviour
     {
         string dica = caldeirao != null ? caldeirao.ObterDica() : altar != null ? altar.ObterDica() : item != null ? item.ObterDica() :
             bilhete != null && bilhete.MostrarDica ? "[E] Ler bilhete" :
-            alavanca != null && alavanca.MostrarDica ? "[E] Puxar alavanca" : bauDiario != null ? bauDiario.Dica : null;
+            alavanca != null && alavanca.MostrarDica ? "[E] Puxar alavanca" : bauDiario != null ? bauDiario.Dica :
+            bauLanterna != null && bauLanterna.MostrarDica ? "[E] Pegar lanterna" :
+            carrinho != null && carrinho.MostrarDica ? "[E] Entrar no carrinho" : null;
         if (canvas == null) return;
         canvas.gameObject.SetActive(!string.IsNullOrEmpty(dica));
         if (!canvas.gameObject.activeSelf) return;

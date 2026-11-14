@@ -120,11 +120,6 @@ public class MenuManager : MonoBehaviour
     void CarregarJogo(bool novo)
     {
         if (carregando) return;
-        if (!Application.CanStreamedLevelBeLoaded(ProgressoJogo.CenaIntegrada))
-        {
-            AbrirDialogo("A cena do jogo não está disponível nesta versão.", "Voltar", FecharDialogo);
-            return;
-        }
         if (novo) ProgressoJogo.PrepararNovoJogo();
         else if (!ProgressoJogo.PrepararContinuar(out string aviso))
         {
@@ -132,12 +127,18 @@ public class MenuManager : MonoBehaviour
             AbrirDialogo(aviso ?? "Ainda não há progresso salvo.", "Voltar", FecharDialogo);
             return;
         }
+        string destino = novo ? ProgressoJogo.CenaIntegrada : ProgressoJogo.CenaParaContinuar;
+        if (!Application.CanStreamedLevelBeLoaded(destino))
+        {
+            AbrirDialogo("A cena do jogo não está disponível nesta versão.", "Voltar", FecharDialogo);
+            return;
+        }
         carregando = true;
         if (mensagem != null) mensagem.text = "Carregando...";
         FecharDialogo();
         Time.timeScale = 1;
         // O personagem assume o cursor quando a fase estiver pronta, nunca no clique do menu.
-        SceneManager.LoadSceneAsync(ProgressoJogo.CenaIntegrada, LoadSceneMode.Single);
+        SceneManager.LoadSceneAsync(destino, LoadSceneMode.Single);
     }
 
     public void MostrarCreditos()

@@ -39,6 +39,7 @@ public class GerenciadorFantasmasCaverna : MonoBehaviour
 
     // Controle de fluxo da pedra vermelha
     private bool spawnsAtivados = false;
+    public bool Despertos => spawnsAtivados || contagemInicial != null;
 
     private void OnEnable()
     {

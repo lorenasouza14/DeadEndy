@@ -25,6 +25,7 @@ public class CapturaJogadorKraken : MonoBehaviour
     public Fase Estado { get; private set; }
     public bool Ativa => Estado != Fase.Livre;
     public int Piscadas { get; private set; }
+    [SerializeField] Font fonteInterface;
     public string Mensagem => Estado==Fase.Levando ? "O Kraken te pegou! Prepare a lanterna!" : Estado==Fase.Soltando ? "A luz incomodou o Kraken! Voltando para as pedras..." : "RAPIDO! CLIQUE ESQUERDO: acenda e apague a lanterna!\n"+Cliques+" / 6 cliques   |   "+TempoRestante.ToString("0.0")+" s";
     ThirdPersonController jogador;
     VidaJogadorKraken vida;
@@ -189,7 +190,7 @@ public class CapturaJogadorKraken : MonoBehaviour
     void OnGUI()
     {
         if(!Ativa)return;
-        var style=new GUIStyle(GUI.skin.label){fontSize=Mathf.Clamp(Screen.height/30,18,32),alignment=TextAnchor.MiddleCenter,wordWrap=true};
+        var style=new GUIStyle(GUI.skin.label){font=fonteInterface,fontSize=Mathf.Clamp(Screen.height/30,18,32),alignment=TextAnchor.MiddleCenter,wordWrap=true};
         float width=Mathf.Min(Screen.width-32,700);var rect=new Rect((Screen.width-width)/2,Screen.height-150,width,125);
         GUI.Box(rect,"");GUI.Label(new Rect(rect.x+12,rect.y+8,rect.width-24,rect.height-16),Mensagem,style);
     }

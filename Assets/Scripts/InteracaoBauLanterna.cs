@@ -21,6 +21,16 @@ public class InteracaoBauLanterna : MonoBehaviour
     private bool pertoDoBau;
     private bool bauAberto;
     private Transform jogador;
+    public event System.Action LanternaEntregue;
+    public bool MostrarDica => !bauAberto && Time.timeScale > 0f && JogadorEstaPerto();
+
+    public void RestaurarLanterna(bool ligada)
+    {
+        bauAberto = true;
+        if (animBau != null) animBau.Play("Base Layer.bauAbrindoCave", 0, 1f);
+        EntregarLanterna();
+        if (LanternaJogador.Instancia != null) LanternaJogador.Instancia.DefinirLigada(ligada);
+    }
 
     private void Awake()
     {
@@ -29,25 +39,22 @@ public class InteracaoBauLanterna : MonoBehaviour
 
     private void Update()
     {
-        if (!bauAberto && Input.GetKeyDown(KeyCode.E) && JogadorEstaPerto())
+        if (Input.GetKeyDown(KeyCode.E) && MostrarDica)
             AbrirBau();
     }
 
     private bool JogadorEstaPerto()
     {
-        if (pertoDoBau)
-            return true;
-
         if (jogador == null)
         {
             StarterAssets.ThirdPersonController controlador =
-                FindFirstObjectByType<StarterAssets.ThirdPersonController>();
+                FindAnyObjectByType<StarterAssets.ThirdPersonController>();
             if (controlador != null)
                 jogador = controlador.transform;
         }
 
-        return jogador != null &&
-               Vector3.Distance(jogador.position, transform.position) <= distanciaParaInteragir;
+        return jogador != null && (pertoDoBau ||
+               Vector3.Distance(jogador.position, transform.position) <= distanciaParaInteragir);
     }
 
     private void OnTriggerEnter(Collider other)
@@ -68,8 +75,7 @@ public class InteracaoBauLanterna : MonoBehaviour
     {
         bauAberto = true;
 
-        if (animEndy != null)
-            animEndy.SetTrigger("Interagir");
+        AnimacaoInteracaoEndy.Tocar(jogador.GetComponent<InventarioEndy>(), animEndy);
 
         if (animBau == null)
             animBau = GetComponent<Animator>() ?? GetComponentInChildren<Animator>() ?? GetComponentInParent<Animator>();
@@ -112,7 +118,10 @@ public class InteracaoBauLanterna : MonoBehaviour
 
         var controle = lanternaNoBau.GetComponent<LanternaJogador>();
         if (controle != null)
+        {
             controle.ColetarLanterna();
+            LanternaEntregue?.Invoke();
+        }
     }
 
     private void LocalizarJogadorEMao()

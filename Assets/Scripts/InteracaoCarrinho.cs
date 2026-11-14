@@ -1,43 +1,48 @@
 using UnityEngine;
+using StarterAssets;
 
 public class InteracaoCarrinho : MonoBehaviour
 {
-    public Transform interiorDoCarrinho; // Um objeto vazio posicionado dentro do carrinho
+    public Transform interiorDoCarrinho;
     public CarrinhoTrilho scriptCarrinho;
-    private GameObject player;
-    private bool dentroDoCarrinho = false;
+    ThirdPersonController jogador;
+    bool embarcado;
+    public bool MostrarDica => !embarcado && jogador != null && jogador.isActiveAndEnabled &&
+        interiorDoCarrinho != null && scriptCarrinho != null && Time.timeScale > 0;
 
     void OnTriggerStay(Collider outro)
     {
-        if (!dentroDoCarrinho && (outro.CompareTag("Player") || outro.GetComponentInParent<StarterAssets.ThirdPersonController>() != null))
-        {
-            player = outro.gameObject;
-
-            // Se o jogador pressionar E, entra no carrinho
-            if (Input.GetKeyDown(KeyCode.E))
-            {
-                EntrarNoCarrinho();
-            }
-        }
+        if (!embarcado && outro.TryGetComponent<ThirdPersonController>(out var controle))
+            jogador = controle;
     }
 
-    void EntrarNoCarrinho()
+    void OnTriggerExit(Collider outro)
     {
-        dentroDoCarrinho = true;
+        if (!embarcado && jogador != null && outro.gameObject == jogador.gameObject) jogador = null;
+    }
 
-        // Desativa o controlador do personagem para ele não andar lá dentro
-        var controller = player.GetComponentInParent<StarterAssets.ThirdPersonController>();
-        if (controller != null) controller.enabled = false;
+    void Update()
+    {
+        if (!MostrarDica || !Input.GetKeyDown(KeyCode.E)) return;
+        embarcado = true;
+        jogador.enabled = false;
+        scriptCarrinho.IniciarViagem();
+    }
 
-        // Cola o personagem dentro do carrinho
-        player.transform.SetParent(interiorDoCarrinho);
-        player.transform.localPosition = Vector3.zero;
-        player.transform.localRotation = Quaternion.identity;
+    void LateUpdate()
+    {
+        if (!embarcado || jogador == null) return;
+        // O jogador continua na cena persistente ao acompanhar o carrinho.
+        jogador.transform.SetPositionAndRotation(interiorDoCarrinho.position, Quaternion.Euler(0, interiorDoCarrinho.eulerAngles.y, 0));
+        if (!scriptCarrinho.EmViagem) Desembarcar();
+    }
 
-        // Inicia o movimento do trilho
-        if (scriptCarrinho != null)
-        {
-            scriptCarrinho.IniciarViagem();
-        }
+    void OnDisable() { Desembarcar(); }
+
+    void Desembarcar()
+    {
+        if (embarcado && jogador != null) jogador.enabled = true;
+        embarcado = false;
+        jogador = null;
     }
 }

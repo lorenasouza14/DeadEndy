@@ -34,6 +34,7 @@ public sealed class EntradaCaverna : MonoBehaviour
         // O modo Single descarrega a fase anterior e evita duplicar o jogador.
         var operacao = SceneManager.LoadSceneAsync(cenaDestino, LoadSceneMode.Single);
         if (operacao == null) { carregando = false; return; }
+        jogador.GetComponent<AutosaveEndy>()?.PrepararTravessia();
         jogador.enabled = false;
         Time.timeScale = 1f;
         Cursor.lockState = CursorLockMode.Locked;

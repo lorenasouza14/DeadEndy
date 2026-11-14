@@ -61,6 +61,17 @@ public class PedraBrilhante : MonoBehaviour
     /// <summary>Quantidade de pedras acertadas na tentativa atual.</summary>
     public static int ProgressoAtual => proximaCor;
 
+    public static void RestaurarProgresso(int quantidade)
+    {
+        proximaCor = Mathf.Clamp(quantidade, 0, OrdemCorreta.Length);
+        foreach (var pedra in PedrasDoPuzzle)
+        {
+            if (System.Array.IndexOf(OrdemCorreta, pedra.ObterCorDaPedra()) < proximaCor) pedra.Acender();
+            else pedra.Apagar();
+        }
+        ProgressoAlterado?.Invoke();
+    }
+
     /// <summary>Cor que o jogador deve escolher agora; nulo depois da conclusao.</summary>
     public static CorDaSequencia? ProximaCorEsperada => proximaCor < OrdemCorreta.Length
         ? OrdemCorreta[Mathf.Max(0, proximaCor)] : (CorDaSequencia?)null;

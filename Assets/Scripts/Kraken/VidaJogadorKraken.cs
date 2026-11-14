@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using StarterAssets;
@@ -14,9 +13,10 @@ public class VidaJogadorKraken : MonoBehaviour
     string cenaParaReiniciar;
 
     void Awake() { VidaAtual = vidaMaxima; }
+    public void RestaurarVida(int quantidade) { VidaAtual = Mathf.Clamp(quantidade, 1, vidaMaxima); }
     public bool ReceberDano(int dano)
     {
-        if (Morto || dano <= 0 || Time.time < podeReceberEm) return false;
+        if (Morto || dano <= 0 || Time.timeScale <= 0f || Time.time < podeReceberEm) return false;
         VidaAtual = Mathf.Max(0, VidaAtual - dano);
         podeReceberEm = Time.time + invulnerabilidade;
         if (VidaAtual == 0) Morrer();
@@ -29,10 +29,10 @@ public class VidaJogadorKraken : MonoBehaviour
         VidaAtual = 0;
         cenaParaReiniciar = SceneManager.GetActiveScene().path;
         SceneManager.sceneLoaded += AoReiniciarCena;
-        StartCoroutine(ReiniciarFase());
-    }
-    IEnumerator ReiniciarFase()
-    {
+        var pause = FindAnyObjectByType<GerenciadorPause>();
+        if (pause != null) pause.Retornar();
+        var diario = GetComponent<DiarioEndy>();
+        if (diario != null && diario.Aberto) diario.Fechar();
         // A inundacao roda na coroutine da batalha: interromper apenas a agua
         // permite que o ataque seguinte continue durante a morte.
         foreach (var batalha in FindObjectsByType<BatalhaKraken>(FindObjectsSortMode.None))
@@ -50,10 +50,7 @@ public class VidaJogadorKraken : MonoBehaviour
             controle.DefinirMultiplicadorAgua(1);
             controle.enabled = false;
         }
-        yield return new WaitForSecondsRealtime(1.5f);
-        Time.timeScale = 1f;
-        // Recria tambem pilares, correntes, Kraken e todos os ataques pendentes.
-        SceneManager.LoadScene(cenaParaReiniciar, LoadSceneMode.Single);
+        GerenciadorGameOver.MostrarNaFase();
     }
     void AoReiniciarCena(Scene cena, LoadSceneMode modo)
     {
@@ -63,10 +60,13 @@ public class VidaJogadorKraken : MonoBehaviour
         var controle = GetComponent<ThirdPersonController>();
         var capsula = GetComponent<CharacterController>();
         if (capsula) capsula.enabled = false;
-        foreach (var raiz in cena.GetRootGameObjects())
-            foreach (var entrada in raiz.GetComponentsInChildren<Transform>(true))
-                if (entrada.name == "PontoEntrada" && entrada.gameObject.activeInHierarchy)
-                    transform.SetPositionAndRotation(entrada.position, Quaternion.Euler(0, entrada.eulerAngles.y, 0));
+        if (cena.path != ProgressoJogo.CenaCaverna || GetComponent<TrocarMundo>() == null)
+        {
+            foreach (var raiz in cena.GetRootGameObjects())
+                foreach (var entrada in raiz.GetComponentsInChildren<Transform>(true))
+                    if (entrada.name == "PontoEntrada" && entrada.gameObject.activeInHierarchy)
+                        transform.SetPositionAndRotation(entrada.position, Quaternion.Euler(0, entrada.eulerAngles.y, 0));
+        }
         Physics.SyncTransforms();
         if (capsula) capsula.enabled = true;
         if (controle)
