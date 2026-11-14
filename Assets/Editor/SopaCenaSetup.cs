@@ -81,7 +81,8 @@ public static class SopaCenaSetup
         gorila.percurso = pontos.ToArray();
         var barreira = GameObject.Find("fase_gorila/entrada_caverna/fundo_entrada_caverna");
         gorila.bloqueiosDaCaverna = barreira.GetComponents<Collider>();
-        gorila.visuaisDosBloqueios = barreira.GetComponents<Renderer>();
+        // O painel escuro e o fundo da caverna, nao uma porta que deve desaparecer.
+        gorila.visuaisDosBloqueios = new Renderer[0];
         // O corpo acompanha o modelo em movimento; a animacao nao desloca a raiz.
         guarda.animGorila.applyRootMotion = false;
         var vaporT = Ponto(raiz, "Vapor da sopa pronta", panela.position + Vector3.up * 0.6f);

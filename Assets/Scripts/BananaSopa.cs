@@ -21,6 +21,8 @@ public class BananaSopa : MonoBehaviour
     private bool[] colisoesAtivas;
     private Rigidbody corpo;
     private bool eraCinematico;
+    private bool usavaGravidade;
+    private RigidbodyInterpolation interpolacaoOriginal;
 
     private void Awake()
     {
@@ -76,8 +78,14 @@ public class BananaSopa : MonoBehaviour
         if (corpo != null)
         {
             eraCinematico = corpo.isKinematic;
+            usavaGravidade = corpo.useGravity;
+            interpolacaoOriginal = corpo.interpolation;
+            // Na mao, o osso animado controla a pose. A interpolacao da queda
+            // nao pode reaplicar a antiga posicao fisica sobre esse Transform.
+            corpo.interpolation = RigidbodyInterpolation.None;
             if (!corpo.isKinematic) { corpo.linearVelocity = Vector3.zero; corpo.angularVelocity = Vector3.zero; }
             corpo.isKinematic = true;
+            corpo.useGravity = false;
         }
         var visual = GetComponentInChildren<MeshRenderer>();
         Vector3 tamanho = visual != null ? visual.bounds.size : Vector3.one;
@@ -98,7 +106,15 @@ public class BananaSopa : MonoBehaviour
         NaMao = false;
         RestaurarTransform();
         for (int i = 0; i < colisoes.Length; i++) if (colisoes[i] != null) colisoes[i].enabled = colisoesAtivas[i];
-        if (corpo != null) corpo.isKinematic = eraCinematico;
+        if (corpo != null)
+        {
+            // Atualiza a pose fisica antes de reativar a simulacao da fruta no mundo.
+            corpo.position = transform.position;
+            corpo.rotation = transform.rotation;
+            corpo.useGravity = usavaGravidade;
+            corpo.isKinematic = eraCinematico;
+            corpo.interpolation = interpolacaoOriginal;
+        }
     }
 
     internal void Consumir()

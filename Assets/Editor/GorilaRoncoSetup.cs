@@ -14,13 +14,13 @@ public static class GorilaRoncoSetup
         var g = UnityEngine.Object.FindObjectsByType<GorilaGuardiao>(FindObjectsInactive.Include).Single(x => x.gameObject.scene == cena);
         Undo.RecordObject(g, "Afastar sono da pedra");
         // A direita do gorila acordado corresponde a esquerda de quem olha para a entrada.
-        g.deslocamentoSono = Vector3.ProjectOnPlane(g.transform.right, Vector3.up).normalized * 0.8f;
+        g.deslocamentoSono = Vector3.ProjectOnPlane(g.transform.right, Vector3.up).normalized * 1.4f;
         PrefabUtility.RecordPrefabInstancePropertyModifications(g);
         EditorUtility.SetDirty(g);
         EditorSceneManager.MarkSceneDirty(cena);
         EditorSceneManager.SaveScene(cena);
         Selection.activeGameObject = g.gameObject;
-        Debug.Log("Sono deslocado 0,8 metro para a esquerda de quem olha a caverna. Retorna ao acordar. Cena salva.", g);
+        Debug.Log("Sono deslocado 1,4 metro para a esquerda de quem olha a caverna. Retorna ao acordar. Cena salva.", g);
     }
 
     [MenuItem("Tools/Gorila/Colocar sono de lado %#&e")]

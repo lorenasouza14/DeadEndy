@@ -217,17 +217,7 @@ public class GerenciadorPause : MonoBehaviour
         video.timeUpdateMode = VideoTimeUpdateMode.UnscaledGameTime;
         video.renderMode = VideoRenderMode.APIOnly;
         video.waitForFirstFrame = true;
-        var som = tela.AddComponent<AudioSource>();
-        som.playOnAwake = false;
-        som.ignoreListenerPause = true;
-        som.spatialBlend = 0f;
-        video.audioOutputMode = VideoAudioOutputMode.AudioSource;
-        if (videoPause != null && videoPause.audioTrackCount > 0)
-        {
-            video.controlledAudioTrackCount = 1;
-            video.EnableAudioTrack(0, true);
-            video.SetTargetAudioSource(0, som);
-        }
+        video.audioOutputMode = VideoAudioOutputMode.None;
         video.prepareCompleted += VideoPreparado;
         video.errorReceived += ErroVideo;
 

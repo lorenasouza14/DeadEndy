@@ -7,7 +7,7 @@
 
 `VidaEndy` instala automaticamente `Assets/Resources/MenuPause.prefab` ao iniciar. O prefab referencia `Assets/Videos/menu_pause.mp4` e a fonte Doctor Soos Bold 2. A interface é criada durante a execução; não é necessário configurar cada cena. Quando existe um texto no menu de morte, sua fonte, material, estilo, cor e tamanho são reaproveitados. O padrão é tamanho 70, branco, sem redimensionamento automático.
 
-O vídeo mantém sua proporção, toca em loop e usa tempo independente da pausa. Os botões ficam na região inferior. O canvas adapta a composição à resolução, tomando 1920 × 1080 como referência. A trilha do vídeo, caso exista, continua enquanto o áudio do jogo pausa.
+O vídeo mantém sua proporção, toca em loop e usa tempo independente da pausa. Os botões ficam na região inferior. O canvas adapta a composição à resolução, tomando 1920 × 1080 como referência. O vídeo é reproduzido sem áudio, enquanto o áudio do jogo permanece pausado.
 
 O sistema restaura a velocidade do tempo, o áudio, o cursor e os bloqueios anteriores ao retornar. Controles de movimento e câmera ficam bloqueados sem cancelar esquivas ou arremessos. Puzzles e recuperação de vida ficam congelados. O menu não abre durante o game over e libera a pausa se o jogador morrer, for desativado ou sair da cena.
 

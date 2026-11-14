@@ -49,7 +49,7 @@ O menu **Tools > Gorila > Validar sono e furtividade** executa verificacoes isol
 
 ## Bolhas de ronco
 
-**Deslocamento Sono** desloca o gorila junto com o giro ao deitar, em unidades de mundo, sem multiplicar pela escala do prefab. Na cena juncao_fase1-2 foi configurado 0,8 metro para a esquerda de quem olha a entrada, afastando a cabeca da pedra. Ao acordar, retorna suavemente ao ponto original; interromper a guarda tambem restaura esse ponto antes do percurso da sopa. O deslocamento nao se acumula entre ciclos.
+**Deslocamento Sono** desloca o gorila junto com o giro ao deitar, em unidades de mundo, sem multiplicar pela escala do prefab. Na cena juncao_fase1-2 foi configurado 1,4 metro para a esquerda de quem olha a entrada, afastando a cabeca da pedra. Ao acordar, retorna suavemente ao ponto original; interromper a guarda tambem restaura esse ponto antes do percurso da sopa. O deslocamento nao se acumula entre ciclos.
 
 **Giro Lateral Sono = 90** faz o gorila girar horizontalmente ao deitar, mostrando a pose de perfil. O giro acompanha Tempo Adormecer e volta a orientacao anterior durante Tempo Acordar. Use -90 para inverter o lado. A rotacao inicial e capturada a cada ciclo, sem acumular giros. Desativar a guarda restaura a orientacao antes de entregar o movimento ao sistema da sopa.
 

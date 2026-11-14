@@ -69,6 +69,10 @@ Se a mao estiver ocupada com pocao, radio, trompete ou pirulito, e preciso usar/
 
 ## 5. Testar a fase
 
+Na cena integrada, o renderer de `fundo_entrada_caverna` permanece ligado depois da sopa; somente seu collider e liberado. A colisao do vulcao usa `Assets/fase_gorila/EntradaVulcaoColisao.asset`, com um recorte alinhado ao painel preto, de aproximadamente 7,93 m de largura (margem de 20 cm de cada lado) e inicialmente ate 6 m para dentro da entrada. O recorte anterior de 3,2 m deixava parte da entrada visual bloqueada pela montanha. A malha visual e a colisao externa da montanha sao preservadas. `Piso da passagem liberada` acompanha a largura do recorte e sustenta Endy no trecho que entra no fundo escuro. Esse piso esta associado ao campo `Piso Da Passagem` do gorila: os bloqueios sao liberados assim que o corpo inteiro sai do corredor, mesmo quando o gorila e reposicionado manualmente no editor antes do Play. Essa verificacao ocorre em todas as etapas, sem depender da caminhada da sopa ou da chegada ao caldeirao. Sem esse campo, outras cenas conservam a liberacao ao chegar a sopa. O menu `Tools > Gorila > Sopa > Corrigir passagem e preservar fundo` reaplica esse ajuste em modo de edicao. Nao cria uma nova fase nem um teleporte.
+
+Ao colocar a banana na mao, `BananaSopa` desliga a interpolacao do Rigidbody e a gravidade: o encaixe animado passa a controlar o visual. Isso evita que a pose fisica da queda do monolito sobrescreva a posicao da fruta carregada. Se ela for devolvida ao cenario, o script sincroniza a posicao do corpo e restaura as configuracoes originais. Nao exige novas associacoes no Inspector.
+
 - Pegue a banana das armadilhas com E: ela aparece na mao. Outra banana nao pode ser pega simultaneamente.
 - No caldeirao, aperte E novamente: a mao fica livre e o contador passa para 1/3.
 - Resolva as ruinas, espere a banana cair e parar, leve-a ao caldeirao: 2/3.
@@ -77,3 +81,9 @@ Se a mao estiver ocupada com pocao, radio, trompete ou pirulito, e preciso usar/
 - A ordem das tres entregas e livre. Na cena integrada, o autosave conserva cada giro das ruinas, a resolucao do monolito, a banana na mao e cada entrega. Sair e continuar recupera 1/3, 2/3 ou 3/3 sem duplicar frutas. Se o gorila ja terminou o trajeto, retorna comendo e com a passagem aberta; se ainda estava caminhando, retoma o trajeto com a sopa pronta. Novo Jogo reinicia essas conquistas. Saves anteriores a essa funcionalidade nao contem progresso do gorila.
 
 O menu **Tools > Gorila > Sopa > Validar coleta e sopa** verifica coleta, mao unica, bloqueios dos desafios, devolucao, receita unica, caminhada, animacoes e liberacao de colliders numa cena temporaria. O relatorio fica em `Logs/sopa-gorila-validation.txt`. Ele nao monta nem salva os objetos da fase.
+
+## Ajustar o recorte da montanha
+
+Selecione fase_gorila/entrada_caverna/Volume livre da caverna. O Box Collider desse objeto e apenas um guia desativado: ajuste Center e Size, ou use Edit Collider, para cobrir o trecho que deve ficar livre. Reaplique Tools > Gorila > Sopa > Corrigir passagem e preservar fundo para salvar a malha de colisao e adequar o apoio de piso a caixa. O comando preserva os ajustes manuais do volume.
+
+RecorteColisaoCaverna, na montanha, refaz o recorte a partir do Mesh Filter atual ao iniciar a partida. Assim, alteracoes da malha ou da posicao da montanha feitas antes do Play nao reutilizam uma abertura antiga. O restante da montanha continua com colisao. Nao altera TerrainCollider nem outras rochas. A atualizacao automatica nao ocorre durante a partida; ajuste a caixa e o piso fora do Play.

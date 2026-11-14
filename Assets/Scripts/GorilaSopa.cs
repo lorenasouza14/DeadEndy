@@ -15,8 +15,10 @@ public class GorilaSopa : MonoBehaviour
     public string estadoComer = "Base Layer.Eat";
     public int valorAndar = 1;
     public int valorComer = 4;
-    [Tooltip("Somente os colliders extras que bloqueiam a passagem. Desativados quando o gorila chega a sopa.")]
+    [Tooltip("Somente os colliders extras que bloqueiam a passagem. Com Piso Da Passagem, liberados quando o gorila sai do corredor; sem ele, ao chegar a sopa.")]
     public Collider[] bloqueiosDaCaverna;
+    [Tooltip("Opcional: piso do corredor. Libera os bloqueios assim que o corpo do gorila sai da passagem, durante a caminhada.")]
+    public BoxCollider pisoDaPassagem;
     [Tooltip("Apenas a representacao visual dos bloqueios extras; nunca piso ou paredes.")]
     public Renderer[] visuaisDosBloqueios;
     public EtapaSopa Etapa { get; private set; }
@@ -24,6 +26,7 @@ public class GorilaSopa : MonoBehaviour
     private GorilaGuardiao guarda;
     private float tempo;
     private int destino;
+    private bool bloqueiosLiberados;
     private Animator Anim => Guarda != null ? Guarda.animGorila : null;
     private GorilaGuardiao Guarda => guarda != null ? guarda : (guarda = GetComponent<GorilaGuardiao>());
 
@@ -55,7 +58,14 @@ public class GorilaSopa : MonoBehaviour
         return true;
     }
 
-    private void Update() { Avancar(Time.deltaTime); }
+    private void Update()
+    {
+        Avancar(Time.deltaTime);
+        // O painel preto e apenas o fundo visual. Sua barreira acompanha a
+        // presenca fisica do gorila, inclusive quando ele e reposicionado
+        // sem passar pela etapa Caminhando (por exemplo, no editor).
+        LiberarSeSaiuDaPassagem();
+    }
 
     public void RestaurarPassagemLiberada()
     {
@@ -73,10 +83,31 @@ public class GorilaSopa : MonoBehaviour
         Etapa = EtapaSopa.Comendo;
         Anim.SetInteger(Guarda.parametroAnimacao, valorComer);
         Anim.CrossFadeInFixedTime(estadoComer, 0.25f, 0, 0f);
+        LiberarBloqueios();
+    }
+
+    private void LiberarBloqueios()
+    {
+        if (bloqueiosLiberados) return;
+        bloqueiosLiberados = true;
         if (bloqueiosDaCaverna != null)
             foreach (var col in bloqueiosDaCaverna) if (col != null) col.enabled = false;
         if (visuaisDosBloqueios != null)
             foreach (var visual in visuaisDosBloqueios) if (visual != null) visual.enabled = false;
+    }
+
+    private void LiberarSeSaiuDaPassagem()
+    {
+        if (bloqueiosLiberados || pisoDaPassagem == null) return;
+        // Uma caixa conservadora cobre o corredor acima do piso. Considera o
+        // corpo inteiro (na pose atual), nao apenas o pivo do gorila.
+        Physics.SyncTransforms();
+        Bounds corredor = pisoDaPassagem.bounds;
+        corredor.Encapsulate(corredor.max + Vector3.up * 5f);
+        corredor.Expand(0.6f);
+        foreach (var corpo in GetComponentsInChildren<Collider>())
+            if (corpo.enabled && !corpo.isTrigger && corredor.Intersects(corpo.bounds)) return;
+        LiberarBloqueios();
     }
 
     private void Avancar(float delta)
