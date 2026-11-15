@@ -173,10 +173,11 @@ namespace StarterAssets
 
             PrepararMedicaoQueda();
             GroundedCheck();
-            if (MoveKnockback(Time.deltaTime)) { ConcluirMedicaoQueda(); return; }
+            if (MoveKnockback(Time.deltaTime)) { AtualizarPousoAposMovimento(); ConcluirMedicaoQueda(); return; }
             ReadDodgeInput();
             JumpAndGravity();
             Move();
+            AtualizarPousoAposMovimento();
             ConcluirMedicaoQueda();
         }
 
@@ -198,18 +199,28 @@ namespace StarterAssets
 
         private void GroundedCheck()
         {
-            // set sphere position, with offset
-            Vector3 spherePosition = new Vector3(transform.position.x, transform.position.y - GroundedOffset,
-                transform.position.z);
-            // Capsule contact remains reliable on uneven tunnel floors where the small foot sphere can miss.
-            bool footContact = Physics.CheckSphere(spherePosition, GroundedRadius, GroundLayers,
-                QueryTriggerInteraction.Ignore);
-            Grounded = _verticalVelocity <= 0f && (_controller.isGrounded || footContact);
+            // A esfera pode tocar paredes ou antecipar o piso. O pouso usa a capsula real.
+            Grounded = _verticalVelocity <= 0f && _controller.isGrounded;
 
             // update animator if using character
             if (_hasAnimator)
             {
                 _animator.SetBool(_animIDGrounded, Grounded);
+            }
+        }
+
+        private void AtualizarPousoAposMovimento()
+        {
+            // Move atualiza isGrounded neste quadro, antes de o Animator avaliar a pose.
+            Grounded = _verticalVelocity <= 0f && _controller.isGrounded;
+            if (_hasAnimator) _animator.SetBool(_animIDGrounded, Grounded);
+            if (!Grounded) return;
+            _fallTimeoutDelta = FallTimeout;
+            _verticalVelocity = -2f;
+            if (_hasAnimator)
+            {
+                _animator.SetBool(_animIDJump, false);
+                _animator.SetBool(_animIDFreeFall, false);
             }
         }
 

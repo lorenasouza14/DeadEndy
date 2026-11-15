@@ -734,7 +734,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FantasmaCaverna
   segundosNoFeixeParaMorrer: 1
-  alturaSobrePiso: 0.4
+  alturaSobrePiso: 0.7
 --- !u!135 &8034098213720686115
 SphereCollider:
   m_ObjectHideFlags: 0

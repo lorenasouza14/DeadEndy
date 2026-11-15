@@ -20,7 +20,7 @@ public class PortaPuzzleCaverna : MonoBehaviour
 
     void AtualizarPorta()
     {
-        if (porta != null && !PedraBrilhante.ProximaCorEsperada.HasValue)
-            porta.SetActive(false);
+        if (porta != null)
+            porta.SetActive(PedraBrilhante.ProximaCorEsperada.HasValue);
     }
 }

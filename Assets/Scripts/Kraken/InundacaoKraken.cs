@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using StarterAssets;
 
@@ -27,8 +28,9 @@ public class InundacaoKraken : MonoBehaviour
     [Header("Alturas mundiais")]
     public float nivelMaximo = -6f;
     [Min(1)] public float profundidadeMergulho = 125f;
-    [Header("Agua perigosa durante a inundacao")]
+    [Header("Agua perigosa em toda a fase")]
     [Min(1)] public int danoAgua = 8;
+    [Min(0)] public float profundidadeParaDano = .12f;
     [Min(.85f)] public float intervaloDano = 1.1f;
     [Range(.1f, 1)] public float velocidadeNaAgua = .55f;
     [Min(0)] public float profundidadeParaLentidao = .3f;
@@ -45,7 +47,7 @@ public class InundacaoKraken : MonoBehaviour
     public float NivelInicial { get; private set; }
     public float NivelAtual => NivelInicial + (superficieAgua ? superficieAgua.position.y - posicaoInicial.y : 0);
     public bool JogadorNaAgua { get; private set; }
-    public bool AguaCausaDano => EmExecucao && (Fase == EtapaMare.Subindo || Fase == EtapaMare.Cheia || Fase == EtapaMare.Baixando);
+    public bool AguaCausaDano => iniciado && isActiveAndEnabled;
     public string Mensagem
     {
         get
@@ -62,7 +64,6 @@ public class InundacaoKraken : MonoBehaviour
         }
     }
     Vector3 posicaoInicial;
-    Bounds limites;
     int pendentes;
     bool cancelado, iniciado;
     float proximoDano;
@@ -70,13 +71,26 @@ public class InundacaoKraken : MonoBehaviour
     ThirdPersonController jogador;
     VidaJogadorKraken vida;
     CharacterController capsula;
+    readonly List<Renderer> aguasDaFase = new List<Renderer>();
+    readonly List<float> niveisDeRepouso = new List<float>();
 
     void Awake()
     {
         if (!superficieAgua || !malhaAgua) { enabled = false; return; }
         posicaoInicial = superficieAgua.position;
         NivelInicial = malhaAgua.bounds.center.y;
-        limites = malhaAgua.bounds;
+        foreach (var raiz in gameObject.scene.GetRootGameObjects())
+            foreach (var agua in raiz.GetComponentsInChildren<Renderer>(true))
+                if (agua.name.StartsWith("SM_Env_Water_Plane_01"))
+                {
+                    aguasDaFase.Add(agua);
+                    niveisDeRepouso.Add(agua.bounds.center.y);
+                }
+        if (!aguasDaFase.Contains(malhaAgua))
+        {
+            aguasDaFase.Add(malhaAgua);
+            niveisDeRepouso.Add(NivelInicial);
+        }
         iniciado = true;
         MostrarRefugios(false);
         if (ondaMergulho) ondaMergulho.enabled = false;
@@ -147,7 +161,7 @@ public class InundacaoKraken : MonoBehaviour
     }
     void Update()
     {
-        if (!iniciado) return;
+        if (!iniciado || Time.timeScale <= 0f) return;
         LocalizarJogador();
         if (EmFuga)
         {
@@ -157,17 +171,32 @@ public class InundacaoKraken : MonoBehaviour
             Fase = progresso < 1 ? EtapaMare.Subindo : EtapaMare.Cheia;
         }
         bool dentro = false;
-        float profundidade = 0, altura = 2;
+        float profundidade = 0, profundidadeNoMar = 0, altura = 2;
         if (jogador && capsula && vida && !vida.Morto)
         {
             Vector3 pes = jogador.transform.TransformPoint(capsula.center - Vector3.up * capsula.height * .5f);
             altura = capsula.height * Mathf.Abs(jogador.transform.lossyScale.y);
-            dentro = pes.x >= limites.min.x && pes.x <= limites.max.x && pes.z >= limites.min.z && pes.z <= limites.max.z;
-            profundidade = NivelAtual - pes.y;
+            for (int i = 0; i < aguasDaFase.Count; i++)
+            {
+                var agua = aguasDaFase[i];
+                if (!agua || !agua.enabled || !agua.gameObject.activeInHierarchy) continue;
+                var area = agua.bounds;
+                if (pes.x < area.min.x || pes.x > area.max.x || pes.z < area.min.z || pes.z > area.max.z) continue;
+                dentro = true;
+                profundidade = Mathf.Max(profundidade, area.center.y - pes.y);
+                profundidadeNoMar = Mathf.Max(profundidadeNoMar, niveisDeRepouso[i] - pes.y);
+            }
+        }
+        // Cair no mar mata mesmo fora dos ataques e durante a invulnerabilidade.
+        // A agua elevada pela mare continua causando dano gradual nas rochas.
+        if (AguaCausaDano && dentro && profundidadeNoMar > altura * fracaoDaCapsulaParaDano)
+        {
+            vida.Morrer();
+            return;
         }
         JogadorNaAgua = AguaCausaDano && dentro && profundidade > profundidadeParaLentidao;
         if (jogador) jogador.DefinirMultiplicadorAgua(JogadorNaAgua ? velocidadeNaAgua : 1);
-        if (AguaCausaDano && dentro && profundidade > altura * fracaoDaCapsulaParaDano && Time.time >= proximoDano)
+        if (AguaCausaDano && dentro && profundidade > profundidadeParaDano && Time.time >= proximoDano)
         {
             if (vida.ReceberDano(danoAgua)) proximoDano = Time.time + intervaloDano;
         }

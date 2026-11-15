@@ -102,10 +102,11 @@ public class TrocarMundo : MonoBehaviour
         if (!MenuManager.EstaAberto) GerenciadorPause.Instalar(vida, cena);
         if (cena.path == ProgressoJogo.CenaCaverna && !MenuManager.EstaAberto && cena == SceneManager.GetActiveScene())
         {
+            PisoSuaveCaverna.Garantir(cena, capsula);
             var perigos = entrada.gameObject.AddComponent<PerigosContatoCaverna>();
             perigos.Preparar(capsula, vida);
             autosaveCaverna = entrada.gameObject.AddComponent<AutosaveCaverna>();
-            destino = autosaveCaverna.Preparar(controlador, destino, !trocando);
+            destino = autosaveCaverna.Preparar(controlador, destino);
         }
         bool estavaAtiva = capsula.enabled;
         capsula.enabled = false;

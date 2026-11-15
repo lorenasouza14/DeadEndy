@@ -17,6 +17,8 @@ public class FantasmaCaverna : MonoBehaviour
     private GerenciadorFantasmasCaverna gerenciador;
     private float velocidadeBase;
     private float aumentoDeVelocidadePorPedra;
+    public float VelocidadeAtual => gerenciador != null ? gerenciador.VelocidadeAtual :
+        velocidadeBase + PedraBrilhante.ProgressoAtual * aumentoDeVelocidadePorPedra;
     [Header("Resistencia a lanterna")]
     [SerializeField, Min(.1f)] private float segundosNoFeixeParaMorrer = 1f;
     private float tempoNoFeixe;
@@ -27,7 +29,11 @@ public class FantasmaCaverna : MonoBehaviour
     private Renderer[] renderizadores;
     private CharacterController controlador;
     [Header("Apoio exclusivo dos fantasmas")]
-    [Min(0)] public float alturaSobrePiso = .4f;
+    [Min(0)] public float alturaSobrePiso = .7f;
+    [SerializeField, Min(0f)] private float folgaVisualSobreRochas = .2f;
+    private float baseVisualAbaixoDaOrigem;
+    private float AlturaDeFlutuacao => Mathf.Max(alturaSobrePiso, baseVisualAbaixoDaOrigem + folgaVisualSobreRochas);
+    private static readonly Vector3[] amostrasDePiso = { Vector3.zero, Vector3.right, Vector3.left, Vector3.forward, Vector3.back };
     private readonly RaycastHit[] acertosDeApoio = new RaycastHit[64];
     private readonly Dictionary<Collider, bool> obstaculosSemPiso = new Dictionary<Collider, bool>();
     private RotasChaoFantasmas rotas;
@@ -63,6 +69,7 @@ public class FantasmaCaverna : MonoBehaviour
             Bounds corpo = renderizadores[0].bounds;
             foreach (var r in renderizadores) if (r) corpo.Encapsulate(r.bounds);
             raioDeSeparacao = Mathf.Clamp(Mathf.Max(corpo.extents.x, corpo.extents.z), .45f, 1.2f);
+            baseVisualAbaixoDaOrigem = Mathf.Max(0f, transform.position.y - corpo.min.y);
         }
     }
 
@@ -84,12 +91,12 @@ public class FantasmaCaverna : MonoBehaviour
             caminho = new NavMeshPath();
             // Corrige tambem marcadores que ficaram alguns metros sob o terreno.
             if (rotas.Amostrar(transform.position, 20f, out var pisoInicial))
-                transform.position = pisoInicial + Vector3.up * alturaSobrePiso;
+                transform.position = pisoInicial + Vector3.up * AlturaDeFlutuacao;
         }
         if (TentarEncontrarPiso(transform.position, out float altura))
         {
             Vector3 posicao = transform.position;
-            posicao.y = altura + alturaSobrePiso;
+            posicao.y = altura + AlturaDeFlutuacao;
             transform.position = posicao;
         }
     }
@@ -130,8 +137,7 @@ public class FantasmaCaverna : MonoBehaviour
                 Quaternion.LookRotation(direcao),
                 Time.deltaTime * 4f);
 
-            float velocidade = velocidadeBase +
-                PedraBrilhante.ProgressoAtual * aumentoDeVelocidadePorPedra;
+            float velocidade = VelocidadeAtual;
             // A orientacao visual suaviza; a translacao segue os cantos sem cortar as curvas.
             movimentoHorizontal = direcao.normalized * Mathf.Min(velocidade,
                 direcao.magnitude / Mathf.Max(.0001f, Time.deltaTime));
@@ -169,7 +175,7 @@ public class FantasmaCaverna : MonoBehaviour
     private void DeslocarSeparacao(Vector3 ajuste)
     {
         Vector3 posicao = transform.position + ajuste;
-        if (TentarEncontrarPiso(posicao, out float altura)) posicao.y = altura + alturaSobrePiso;
+        if (TentarEncontrarPiso(posicao, out float altura)) posicao.y = altura + AlturaDeFlutuacao;
         transform.position = posicao;
     }
 
@@ -207,7 +213,7 @@ public class FantasmaCaverna : MonoBehaviour
     private Vector3 DestinoNoPiso()
     {
         if (!rotas || !rotas.Pronto || caminho == null) return jogador.position;
-        Vector3 pes = transform.position - Vector3.up * alturaSobrePiso;
+        Vector3 pes = transform.position - Vector3.up * AlturaDeFlutuacao;
         bool emPiso = rotas.Amostrar(pes, 1.5f, out var local)
             && Vector3.ProjectOnPlane(local - pes, Vector3.up).sqrMagnitude < .5f;
         if (Time.time >= recalcularEm && (emPiso || cantos.Length == 0))
@@ -230,7 +236,7 @@ public class FantasmaCaverna : MonoBehaviour
         while (proximoCanto < cantos.Length - 1
             && Vector3.ProjectOnPlane(cantos[proximoCanto] - pes, Vector3.up).sqrMagnitude < .09f)
             proximoCanto++;
-        return cantos[proximoCanto] + Vector3.up * alturaSobrePiso;
+        return cantos[proximoCanto] + Vector3.up * AlturaDeFlutuacao;
     }
 
     private void MoverPeloChao(Vector3 movimentoHorizontal, float deltaTime)
@@ -248,7 +254,7 @@ public class FantasmaCaverna : MonoBehaviour
         if (TentarEncontrarPiso(transform.position, out float altura))
         {
             Vector3 posicao = transform.position;
-            posicao.y = altura + alturaSobrePiso;
+            posicao.y = altura + AlturaDeFlutuacao;
             transform.position = posicao;
         }
         // Fora de qualquer apoio, conserva a altura: nao despenca nos vaos.
@@ -256,41 +262,52 @@ public class FantasmaCaverna : MonoBehaviour
 
     private bool TentarEncontrarPiso(Vector3 ponto, out float altura)
     {
-        float referencia = ponto.y - alturaSobrePiso;
+        float referencia = ponto.y - AlturaDeFlutuacao;
         bool temRota = rotas && rotas.Pronto;
         Vector3 pisoNavegavel = default;
-        bool pisoDaRota = temRota && rotas.Amostrar(ponto - Vector3.up * alturaSobrePiso, 2f, out pisoNavegavel)
+        bool pisoDaRota = temRota && rotas.Amostrar(ponto - Vector3.up * AlturaDeFlutuacao, 2f, out pisoNavegavel)
             && Vector3.ProjectOnPlane(pisoNavegavel - ponto, Vector3.up).sqrMagnitude < .5f;
-        if (pisoDaRota) { altura = pisoNavegavel.y; return true; }
-        // Procura acima das elevacoes; escolhe o apoio proximo da altura da rota, nao o teto.
-        Vector3 origem = new Vector3(ponto.x, referencia + (pisoDaRota ? 2f : 8f), ponto.z);
-        int pisoReal = Physics.DefaultRaycastLayers & ~LayerMask.GetMask("PonteFantasma", "Fantasma", "Personagem", "Water");
-        int quantidade = Physics.RaycastNonAlloc(origem, Vector3.down, acertosDeApoio,
-            pisoDaRota ? 5f : 60f, pisoReal, QueryTriggerInteraction.Ignore);
+        // Usa os mesmos colisores fisicos do jogador, inclusive rochas na camada Personagem.
+        // A rota orienta o caminho horizontal; sua altura nao substitui a superficie visivel.
+        int pisoReal = Physics.DefaultRaycastLayers & ~LayerMask.GetMask("PonteFantasma", "Fantasma", "Water");
         altura = float.NegativeInfinity;
-        float menorDiferenca = float.PositiveInfinity;
-        for (int i = 0; i < quantidade; i++)
+        float raio = Mathf.Min(.4f, raioDeSeparacao * .55f);
+        const float subida = 3f;
+        const float descida = 3f;
+        foreach (var deslocamento in amostrasDePiso)
         {
-            var acerto = acertosDeApoio[i];
-            if (acerto.normal.y <= .4f || acerto.transform.IsChildOf(transform) || IgnorarComoPiso(acerto.collider)) continue;
-            if (acerto.collider.GetComponentInParent<StarterAssets.ThirdPersonController>() != null) continue;
-            if (acerto.collider.GetComponentInParent<FantasmaCaverna>() != null) continue;
-            if (acerto.collider.bounds.min.y > referencia + 1f) continue;
-            float diferenca = Mathf.Abs(acerto.point.y - referencia);
-            if (diferenca < menorDiferenca) { menorDiferenca = diferenca; altura = acerto.point.y; }
+            Vector3 origem = ponto + deslocamento * raio;
+            origem.y = referencia + subida;
+            int quantidade = Physics.RaycastNonAlloc(origem, Vector3.down, acertosDeApoio,
+                subida + descida, pisoReal, QueryTriggerInteraction.Ignore);
+            RaycastHit[] acertos = acertosDeApoio;
+            if (quantidade == acertosDeApoio.Length)
+            {
+                acertos = Physics.RaycastAll(origem, Vector3.down, subida + descida, pisoReal, QueryTriggerInteraction.Ignore);
+                quantidade = acertos.Length;
+            }
+            for (int i = 0; i < quantidade; i++)
+            {
+                var acerto = acertos[i];
+                if (acerto.normal.y <= .4f || acerto.transform.IsChildOf(transform) || IgnorarComoPiso(acerto.collider)) continue;
+                if (acerto.collider.GetComponentInParent<StarterAssets.ThirdPersonController>() != null) continue;
+                if (acerto.collider.GetComponentInParent<FantasmaCaverna>() != null) continue;
+                altura = Mathf.Max(altura, acerto.point.y);
+            }
         }
-        // O piso visivel tem prioridade, mesmo quando fica abaixo da ponte invisivel.
+        // A maior altura sob o corpo impede que a base atravesse uma rocha ou degrau.
         if (!float.IsNegativeInfinity(altura)) return true;
-        if (pisoDaRota) { altura = referencia; return true; }
+        if (pisoDaRota) { altura = pisoNavegavel.y; return true; }
         // A rota mantem a altura entre as bordas; nao cai na ponte plana ou na agua.
         if (temRota && SeguindoRota) return false;
 
         int caminhos = LayerMask.GetMask("PonteFantasma");
-        quantidade = Physics.RaycastNonAlloc(ponto + Vector3.up * 5f, Vector3.down, acertosDeApoio,
+        int quantidadeCaminhos = Physics.RaycastNonAlloc(ponto + Vector3.up * 5f, Vector3.down, acertosDeApoio,
             40f, caminhos, QueryTriggerInteraction.Collide);
-        for (int i = 0; i < quantidade; i++)
+        for (int i = 0; i < quantidadeCaminhos; i++)
             if (acertosDeApoio[i].normal.y > .45f)
-                altura = Mathf.Max(altura, acertosDeApoio[i].point.y);
+                // O caminho auxiliar atravessa o vao, mas nao puxa o fantasma para o fundo.
+                altura = Mathf.Max(altura, Mathf.Max(referencia, acertosDeApoio[i].point.y));
         return !float.IsNegativeInfinity(altura);
     }
 

@@ -47,13 +47,21 @@ public sealed class PerigosContatoCaverna : MonoBehaviour
             encontrados = Physics.OverlapCapsule(centro - eixo, centro + eixo, raio, Physics.AllLayers, QueryTriggerInteraction.Collide);
             quantidade = encontrados.Length;
         }
+        bool contatoComDano = false;
         for (int i = 0; i < quantidade; i++)
         {
             if (!EhPerigo(encontrados[i])) continue;
             ultimoContato = Time.time;
-            if (vida.ReceberDano(danoPorContato)) ultimoGolpe = Time.time;
-            break;
+            if (encontrados[i].gameObject.layer == camadaCaminho)
+            {
+                // Cair no buraco e fatal, mesmo durante a invulnerabilidade de outro golpe.
+                // Continua procurando antes do dano comum para nao depender da ordem dos contatos.
+                vida.Morrer();
+                return;
+            }
+            contatoComDano = true;
         }
+        if (contatoComDano && vida.ReceberDano(danoPorContato)) ultimoGolpe = Time.time;
     }
 
     bool EhPerigo(Collider contato)
