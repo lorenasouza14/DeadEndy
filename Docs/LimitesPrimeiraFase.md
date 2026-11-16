@@ -10,4 +10,8 @@ A área dos cinco baús abre após acender as três tochas. A entrada norte fica
 
 A correção de checkpoint usa apenas as novas colisões da floresta e a área dos baús. A região inteira do antigo contorno não provoca mais retorno ao início.
 
+Na cena integrada, LimitesPrimeiraFase também desativa o totem `Altar_round_B` (incluindo a banana) e as 22 Spring Traps sob `SM_Env_Rock_Ramp_02_fase_groilla` enquanto o caranguejo não terminou de encolher. A rampa, as moitas e a alavanca permanecem disponíveis. A liberação ocorre uma única vez, após a vitória ou a restauração dessa vitória pelo autosave existente; não depende de coletar ou ler o diário. Bananas já entregues continuam ocultas. Os objetos continuam visíveis no editor e são desativados ao iniciar a partida, sem alterar a cena salva.
+
+Validação da rampa: `Tools > Gorila > Validar bloqueio da rampa antes do caranguejo`. O comando usa uma prévia isolada da cena integrada e verifica o bloqueio, a espera pelo fim do encolhimento, a liberação e a preservação de uma banana já entregue ao continuar. Relatório: `Logs/rampa-pos-caranguejo-validation.txt`.
+
 Validação: Tools > Mapa > Validar limites da primeira fase. As colisões dos guias e trechos complementares são testadas em cópias isoladas, incluindo Endy normal/encolhido, passagem após leitura e restauração do progresso. Também são verificadas as rotas pelo terreno até as alavancas, o isolamento da mata e a obstrução da vista dos baús na nova entrada. Resultado: Logs/limites-fase-validation.txt. Não altera saves da partida.

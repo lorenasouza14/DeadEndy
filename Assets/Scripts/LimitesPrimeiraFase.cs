@@ -14,6 +14,9 @@ public class LimitesPrimeiraFase : MonoBehaviour
         new Vector2(-38,250), new Vector2(-38,194), new Vector2(18,174) };
     readonly List<BoxCollider> murosFloresta = new List<BoxCollider>();
     readonly List<BoxCollider> murosBaus = new List<BoxCollider>();
+    readonly List<GameObject> objetosRampa = new List<GameObject>();
+    CaranguejoChefe caranguejo;
+    bool rampaLiberada;
     DiarioEndy diario;
     public bool FlorestaLiberada => endy != null && endy.temDiario && diario != null && diario.FoiLido;
     public bool BausLiberados => tochas != null && tochas.Concluido;
@@ -40,13 +43,51 @@ public class LimitesPrimeiraFase : MonoBehaviour
         {
             if (endy == null) endy = raiz.GetComponentInChildren<InventarioEndy>(true);
             if (tochas == null) tochas = raiz.GetComponentInChildren<GerenciadorPuzzleTriangulo>(true);
+            if (caranguejo == null) caranguejo = raiz.GetComponentInChildren<CaranguejoChefe>(true);
         }
+        PrepararRampa();
         if (endy != null) diario = endy.GetComponent<DiarioEndy>();
         foreach (var raiz in gameObject.scene.GetRootGameObjects())
             foreach (var guia in raiz.GetComponentsInChildren<BloqueioFloresta>(true))
                 if (guia.isActiveAndEnabled) murosFloresta.Add(guia.Preparar());
         Construir(areaBaus, "Baus - acender tochas", murosBaus);
         AtualizarBloqueios();
+    }
+
+    void PrepararRampa()
+    {
+        // A rampa e sua alavanca pertencem tambem ao percurso da primeira fase.
+        // Oculta somente as molas e o altar da banana, preservando o terreno e as moitas.
+        if (caranguejo == null) return;
+        var rampas = new HashSet<Transform>();
+        foreach (var raiz in gameObject.scene.GetRootGameObjects())
+            foreach (var mola in raiz.GetComponentsInChildren<ArmadilhaMola>(true))
+                for (var pai = mola.transform.parent; pai != null; pai = pai.parent)
+                    if (pai.name == "SM_Env_Rock_Ramp_02_fase_groilla")
+                    {
+                        rampas.Add(pai);
+                        if (mola.gameObject.activeSelf) objetosRampa.Add(mola.gameObject);
+                        break;
+                    }
+        foreach (var rampa in rampas)
+            foreach (var objeto in rampa.GetComponentsInChildren<Transform>(true))
+                if (objeto.name == "Altar_round_B" && objeto.gameObject.activeSelf)
+                {
+                    // Preserva a identidade mesmo se o altar for ocultado antes do Awake da fruta.
+                    foreach (var banana in objeto.GetComponentsInChildren<BananaSopa>(true))
+                        if (string.IsNullOrEmpty(banana.idSave)) banana.idSave = AutosaveEndy.Identificar(banana);
+                    objetosRampa.Add(objeto.gameObject);
+                }
+        foreach (var objeto in objetosRampa) objeto.SetActive(false);
+    }
+
+    void AtualizarRampa()
+    {
+        // A restauracao do save usa o mesmo estado da vitoria normal. Libera uma unica vez
+        // para nao reativar uma banana ja entregue nem interferir no funcionamento das traps.
+        if (rampaLiberada || caranguejo == null || !caranguejo.EncolhimentoConcluido) return;
+        rampaLiberada = true;
+        foreach (var objeto in objetosRampa) if (objeto != null) objeto.SetActive(true);
     }
 
     void Construir(Vector2[] contorno, string nome, List<BoxCollider> destino)
@@ -68,6 +109,7 @@ public class LimitesPrimeiraFase : MonoBehaviour
 
     public void AtualizarBloqueios()
     {
+        AtualizarRampa();
         foreach (var col in murosFloresta) if (col != null) col.enabled = !FlorestaLiberada;
         foreach (var col in murosBaus) col.enabled = !BausLiberados;
     }
