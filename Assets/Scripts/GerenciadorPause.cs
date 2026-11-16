@@ -99,7 +99,7 @@ public class GerenciadorPause : MonoBehaviour
 
     public void Pausar()
     {
-        if (EstaPausado || !JogadorAtivo || Time.timeScale <= 0f) return;
+        if (EstaPausado || !JogadorAtivo || Time.timeScale <= 0f || TelaCarregamento.EmCurso) return;
         escalaTempoAnterior = Time.timeScale;
         audioPausadoAnterior = AudioListener.pause;
         cursorVisivelAnterior = Cursor.visible;

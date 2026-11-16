@@ -129,7 +129,7 @@ public class AutosaveEndy : AutosaveDeFase
     protected override bool PodeAtualizarPonto()
     {
         if (EmCombate || InteracaoBau.PuzzleAtivo || inventario.ExecutandoAcao ||
-            inventario.ItemNaMao != InventarioEndy.TipoItemNaMao.Nenhum || inventario.TemEfeitoDePocao ||
+            (inventario.ItemNaMao != InventarioEndy.TipoItemNaMao.Nenhum && !inventario.TemBanana) || inventario.TemEfeitoDePocao ||
             AreiaMovedica.EndyNaAreia || (vida != null && Time.unscaledTime - vida.UltimoDanoEm < 5f)) return false;
         if (chefe == null || !chefe.EncolhimentoConcluido)
             foreach (var entrada in entradas)

@@ -1,12 +1,14 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
+using UnityEngine.Video;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(BoxCollider), typeof(Rigidbody))]
 public sealed class EntradaCaverna : MonoBehaviour
 {
     [SerializeField] string cenaDestino = "Level_Cave_3";
+    [SerializeField] VideoClip videoCarregamento;
     bool carregando;
+    TelaCarregamento tela;
 
     void Awake()
     {
@@ -14,6 +16,7 @@ public sealed class EntradaCaverna : MonoBehaviour
         var corpo = GetComponent<Rigidbody>();
         corpo.isKinematic = true;
         corpo.useGravity = false;
+        tela = TelaCarregamento.Preparar(transform, videoCarregamento);
     }
 
     void OnTriggerEnter(Collider outro)
@@ -23,20 +26,11 @@ public sealed class EntradaCaverna : MonoBehaviour
         if (jogador == null || !jogador.CompareTag("Player") || !jogador.isActiveAndEnabled) return;
         var vida = jogador.GetComponent<VidaEndy>();
         if (vida != null && vida.EstaMorto) return;
-        if (!Application.CanStreamedLevelBeLoaded(cenaDestino))
-        {
-            Debug.LogError("A cena da caverna não está disponível: " + cenaDestino, this);
-            return;
-        }
+        if (!tela.Iniciar(cenaDestino)) return;
 
         carregando = true;
-        // A caverna já possui seu Endy, câmera e PontoEntrada.
-        // O modo Single descarrega a fase anterior e evita duplicar o jogador.
-        var operacao = SceneManager.LoadSceneAsync(cenaDestino, LoadSceneMode.Single);
-        if (operacao == null) { carregando = false; return; }
         jogador.GetComponent<AutosaveEndy>()?.PrepararTravessia();
         jogador.enabled = false;
-        Time.timeScale = 1f;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }

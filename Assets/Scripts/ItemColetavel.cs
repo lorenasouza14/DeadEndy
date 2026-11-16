@@ -28,18 +28,6 @@ public class ItemColetavel : MonoBehaviour
         bool pegar = Input.GetKeyDown(KeyCode.E);
 #endif
         if (pegar) TentarColetar(inventario);
-        if (ehRadio && inventario != null)
-        {
-            var radio = GetComponent<EfeitoTocaDiscos>();
-#if ENABLE_INPUT_SYSTEM
-            bool recolher = Keyboard.current != null && Keyboard.current.qKey.wasPressedThisFrame;
-#else
-            bool recolher = Input.GetKeyDown(KeyCode.Q);
-#endif
-            var destino = inventario; // Recolher desativa o item e limpa a referência de proximidade.
-            if (recolher && radio != null && radio.Colocado && destino.ColetarRadio(radio))
-                AnimacaoInteracaoEndy.Tocar(destino);
-        }
     }
 
     public bool TentarColetar(InventarioEndy destino)
@@ -110,7 +98,6 @@ public class ItemColetavel : MonoBehaviour
             if (radio == null || radio.NaMao) return null;
             if (!radio.Colocado && !inventario.PodeColetarPocao) return null;
             string texto = !radio.Colocado ? "[E] Pegar rádio" : radio.Ligado ? "[E] Desligar rádio" : "[E] Ligar rádio";
-            if (radio.Colocado && !radio.Ligado && inventario.PodeColetarPocao) texto += "    [Q] Recolher";
             if (!string.IsNullOrEmpty(radio.Aviso)) texto += "\n" + radio.Aviso;
             return texto;
         }

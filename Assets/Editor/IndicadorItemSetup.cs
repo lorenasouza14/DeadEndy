@@ -20,7 +20,7 @@ public static class IndicadorItemSetup
         if (EditorApplication.isPlayingOrWillChangePlaymode) return;
         var inventory = Object.FindAnyObjectByType<InventarioEndy>();
         if (inventory == null) throw new Exception("Abra a cena do Endy.");
-        string[] names = { "pocao", "PocaoAzul", "pirulito", "trompete", "Radio", "diario" };
+        string[] names = { "pocao", "PocaoAzul", "pirulito", "trompete", "Radio", "diario", "banana" };
         var sprites = names.Select(ImportIcon).ToArray();
         var font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/Fonts/doctor_soos/Doctor Soos Bold 2.asset");
         if (font == null || sprites.Any(s => s == null)) throw new Exception("Ícones ou fonte ausentes.");
@@ -32,6 +32,7 @@ public static class IndicadorItemSetup
         hud.fonte = font;
         hud.pocaoVerde = sprites[0]; hud.pocaoAzul = sprites[1]; hud.pirulito = sprites[2];
         hud.trompete = sprites[3]; hud.radio = sprites[4]; hud.diario = sprites[5];
+        hud.banana = sprites[6];
         Undo.RecordObject(inventory, "Substituir interface antiga dos itens");
         foreach (var old in new[] { inventory.iconeDiarioUI, inventory.iconePocaoUI })
             if (old != null) { Undo.RecordObject(old, "Ocultar ícone antigo"); old.SetActive(false); EditorUtility.SetDirty(old); }
@@ -168,9 +169,9 @@ public class IndicadorItemValidation : MonoBehaviour
                 Check(inventory.ColocarRadio(), "Rádio pode ser colocado depois");
                 yield return new WaitForEndOfFrame();
                 Check(!hud.Visivel, "Rádio colocado sai do indicador");
-                Check(inventory.ColetarRadio(instance.GetComponent<EfeitoTocaDiscos>()), "Rádio pode ser recolhido");
+                Check(!inventory.ColetarRadio(instance.GetComponent<EfeitoTocaDiscos>()), "Rádio colocado permanece no chão");
                 yield return new WaitForEndOfFrame();
-                Check(hud.Visivel && hud.IconeAtual == hud.radio, "Recolher rádio restaura o mesmo ícone");
+                Check(!hud.Visivel, "Mão continua vazia depois de tentar recolher o rádio");
                 Destroy(instance);
                 Destroy(floor);
                 inventory.transform.SetPositionAndRotation(oldPosition, oldRotation);

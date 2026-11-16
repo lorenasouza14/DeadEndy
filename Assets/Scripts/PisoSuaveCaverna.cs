@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -20,6 +21,7 @@ public sealed class PisoSuaveCaverna : MonoBehaviour
     public int QuantidadeMalhasSuavizadas => malhas.Count;
     public int QuantidadeDetalhesIgnorados => detalhes.Count;
     public int VerticesSuavizados { get; private set; }
+    public bool Pronto { get; private set; }
 
     public static PisoSuaveCaverna Garantir(Scene cena, CharacterController capsula)
     {
@@ -28,7 +30,7 @@ public sealed class PisoSuaveCaverna : MonoBehaviour
         var go = new GameObject("Colisao suave do piso da caverna");
         SceneManager.MoveGameObjectToScene(go, cena);
         var piso = go.AddComponent<PisoSuaveCaverna>();
-        piso.Aplicar(cena, capsula);
+        piso.StartCoroutine(piso.Aplicar(cena, capsula));
         return piso;
     }
 
@@ -39,7 +41,7 @@ public sealed class PisoSuaveCaverna : MonoBehaviour
             nome.Contains("cave_tube") || nome.Contains("cave_entrance") || nome.Contains("mountain_cave");
     }
 
-    void Aplicar(Scene cena, CharacterController capsula)
+    IEnumerator Aplicar(Scene cena, CharacterController capsula)
     {
         jogador = capsula;
         degrauOriginal = jogador.stepOffset;
@@ -50,11 +52,24 @@ public sealed class PisoSuaveCaverna : MonoBehaviour
         jogador.slopeLimit = Mathf.Max(jogador.slopeLimit, 50f);
 
         var colisores = new List<Collider>();
+        double limite = Time.realtimeSinceStartupAsDouble + .004;
         foreach (var raiz in cena.GetRootGameObjects())
+        {
             colisores.AddRange(raiz.GetComponentsInChildren<Collider>());
+            if (TelaCarregamento.EmCurso && Time.realtimeSinceStartupAsDouble >= limite)
+            {
+                yield return null;
+                limite = Time.realtimeSinceStartupAsDouble + .004;
+            }
+        }
         foreach (var colisor in colisores)
         {
-            if (!colisor.enabled || colisor.isTrigger || !EhPiso(colisor.name) ||
+            if (TelaCarregamento.EmCurso && Time.realtimeSinceStartupAsDouble >= limite)
+            {
+                yield return null;
+                limite = Time.realtimeSinceStartupAsDouble + .004;
+            }
+            if (colisor == null || !colisor.enabled || colisor.isTrigger || !EhPiso(colisor.name) ||
                 !(colisor is MeshCollider mesh) || !mesh.sharedMesh || !mesh.sharedMesh.isReadable) continue;
             Mesh suave = Suavizar(mesh);
             if (!suave && !mesh.convex) continue;
@@ -66,7 +81,12 @@ public sealed class PisoSuaveCaverna : MonoBehaviour
         Physics.SyncTransforms();
         foreach (var colisor in colisores)
         {
-            if (!colisor.enabled || colisor.isTrigger || !colisor.name.ToLowerInvariant().Contains("pebbles")) continue;
+            if (TelaCarregamento.EmCurso && Time.realtimeSinceStartupAsDouble >= limite)
+            {
+                yield return null;
+                limite = Time.realtimeSinceStartupAsDouble + .004;
+            }
+            if (colisor == null || !colisor.enabled || colisor.isTrigger || !colisor.name.ToLowerInvariant().Contains("pebbles")) continue;
             var b = colisor.bounds;
             if (b.size.y > .6f || Mathf.Max(b.size.x, b.size.z) > 4.5f) continue;
             foreach (var hit in Physics.RaycastAll(b.center + Vector3.up * (b.extents.y + .2f),
@@ -80,6 +100,7 @@ public sealed class PisoSuaveCaverna : MonoBehaviour
             }
         }
         Physics.SyncTransforms();
+        Pronto = true;
     }
 
     Mesh Suavizar(MeshCollider colisor)

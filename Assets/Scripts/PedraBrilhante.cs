@@ -21,6 +21,7 @@ public class PedraBrilhante : MonoBehaviour
     [Header("Brilho quando o jogador encostar")]
     [ColorUsage(true, true)] public Color corDoBrilho = new Color(0.15f, 1f, 0.8f, 1f);
     [Min(0f)] public float intensidadeDoBrilho = 6f;
+    [SerializeField, Min(0f)] private float brilhoEmRepouso;
 
     [Header("Puzzle da sequencia")]
     [Tooltip("Normalmente fica desligado: o puzzle le a cor usada no brilho da pedra.")]
@@ -76,6 +77,7 @@ public class PedraBrilhante : MonoBehaviour
     public static CorDaSequencia? ProximaCorEsperada => proximaCor < OrdemCorreta.Length
         ? OrdemCorreta[Mathf.Max(0, proximaCor)] : (CorDaSequencia?)null;
     public static event System.Action ProgressoAlterado;
+    public static event System.Action PedraSelecionada;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ReiniciarEstadoDoPuzzle()
@@ -83,6 +85,7 @@ public class PedraBrilhante : MonoBehaviour
         PedrasDoPuzzle.Clear();
         proximaCor = 0;
         ProgressoAlterado = null;
+        PedraSelecionada = null;
     }
 
     private void Awake()
@@ -99,6 +102,7 @@ public class PedraBrilhante : MonoBehaviour
         CriarAreaDeToque();
 
         PrepararLuz();
+        Apagar();
     }
 
     private void OnDestroy()
@@ -210,6 +214,7 @@ public class PedraBrilhante : MonoBehaviour
             proximaCor = 0;
             ProgressoAlterado?.Invoke();
             Debug.Log("Sequencia incorreta. Tente novamente.");
+            PedraSelecionada?.Invoke();
 
             // Dispara o som e o tremor autom�tico na c�mara do player
             JogadorErrouSequencia();
@@ -228,6 +233,7 @@ public class PedraBrilhante : MonoBehaviour
         Acender();
         proximaCor++;
         ProgressoAlterado?.Invoke();
+        PedraSelecionada?.Invoke();
 
         if (proximaCor == OrdemCorreta.Length)
         {
@@ -265,6 +271,14 @@ public class PedraBrilhante : MonoBehaviour
     {
         acesa = true;
 
+        AplicarEmissao(corDoBrilho * intensidadeDoBrilho);
+
+        if (luzDaPedra != null)
+            luzDaPedra.enabled = true;
+    }
+
+    private void AplicarEmissao(Color emissao)
+    {
         foreach (Material[] listaDeMateriais in materiais)
         {
             foreach (Material material in listaDeMateriais)
@@ -273,33 +287,18 @@ public class PedraBrilhante : MonoBehaviour
                     continue;
 
                 material.EnableKeyword("_EMISSION");
-                material.SetColor("_EmissionColor", corDoBrilho * intensidadeDoBrilho);
+                material.SetColor("_EmissionColor", emissao);
             }
         }
 
-        if (luzDaPedra != null)
-        {
-            luzDaPedra.color = corDoBrilho;
-            luzDaPedra.intensity = intensidadeDaLuz;
-            luzDaPedra.range = alcanceDaLuz;
-            luzDaPedra.enabled = true;
-        }
     }
 
     private void Apagar()
     {
         acesa = false;
 
-        foreach (Material[] listaDeMateriais in materiais)
-        {
-            foreach (Material material in listaDeMateriais)
-            {
-                if (material == null || !material.HasProperty("_EmissionColor"))
-                    continue;
-
-                material.SetColor("_EmissionColor", Color.black);
-            }
-        }
+        // Preserva a tonalidade sem amplificar o brilho de repouso das cores HDR.
+        AplicarEmissao(corDoBrilho * (brilhoEmRepouso / Mathf.Max(1f, corDoBrilho.maxColorComponent)));
 
         if (luzDaPedra != null)
             luzDaPedra.enabled = false;

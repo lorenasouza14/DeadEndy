@@ -63,10 +63,15 @@ public class TrocarMundo : MonoBehaviour
 
     public void TrocarCena()
     {
-        if (instancia != this || trocando) return;
+        if (instancia != this || trocando || TelaCarregamento.EmCurso) return;
         var vida = GetComponent<VidaJogadorKraken>();
         if (vida && vida.Morto) return;
         string atual = SceneManager.GetActiveScene().name;
+        if (atual == mundo1)
+        {
+            var porta = FindAnyObjectByType<PortaPuzzleCaverna>();
+            if (porta != null) { porta.IniciarTravessia(this); return; }
+        }
         string destino = atual == mundo1 ? mundo2 : atual == mundo2 ? mundo1 : null;
         if (destino == null) return;
         if (!Application.CanStreamedLevelBeLoaded(destino))
@@ -77,6 +82,15 @@ public class TrocarMundo : MonoBehaviour
         trocando = true;
         if (autosaveCaverna != null) autosaveCaverna.TentarSalvar();
         SceneManager.LoadScene(destino, LoadSceneMode.Single);
+    }
+
+    public void PassarPelaPorta(TelaCarregamento tela)
+    {
+        if (instancia != this || trocando || SceneManager.GetActiveScene().name != mundo1) return;
+        if (TryGetComponent<VidaJogadorKraken>(out var vida) && vida.Morto) return;
+        if (!tela.Iniciar(mundo2)) return;
+        trocando = true;
+        if (autosaveCaverna != null) autosaveCaverna.TentarSalvar();
     }
 
     private void AoCarregarCena(Scene cena, LoadSceneMode modo)

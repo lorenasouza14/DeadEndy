@@ -235,8 +235,7 @@ public class RadioValidationRunner : MonoBehaviour
         Check(boss.EstaCalmo, "Desligar não cancela efeito do pirulito");
         yield return new WaitForSeconds(0.3f);
         Check(!boss.EstaCalmo && boss.NivelRaivaRadio == 2, "Pirulito expira mantendo raiva");
-        Check(inventory.ColetarRadio(radio) && inventory.TemRadio, "Q pode recolher rádio desligado");
-        Check(inventory.ColocarRadio(), "Pode colocar o mesmo rádio novamente");
+        Check(!inventory.ColetarRadio(radio) && !inventory.TemRadio && radio.Colocado, "Rádio desligado permanece no chão");
         yield return null;
         pickup.TentarColetar(inventory);
         boss.ReagirComRaiva();

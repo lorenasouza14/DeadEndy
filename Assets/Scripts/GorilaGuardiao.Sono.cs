@@ -36,6 +36,7 @@ public partial class GorilaGuardiao
     public bool EstaDormindo => usarCicloSono && sonoPreparado && EstadoSono == EstadoSonoGorila.Dormindo;
     public bool SonoImpedeAtaque => usarCicloSono && sonoPreparado && EstadoSono != EstadoSonoGorila.Acordado;
     private bool sonoPreparado;
+    private bool indicouCaminhada;
     private int hashDormindo;
     private float tempoEstadoSono;
     private float ruidoAcumulado;
@@ -85,6 +86,15 @@ public partial class GorilaGuardiao
         }
         if (!sonoPreparado) PrepararSono();
         if (!sonoPreparado || delta <= 0f) return SonoImpedeAtaque;
+        float alcanceDica = raioAudicao + 8f;
+        if (!indicouCaminhada && (movimentoEndy.transform.position - CentroAudicao).sqrMagnitude <= alcanceDica * alcanceDica &&
+            movimentoEndy.TryGetComponent<InventarioEndy>(out var inventario))
+        {
+            var dicas = inventario.GetComponent<DicasDaFase>();
+            if (dicas == null) dicas = inventario.gameObject.AddComponent<DicasDaFase>();
+            dicas.IndicarCaminhadaLenta();
+            indicouCaminhada = true;
+        }
         AtualizarGiroSono(delta);
 
         if (EstadoSono == EstadoSonoGorila.Dormindo || EstadoSono == EstadoSonoGorila.Adormecendo)

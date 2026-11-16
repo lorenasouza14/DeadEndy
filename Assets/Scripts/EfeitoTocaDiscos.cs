@@ -11,7 +11,7 @@ public class EfeitoTocaDiscos : MonoBehaviour
     public bool NaMao { get; private set; }
     public bool Colocado { get; private set; }
     public bool Ligado { get; private set; }
-    public bool DisponivelParaColeta => !NaMao && !Ligado;
+    public bool DisponivelParaColeta => !NaMao && !Colocado;
     private AudioSource fonte;
     private CaranguejoChefe chefeOuvindo;
     private float proximaBusca;

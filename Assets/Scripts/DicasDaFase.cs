@@ -20,6 +20,9 @@ public class DicasDaFase : MonoBehaviour
     string textoAtual;
     float tempoBusca, tempoRestante;
     bool encontrouEscondida, mostrouChefe;
+    float tempoDicaCaminhada;
+
+    public void IndicarCaminhadaLenta() => tempoDicaCaminhada = duracaoDica;
 #if UNITY_EDITOR
     float tempoPreviaAlavanca;
 
@@ -50,6 +53,13 @@ public class DicasDaFase : MonoBehaviour
             return;
         }
 
+        if (tempoDicaCaminhada > 0f)
+        {
+            tempoDicaCaminhada -= Time.deltaTime;
+            mensagem.text = "Segure Ctrl enquanto se move para andar devagar.";
+            painel.SetActive(true);
+            return;
+        }
         tempoRestante = Mathf.Max(0f, tempoRestante - Time.deltaTime);
         if (chefe != null && chefe.isActiveAndEnabled && chefe.estadoAtual != CaranguejoChefe.EstadoChefe.Escondido)
         {

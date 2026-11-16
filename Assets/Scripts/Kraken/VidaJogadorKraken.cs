@@ -62,10 +62,14 @@ public class VidaJogadorKraken : MonoBehaviour
         var controle = GetComponent<ThirdPersonController>();
         var capsula = GetComponent<CharacterController>();
         if (capsula) capsula.enabled = false;
-        foreach (var raiz in cena.GetRootGameObjects())
-            foreach (var entrada in raiz.GetComponentsInChildren<Transform>(true))
-                if (entrada.name == "PontoEntrada" && entrada.gameObject.activeInHierarchy)
-                    transform.SetPositionAndRotation(entrada.position, Quaternion.Euler(0, entrada.eulerAngles.y, 0));
+        // Na caverna, TrocarMundo já posiciona o jogador no checkpoint da pedra.
+        if (cena.path != ProgressoJogo.CenaCaverna || !TryGetComponent<TrocarMundo>(out _))
+        {
+            foreach (var raiz in cena.GetRootGameObjects())
+                foreach (var entrada in raiz.GetComponentsInChildren<Transform>(true))
+                    if (entrada.name == "PontoEntrada" && entrada.gameObject.activeInHierarchy)
+                        transform.SetPositionAndRotation(entrada.position, Quaternion.Euler(0, entrada.eulerAngles.y, 0));
+        }
         Physics.SyncTransforms();
         if (capsula) capsula.enabled = true;
         if (controle)

@@ -7,7 +7,7 @@ using UnityEngine.UI;
 public class IndicadorItemEndy : MonoBehaviour
 {
     public TMP_FontAsset fonte;
-    public Sprite pocaoVerde, pocaoAzul, pirulito, trompete, radio, diario, lanterna;
+    public Sprite pocaoVerde, pocaoAzul, pirulito, trompete, radio, diario, lanterna, banana;
     private InventarioEndy inventario;
     private VidaEndy vida;
     private GameObject interfaceItem;
@@ -114,7 +114,8 @@ public class IndicadorItemEndy : MonoBehaviour
             ultimaAreaSegura = segura;
         }
         var item = inventario.ItemNaMao;
-        painelItem.gameObject.SetActive(item != InventarioEndy.TipoItemNaMao.Nenhum);
+        painelItem.gameObject.SetActive(item != InventarioEndy.TipoItemNaMao.Nenhum &&
+            (item != InventarioEndy.TipoItemNaMao.Banana || banana != null));
         iconeDiario.gameObject.SetActive(inventario.temDiario && diario != null);
         dicaDiario.SetActive(inventario.temDiario);
         // Sem tempo limite: ícone e comandos acompanham o item até ele sair da mão.
@@ -123,11 +124,13 @@ public class IndicadorItemEndy : MonoBehaviour
         anterior = item;
         bool pocao = item == InventarioEndy.TipoItemNaMao.PocaoVerde || item == InventarioEndy.TipoItemNaMao.PocaoAzul;
         segundaLinha.gameObject.SetActive(pocao);
+        primeiraLinha.gameObject.SetActive(item != InventarioEndy.TipoItemNaMao.Banana);
         primeiraLinha.anchoredPosition = new Vector2(0, pocao ? 28 : 0);
         teclaPrincipal.text = pocao ? "R" : "F";
         acaoPrincipal.text = pocao ? "Beber" : item == InventarioEndy.TipoItemNaMao.Trompete ? "Tocar" : item == InventarioEndy.TipoItemNaMao.Radio ? "Colocar" : "Arremessar";
         switch (item)
         {
+            case InventarioEndy.TipoItemNaMao.Banana: icone.sprite = banana; break;
             case InventarioEndy.TipoItemNaMao.PocaoVerde: icone.sprite = pocaoVerde; break;
             case InventarioEndy.TipoItemNaMao.PocaoAzul: icone.sprite = pocaoAzul; break;
             case InventarioEndy.TipoItemNaMao.Pirulito: icone.sprite = pirulito; break;
