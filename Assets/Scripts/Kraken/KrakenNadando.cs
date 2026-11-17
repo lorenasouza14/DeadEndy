@@ -73,6 +73,11 @@ public class KrakenNadando : MonoBehaviour
     Quaternion rotacaoBase, cabecaBase;
     float tempo, peso, energia = 1;
     bool preparado;
+    float pesoRepouso;
+    public bool EmRepouso => isActiveAndEnabled && (!batalha ||
+        ((batalha.Estado == BatalhaKraken.Etapa.Aguardando ||
+          batalha.Estado == BatalhaKraken.Etapa.Recuperando) &&
+         !(batalha.captura && (batalha.captura.Ativa || batalha.captura.Reagindo))));
 
     void Awake()
     {
@@ -174,13 +179,24 @@ public class KrakenNadando : MonoBehaviour
                 balanco * 3.5f * peso, (Mathf.Sin(t) * .8f + balanco * 1.2f) * peso);
         }
 
+        pesoRepouso = Mathf.MoveTowards(pesoRepouso, EmRepouso ? 1f : 0f, Time.deltaTime * 2f);
         for (int i = 0; i < tentaculos.Length; i++)
         {
             if (i == atacante || i == segundo)
                 BalancarTentaculo(i);
             else
-                for (int j = 0; j < tentaculos[i].ossos.Length; j++)
-                    tentaculos[i].ossos[j].localRotation = pose[i][j];
+            {
+                var ossos = tentaculos[i].ossos;
+                for (int j = 0; j < ossos.Length; j++)
+                    ossos[j].localRotation = pose[i][j];
+                if (ossos.Length == 0 || pesoRepouso <= 0f) continue;
+
+                // Gira o braco inteiro pela base, preservando a curva original da ponta.
+                float fase = tempo * velocidadeCorpo + i * 2.4f;
+                float angulo = (Mathf.Sin(fase) + .25f * Mathf.Sin(.63f * fase)) / 1.25f;
+                ossos[0].localRotation = pose[i][0] * Quaternion.AngleAxis(
+                    angulo * amplitudeBalancoTentaculos * peso * pesoRepouso, eixoDobra[i][0]);
+            }
         }
     }
 
@@ -279,7 +295,7 @@ public class KrakenNadando : MonoBehaviour
         if (cabeca) cabeca.localRotation = cabecaBase;
         for (int i = 0; i < tentaculos.Length; i++) for (int j = 0; j < tentaculos[i].ossos.Length; j++)
             if (tentaculos[i].ossos[j]) tentaculos[i].ossos[j].localRotation = pose[i][j];
-        peso = 0;
+        peso = pesoRepouso = 0;
         historicoDeOlhar.Clear(); olharPreparado = false;
         giroDeOlhar = 0; velocidadeDeOlhar = 0;
     }

@@ -10,7 +10,6 @@ public class AtaqueSabaoKraken : MonoBehaviour
     public BatalhaKraken batalha;
     public Transform tampa, pontoPressao, saidaBolhas;
     public Transform pontaDiscreta, pontoEntradaJogador;
-    [Range(0, 8)] public float inclinacaoDiscreta = 4f;
     public Material materialBolha;
     [Min(.01f)] public float cursoPressao = .8f;
     [Min(.1f)] public float tempoAproximacao = 1.4f, tempoPressao = .65f, tempoRetorno = 1f;
@@ -47,7 +46,9 @@ public class AtaqueSabaoKraken : MonoBehaviour
     public int BolhasLancadas { get; private set; }
     readonly List<BolhaSabaoKraken> bolhas = new List<BolhaSabaoKraken>();
     Vector3 tampaInicial;
-    Quaternion rotacaoSemGesto;
+    Transform baseBraco, dobraBraco;
+    Vector3 contatoNaDobra;
+    Quaternion baseSemGesto, dobraSemGesto;
     bool cancelado, gestoAplicado, alturaPreparada;
     float pesoGesto;
     void Awake() { if (tampa) tampaInicial = tampa.localPosition; }
@@ -55,6 +56,7 @@ public class AtaqueSabaoKraken : MonoBehaviour
     {
         var jogador = FindAnyObjectByType<ThirdPersonController>();
         if (jogador) PrepararAltura(jogador);
+        PrepararBraco();
     }
     void PrepararAltura(ThirdPersonController jogador)
     {
@@ -64,18 +66,84 @@ public class AtaqueSabaoKraken : MonoBehaviour
         AlturaDoVoo = (pontoEntradaJogador ? pontoEntradaJogador.position.y : jogador.transform.position.y) + centro + ajusteAlturaBolhas;
         alturaPreparada = true;
     }
+    void PrepararBraco()
+    {
+        var golpe = batalha ? batalha.tentaculoDoCorpo : null;
+        if (!pontaDiscreta || !golpe || !golpe.nado || golpe.nado.tentaculos == null) return;
+        var bracos = golpe.nado.tentaculos;
+        for (int i = 0; i < bracos.Length; i++)
+        {
+            var ossos = bracos[i].ossos;
+            if (i == golpe.indiceDoTentaculo || ossos == null || System.Array.IndexOf(ossos, pontaDiscreta) < 0) continue;
+            var ultimo = ossos[ossos.Length - 1];
+            Transform marcador = null;
+            for (int j = 0; j < ultimo.childCount; j++)
+                if (ultimo.GetChild(j).name.EndsWith("_end")) { marcador = ultimo.GetChild(j); break; }
+            if (!marcador) return;
+            baseBraco = ossos[0];
+            dobraBraco = ossos[1];
+            contatoNaDobra = dobraBraco.InverseTransformPoint(PontaVisivel(golpe.malhaDoKraken, ultimo, marcador));
+            return;
+        }
+    }
+
+    Vector3 PontaVisivel(SkinnedMeshRenderer pele, Transform ultimo, Transform marcador)
+    {
+        if (!pele || !pele.sharedMesh || !pele.sharedMesh.isReadable) return marcador.position;
+        var malha = pele.sharedMesh;
+        var ossos = pele.bones;
+        int indiceFinal = System.Array.IndexOf(ossos, ultimo);
+        var pesos = malha.boneWeights;
+        // O vertice mais influenciado pelo ultimo osso marca a ponta da malha desta fase.
+        float maiorPeso = 0;
+        int vertice = -1;
+        for (int i = 0; i < pesos.Length; i++)
+        {
+            if (pesos[i].boneIndex0 != indiceFinal || pesos[i].weight0 <= maiorPeso) continue;
+            maiorPeso = pesos[i].weight0;
+            vertice = i;
+        }
+        if (vertice < 0) return marcador.position;
+        Vector3 ponto = malha.vertices[vertice];
+        var poses = malha.bindposes;
+        Vector3 Posicao(int indice) => ossos[indice].TransformPoint(poses[indice].MultiplyPoint3x4(ponto));
+        var w = pesos[vertice];
+        return Posicao(w.boneIndex0) * w.weight0 + Posicao(w.boneIndex1) * w.weight1
+            + Posicao(w.boneIndex2) * w.weight2 + Posicao(w.boneIndex3) * w.weight3;
+    }
+
     void RetirarGesto()
     {
-        if (gestoAplicado && pontaDiscreta) pontaDiscreta.localRotation = rotacaoSemGesto;
+        if (!gestoAplicado) return;
+        baseBraco.localRotation = baseSemGesto;
+        dobraBraco.localRotation = dobraSemGesto;
         gestoAplicado = false;
     }
     void Update() { RetirarGesto(); }
+
     void LateUpdate()
     {
-        // Pequeno gesto em outro braco, sem solver, esticamento ou controle da captura.
-        if (!EmExecucao || pesoGesto <= 0 || !pontaDiscreta || (batalha.captura && batalha.captura.Ativa)) return;
-        rotacaoSemGesto = pontaDiscreta.localRotation;
-        pontaDiscreta.localRotation = rotacaoSemGesto * Quaternion.AngleAxis(inclinacaoDiscreta * pesoGesto, Vector3.forward);
+        if (!EmExecucao || pesoGesto <= 0 || !pontoPressao || !dobraBraco ||
+            (batalha.captura && batalha.captura.Ativa)) return;
+        baseSemGesto = baseBraco.localRotation;
+        dobraSemGesto = dobraBraco.localRotation;
+        Vector3 raiz = baseBraco.position;
+        Vector3 primeiro = dobraBraco.position - raiz;
+        Vector3 ponta = dobraBraco.TransformPoint(contatoNaDobra);
+        Vector3 rumo = Vector3.Lerp(ponta, pontoPressao.position, pesoGesto) - raiz;
+        float a = primeiro.magnitude, b = Vector3.Distance(ponta, dobraBraco.position);
+        if (rumo.sqrMagnitude < .0001f || a < .001f || b < .001f) return;
+        Vector3 direcao = rumo.normalized;
+        float d = Mathf.Clamp(rumo.magnitude, Mathf.Abs(a - b) + .0001f, a + b);
+        float projecao = (a * a - b * b + d * d) / (2f * d);
+        Vector3 lado = Vector3.ProjectOnPlane(primeiro, direcao).normalized;
+        if (lado.sqrMagnitude < .5f) lado = Vector3.ProjectOnPlane(dobraBraco.right, direcao).normalized;
+        // Apenas duas articulacoes conduzem a ponta. A espiral distal acompanha como uma peca.
+        Vector3 dobra = direcao * projecao + lado * Mathf.Sqrt(Mathf.Max(0f, a * a - projecao * projecao));
+        baseBraco.rotation = Quaternion.FromToRotation(primeiro, dobra) * baseBraco.rotation;
+        Vector3 pontaAtual = dobraBraco.TransformPoint(contatoNaDobra) - dobraBraco.position;
+        dobraBraco.rotation = Quaternion.FromToRotation(pontaAtual, raiz + direcao * d - dobraBraco.position)
+            * dobraBraco.rotation;
         gestoAplicado = true;
     }
     void Apertar(float fracao)
@@ -99,13 +167,13 @@ public class AtaqueSabaoKraken : MonoBehaviour
             for (float t = 0; t < tempoAproximacao; t += Time.deltaTime * ritmo)
             {
                 if (!Valido(vida)) yield break;
-                pesoGesto = .2f * Mathf.SmoothStep(0, 1, t / tempoAproximacao); yield return null;
+                pesoGesto = Mathf.SmoothStep(0, 1, t / tempoAproximacao); yield return null;
             }
             for (float t = 0; t < tempoPressao; t += Time.deltaTime * ritmo)
             {
                 if (!Valido(vida)) yield break;
                 float p = Mathf.SmoothStep(0, 1, t / tempoPressao);
-                Apertar(p); pesoGesto = Mathf.Lerp(.2f, 1, p); yield return null;
+                Apertar(p); pesoGesto = 1f; yield return null;
             }
             Apertar(1); pesoGesto = 1;
             var capsula = jogador.GetComponent<CharacterController>();
@@ -122,7 +190,8 @@ public class AtaqueSabaoKraken : MonoBehaviour
             {
                 if (!Valido(vida)) yield break;
                 float p = Mathf.SmoothStep(0, 1, t / tempoRetorno);
-                Apertar(1 - p); pesoGesto = 1 - p; yield return null;
+                Apertar(1f - Mathf.SmoothStep(0, 1, Mathf.Clamp01(p * 3f)));
+                pesoGesto = 1f - Mathf.SmoothStep(0, 1, Mathf.InverseLerp(1f / 3f, 1f, p)); yield return null;
             }
             // A animacao termina aqui. As bolhas continuam voando e bloqueiam
             // apenas os proximos ataques especiais; o tentaculo pode voltar a bater.

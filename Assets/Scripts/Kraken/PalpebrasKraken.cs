@@ -13,6 +13,9 @@ public class PalpebrasKraken : MonoBehaviour
     public float Fechamento { get; private set; }
     public SkinnedMeshRenderer PalpebrasVisuais => palpebrasVisuais;
     float alvo, progresso;
+    KrakenNadando nado;
+    float atePiscar = 2.2f, tempoFechando;
+    int numeroPiscada;
     Mesh fonte, malhaPalpebras;
     Material materialPalpebras;
     SkinnedMeshRenderer palpebrasVisuais;
@@ -30,6 +33,7 @@ public class PalpebrasKraken : MonoBehaviour
     void Awake()
     {
         if (!malhaOriginal || !malhaOriginal.sharedMesh) return;
+        nado = GetComponent<KrakenNadando>();
         fonte = malhaOriginal.sharedMesh;
         formaAntiga = fonte.GetBlendShapeIndex(nomeDaForma);
         pupilaAntiga = fonte.GetBlendShapeIndex("PiscarOlhos");
@@ -187,14 +191,35 @@ public class PalpebrasKraken : MonoBehaviour
     public void Fechar(float valor){alvo=Mathf.Clamp01(valor);}
     void LateUpdate()
     {
-        float duracao=alvo>progresso?tempoParaFechar:tempoParaAbrir;
-        progresso=Mathf.MoveTowards(progresso,alvo,Time.deltaTime/Mathf.Max(.01f,duracao));
+        float fechamentoDesejado = alvo;
+        if (nado && nado.EmRepouso && alvo <= 0f)
+        {
+            atePiscar -= Time.deltaTime;
+            if (atePiscar <= 0f)
+            {
+                // Mesmo tempo de olhos fechados e mesma curva da piscada da lanterna.
+                tempoFechando = .65f;
+                // Intervalos variados sem consumir a sequencia aleatoria dos ataques.
+                atePiscar = 3.8f + 2.4f * Mathf.Repeat(++numeroPiscada * .618034f, 1f);
+            }
+            if (tempoFechando > 0f)
+            {
+                tempoFechando = Mathf.Max(0f, tempoFechando - Time.deltaTime);
+                fechamentoDesejado = Mathf.Clamp01(tempoFechando / .12f);
+            }
+        }
+        else tempoFechando = 0f;
+
+        float duracao = fechamentoDesejado > progresso ? tempoParaFechar : tempoParaAbrir;
+        progresso = Mathf.MoveTowards(progresso, fechamentoDesejado, Time.deltaTime / Mathf.Max(.01f, duracao));
         Fechamento=Mathf.SmoothStep(0,1,progresso);
         RestaurarOriginal();
         if(palpebrasVisuais){palpebrasVisuais.enabled=Fechamento>.001f;palpebrasVisuais.SetBlendShapeWeight(0,Fechamento*100);}
     }
     void OnDisable()
     {
+        tempoFechando = 0f;
+        atePiscar = 2.2f;
         alvo=progresso=Fechamento=0;RestaurarOriginal();
         if(palpebrasVisuais){palpebrasVisuais.SetBlendShapeWeight(0,0);palpebrasVisuais.enabled=false;}
     }
