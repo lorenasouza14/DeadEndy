@@ -94,6 +94,7 @@ public class AutosaveEndy : AutosaveDeFase
             var diario = GetComponent<DiarioEndy>();
             if (diario != null)
             {
+                diario.RestaurarProgresso(carregado.etapaDiario, carregado.paginasDiarioLidas);
                 diario.RestaurarPagina(carregado.paginaDiario);
                 diario.RestaurarLeitura(carregado.diarioLido);
             }
@@ -162,6 +163,8 @@ public class AutosaveEndy : AutosaveDeFase
             vida = VidaAtual,
             temDiario = inventario.temDiario, paginaDiario = diario != null ? diario.PaginaEsquerda : 0,
             diarioLido = inventario.temDiario && diario != null && diario.FoiLido,
+            etapaDiario = diario != null ? diario.EtapaDesbloqueada : 0,
+            paginasDiarioLidas = diario != null ? diario.PaginasLidas : 0,
             chefeVencido = venceu,
             chefeX = chefe != null ? chefe.transform.position.x : 0,
             chefeY = chefe != null ? chefe.transform.position.y : 0,

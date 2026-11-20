@@ -21,13 +21,13 @@ public static class DiarioSetup
         if (EditorApplication.isPlayingOrWillChangePlaymode)
             throw new InvalidOperationException("Saia do Play Mode antes de atualizar as páginas.");
 
-        var paginas = Enumerable.Range(1, 12).Select(i =>
-            AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/Imagens/pagina{i}.png")).ToArray();
+        var paginas = Enumerable.Range(1, 24).Select(i =>
+            AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/Resources/PaginasDiario/p{i}.png")).ToArray();
         if (paginas.Any(p => p == null))
-            throw new InvalidOperationException("Uma das 12 imagens do diário não foi importada como Sprite.");
+            throw new InvalidOperationException("Uma das 24 imagens do diário não foi importada como Sprite.");
 
         var livros = Object.FindObjectsByType<DiarioEndy>(FindObjectsInactive.Include)
-            .Where(l => ProgressoJogo.EhCenaIlha(l.gameObject.scene.path)).ToArray();
+            .Where(l => l.gameObject.scene.IsValid()).ToArray();
         if (livros.Length == 0)
             throw new InvalidOperationException("Abra uma das cenas do jogo antes de atualizar o diário.");
 

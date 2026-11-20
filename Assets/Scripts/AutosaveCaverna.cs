@@ -38,7 +38,8 @@ public sealed partial class AutosaveCaverna : AutosaveDeFase
             inventario.ColetarItem(false, true);
             if (diario != null)
             {
-                diario.RestaurarPagina(progresso.paginaDiario);
+                diario.RestaurarProgresso(progresso.etapaDiario, progresso.paginasDiarioLidas);
+                if (progresso.cena == ProgressoJogo.CenaCaverna) diario.RestaurarPagina(progresso.paginaDiario);
                 diario.RestaurarLeitura(progresso.diarioLido);
             }
         }
@@ -78,6 +79,8 @@ public sealed partial class AutosaveCaverna : AutosaveDeFase
         {
             progresso.paginaDiario = diario.PaginaEsquerda;
             progresso.diarioLido = diario.FoiLido;
+            progresso.etapaDiario = diario.EtapaDesbloqueada;
+            progresso.paginasDiarioLidas = diario.PaginasLidas;
         }
         bool equipada = lanterna != null && lanterna.foiColetada;
         progresso.versao = 4;

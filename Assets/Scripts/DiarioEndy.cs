@@ -8,7 +8,7 @@ using UnityEngine.InputSystem;
 #endif
 
 [DisallowMultipleComponent, RequireComponent(typeof(InventarioEndy))]
-public class DiarioEndy : MonoBehaviour
+public partial class DiarioEndy : MonoBehaviour
 {
     [Header("Uma imagem por página, na ordem de leitura")]
     public Sprite[] paginas = new Sprite[0];
@@ -21,11 +21,11 @@ public class DiarioEndy : MonoBehaviour
     public int PaginaEsquerda { get; private set; }
     public int TotalPaginas => paginas != null && paginas.Length > 0 ? paginas.Length : Mathf.Max(2, paginasProvisorias);
     public bool PodeVoltar => PaginaEsquerda > 0;
-    public bool PodeAvancar => PaginaEsquerda + 2 < TotalPaginas;
+    public bool PodeAvancar => PaginaEsquerda + 2 < PaginasLiberadas;
 
     public void RestaurarPagina(int pagina)
     {
-        PaginaEsquerda = Mathf.Clamp(pagina / 2, 0, (TotalPaginas - 1) / 2) * 2;
+        PaginaEsquerda = Mathf.Clamp(pagina / 2, 0, (PaginasLiberadas - 1) / 2) * 2;
     }
 
     public void RestaurarLeitura(bool lido) { FoiLido = lido && GetComponent<InventarioEndy>().temDiario; }
@@ -49,6 +49,7 @@ public class DiarioEndy : MonoBehaviour
     void Awake()
     {
         inventario = GetComponent<InventarioEndy>();
+        CarregarPaginasCompletas();
         vida = GetComponent<VidaEndy>();
         inputs = GetComponent<StarterAssets.StarterAssetsInputs>();
         movimento = GetComponent<StarterAssets.ThirdPersonController>();
@@ -56,6 +57,7 @@ public class DiarioEndy : MonoBehaviour
 
     void Update()
     {
+        AtualizarDicaDeLeitura();
         if (Aberto && (!inventario.isActiveAndEnabled || (vida != null && vida.EstaMorto))) { Fechar(); return; }
 #if ENABLE_INPUT_SYSTEM
         var kb = Keyboard.current;
@@ -80,8 +82,9 @@ public class DiarioEndy : MonoBehaviour
         if (Aberto || !isActiveAndEnabled || !inventario.isActiveAndEnabled || !inventario.temDiario ||
             inventario.ExecutandoAcao || InteracaoBau.PuzzleAtivo || Time.timeScale == 0 ||
             Time.frameCount == frameFechamento || (vida != null && vida.EstaMorto)) return false;
+        AtualizarEtapa();
         if (tela == null) CriarInterface();
-        PaginaEsquerda = Mathf.Clamp(PaginaEsquerda, 0, ((TotalPaginas - 1) / 2) * 2);
+        PaginaEsquerda = Mathf.Clamp(PaginaEsquerda, 0, ((PaginasLiberadas - 1) / 2) * 2);
         escalaTempoAnterior = Time.timeScale;
         travaAnterior = Cursor.lockState;
         cursorVisivelAnterior = Cursor.visible;
@@ -103,7 +106,7 @@ public class DiarioEndy : MonoBehaviour
         if (!FoiLido)
         {
             FoiLido = true;
-            AutosaveEndy.Instancia?.SolicitarAutosave();
+            SalvarLeitura();
         }
         return true;
     }
@@ -116,7 +119,7 @@ public class DiarioEndy : MonoBehaviour
         if (folhaMovel != null) folhaMovel.gameObject.SetActive(false);
         if (tela != null) tela.SetActive(false);
         Aberto = false;
-        AutosaveEndy.Instancia?.SolicitarAutosave();
+        SalvarLeitura();
         frameFechamento = Time.frameCount;
         Time.timeScale = escalaTempoAnterior;
         // Game Over passa a ser o dono do cursor e do movimento quando Endy morre.
@@ -186,10 +189,10 @@ public class DiarioEndy : MonoBehaviour
 
     void MostrarPagina(Image imagem, TMP_Text vazio, int indice)
     {
-        Sprite sprite = paginas != null && indice >= 0 && indice < paginas.Length ? paginas[indice] : null;
+        Sprite sprite = paginas != null && indice >= 0 && indice < paginas.Length && indice < PaginasLiberadas ? paginas[indice] : null;
         imagem.sprite = sprite;
         imagem.enabled = sprite != null;
-        vazio.text = indice >= TotalPaginas ? "" : "Página " + (indice + 1) + "\n\n" +
+        vazio.text = indice >= TotalPaginas ? "" : indice >= PaginasLiberadas ? "Página bloqueada\n\nContinue a aventura para revelar este trecho." : "Página " + (indice + 1) + "\n\n" +
             "As palavras desta aventura\nainda serão reveladas...";
         vazio.gameObject.SetActive(sprite == null);
     }
@@ -198,9 +201,10 @@ public class DiarioEndy : MonoBehaviour
     {
         MostrarPagina(esquerda, vazioEsquerda, PaginaEsquerda);
         MostrarPagina(direita, vazioDireita, PaginaEsquerda + 1);
+        RegistrarPaginasVisiveis();
         numeroEsquerda.text = (PaginaEsquerda + 1).ToString();
         numeroDireita.text = PaginaEsquerda + 1 < TotalPaginas ? (PaginaEsquerda + 2).ToString() : "";
-        contador.text = (PaginaEsquerda + 1) + " – " + Mathf.Min(PaginaEsquerda + 2, TotalPaginas) + " / " + TotalPaginas;
+        contador.text = (PaginaEsquerda + 1) + " – " + Mathf.Min(PaginaEsquerda + 2, TotalPaginas) + " / " + TotalPaginas + "\n" + PaginasLiberadas + " liberadas";
         anterior.interactable = PodeVoltar;
         proxima.interactable = PodeAvancar;
     }
@@ -237,7 +241,7 @@ public class DiarioEndy : MonoBehaviour
         gesto.diario = this;
         anterior = Botao("Anterior", new Vector2(-470, -404), new Vector2(260, 58), () => Folhear(-1));
         proxima = Botao("Próxima", new Vector2(470, -404), new Vector2(260, 58), () => Folhear(1));
-        contador = Texto("Contagem", tela.transform, "", new Vector2(0, -404), new Vector2(240, 40), 24, Papel);
+        contador = Texto("Contagem", tela.transform, "", new Vector2(0, -404), new Vector2(280, 72), 24, Papel);
         Botao("Fechar  [J / Esc]", new Vector2(565, 408), new Vector2(290, 52), Fechar);
         Texto("Controles", tela.transform, "A / D ou setas para folhear • Arraste a página com o mouse", new Vector2(0, -466), new Vector2(1300, 40), 23, Papel);
         tela.SetActive(false);
@@ -303,7 +307,7 @@ public class DiarioEndy : MonoBehaviour
     }
 
     void OnDisable() { Fechar(); }
-    void OnDestroy() { Fechar(); if (tela != null) Destroy(tela); }
+    void OnDestroy() { Fechar(); if (tela != null) Destroy(tela); if (dicaNovasPaginas != null) Destroy(dicaNovasPaginas); }
 }
 
 public class GestoFolhearDiario : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler

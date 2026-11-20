@@ -12,6 +12,7 @@ public class DadosJogo
     public float x, y, z, direcao;
     public float vida;
     public int paginaDiario;
+    public int etapaDiario, paginasDiarioLidas;
     public bool temDiario, chefeVencido, bauDiarioAberto, diarioLido;
     public float chefeX, chefeY, chefeZ;
     public string[] alavancas, baus;

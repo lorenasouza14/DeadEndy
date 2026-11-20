@@ -136,6 +136,12 @@ public class TrocarMundo : MonoBehaviour
                     camera.LookAt = alvoCamera;
                     camera.PreviousStateIsValid = false;
                 }
+        var diario = GetComponent<DiarioEndy>();
+        if (diario != null)
+        {
+            diario.AtualizarEtapa();
+            BloqueioLeituraKraken.Preparar(diario);
+        }
         cenaPreparada = cena;
         trocando = false;
     }

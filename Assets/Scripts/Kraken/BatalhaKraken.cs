@@ -156,6 +156,14 @@ public class BatalhaKraken : MonoBehaviour
         Estado = Etapa.Aguardando;
         // A transicao de cena nao consome os cinco segundos de respiro.
         while (TelaCarregamento.EmCurso || MenuManager.EstaAberto) yield return null;
+        // A leitura antiga da ilha nao libera as paginas novas da fase final.
+        while (true)
+        {
+            LocalizarJogador();
+            var diario = jogador ? jogador.GetComponent<DiarioEndy>() : null;
+            if (diario != null && diario.LeuFinal && !diario.Aberto) break;
+            yield return null;
+        }
         yield return new WaitForSeconds(tempoAntesDeAparecer);
         RevelarKraken();
         yield return new WaitForSeconds(DuracaoAtaque(esperaInicial));
