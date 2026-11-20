@@ -43,8 +43,25 @@ public sealed class RotasChaoFantasmas : MonoBehaviour
         ponto = posicao;
         if (!Pronto || !NavMesh.SamplePosition(Plano(posicao), out var hit, raio, filtro)) return false;
         ponto = new Vector3(hit.position.x, posicao.y, hit.position.z);
-        if (Altura(ponto, out float y)) ponto.y = y;
+        // A projecao horizontal pode existir sem um piso nesta altura (vao ou outro andar).
+        if (!Altura(ponto, out float y)) return false;
+        ponto.y = y;
         return true;
+    }
+
+    public static bool EhCobertura(Transform objeto, string nomeDaMalha = "")
+    {
+        for (var atual = objeto; atual != null; atual = atual.parent)
+        {
+            string nome = atual.name.ToLowerInvariant();
+            if (nome.Contains("ceiling") || nome.Contains("teto")) return true;
+        }
+        string superficie = (objeto.name + " " + nomeDaMalha).ToLowerInvariant();
+        bool pecaDePiso = superficie.Contains("ground") || superficie.Contains("floor")
+            || superficie.Contains("stairs") || superficie.Contains("ramp") || superficie.Contains("rock_plateau");
+        // A caverna reutiliza pecas de chao viradas para baixo como teto. A face de tras
+        // pode ter normal para cima, mas isso nao a torna um piso para os fantasmas.
+        return pecaDePiso && objeto.TransformVector(Vector3.up).normalized.y < -.5f;
     }
     public bool Altura(Vector3 referencia, out float altura)
     {
@@ -100,6 +117,7 @@ public sealed class RotasChaoFantasmas : MonoBehaviour
         foreach (var raiz in scene.GetRootGameObjects()) foreach (var mf in raiz.GetComponentsInChildren<MeshFilter>())
         {
             if (!vistos.Add(mf) || !mf.sharedMesh || !mf.sharedMesh.isReadable) continue;
+            if (EhCobertura(mf.transform, mf.sharedMesh.name)) continue;
             string nome = (mf.name + " " + mf.sharedMesh.name).ToLowerInvariant();
             if (nome.Contains("water") || nome.Contains("agua")) continue;
             if (!(nome.Contains("ground") || nome.Contains("floor") || nome.Contains("stairs") || nome.Contains("ramp")

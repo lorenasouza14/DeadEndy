@@ -4,7 +4,7 @@ using TMPro;
 
 public sealed partial class AutosaveCaverna
 {
-    const float DuracaoFuga = 45f;
+    const float DuracaoFuga = 80f;
     float tempoFuga = DuracaoFuga;
     bool fugaAtiva;
     GameObject hudFuga;
@@ -24,7 +24,9 @@ public sealed partial class AutosaveCaverna
         }
         else tempoFuga = Mathf.Max(0f, tempoFuga - Time.deltaTime);
         if (tempoFuga <= 0f) ReiniciarFuga();
-        textoFuga.text = "ENCONTRE A SAÍDA\n" + Mathf.CeilToInt(tempoFuga).ToString("00") + " s\n<size=26>Corra antes que a porta se feche!</size>";
+        int segundosRestantes = Mathf.CeilToInt(tempoFuga);
+        textoFuga.text = "ENCONTRE A SAÍDA\n" + (segundosRestantes / 60) + ":" + (segundosRestantes % 60).ToString("00")
+            + "\n<size=26>Corra antes que a porta se feche!</size>";
         textoFuga.color = tempoFuga <= 10f ? new Color(1f, .3f, .2f) : new Color(1f, .91f, .76f);
     }
 

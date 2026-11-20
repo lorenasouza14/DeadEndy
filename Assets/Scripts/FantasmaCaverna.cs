@@ -262,18 +262,20 @@ public class FantasmaCaverna : MonoBehaviour
 
     private bool TentarEncontrarPiso(Vector3 ponto, out float altura)
     {
+        // Degraus pequenos e rampas continuam acessiveis; nao salta para o topo do teto.
+        const float subida = .6f;
+        const float descida = 3f;
         float referencia = ponto.y - AlturaDeFlutuacao;
         bool temRota = rotas && rotas.Pronto;
         Vector3 pisoNavegavel = default;
         bool pisoDaRota = temRota && rotas.Amostrar(ponto - Vector3.up * AlturaDeFlutuacao, 2f, out pisoNavegavel)
-            && Vector3.ProjectOnPlane(pisoNavegavel - ponto, Vector3.up).sqrMagnitude < .5f;
+            && Vector3.ProjectOnPlane(pisoNavegavel - ponto, Vector3.up).sqrMagnitude < .5f
+            && pisoNavegavel.y <= referencia + subida;
         // Usa os mesmos colisores fisicos do jogador, inclusive rochas na camada Personagem.
         // A rota orienta o caminho horizontal; sua altura nao substitui a superficie visivel.
         int pisoReal = Physics.DefaultRaycastLayers & ~LayerMask.GetMask("PonteFantasma", "Fantasma", "Water");
         altura = float.NegativeInfinity;
         float raio = Mathf.Min(.4f, raioDeSeparacao * .55f);
-        const float subida = 3f;
-        const float descida = 3f;
         foreach (var deslocamento in amostrasDePiso)
         {
             Vector3 origem = ponto + deslocamento * raio;
@@ -315,9 +317,11 @@ public class FantasmaCaverna : MonoBehaviour
     {
         if (obstaculosSemPiso.TryGetValue(colisor, out bool ignorar)) return ignorar;
         string nome = colisor.name.ToLowerInvariant();
+        var malha = colisor.GetComponent<MeshFilter>();
         ignorar = nome.Contains("water") || nome.Contains("agua") || nome.Contains("ceiling")
             || nome.Contains("teto") || nome.Contains("wall") || nome.Contains("parede")
-            || nome.Contains("door") || nome.Contains("porta");
+            || nome.Contains("door") || nome.Contains("porta")
+            || RotasChaoFantasmas.EhCobertura(colisor.transform, malha && malha.sharedMesh ? malha.sharedMesh.name : "");
         obstaculosSemPiso[colisor] = ignorar;
         return ignorar;
     }

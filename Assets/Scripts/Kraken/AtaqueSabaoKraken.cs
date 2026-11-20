@@ -51,6 +51,7 @@ public class AtaqueSabaoKraken : MonoBehaviour
     Vector3 contatoNaDobra;
     Quaternion baseSemGesto, dobraSemGesto;
     bool cancelado, gestoAplicado, alturaPreparada;
+    bool proximaRajadaComAcertoGarantido;
     float pesoGesto;
     void Awake() { if (tampa) tampaInicial = tampa.localPosition; }
     void Start()
@@ -233,8 +234,10 @@ public class AtaqueSabaoKraken : MonoBehaviour
         bolha.tempoAtePouso = tempoVoo;
         bolha.desvioLateral = desvioLateralBolhas;
         bolha.duracao = Mathf.Max(vidaDaBolha, tempoVoo + 3f);
-        // Uma por rajada sempre atinge; as demais conservam seus pousos na arena.
-        bolha.acertoGarantido = indice == 0;
+        // Alterna por rajada: a primeira permite desviar; a segunda tem uma perseguidora.
+        // So avanca a alternancia quando a primeira bolha realmente e lancada.
+        bolha.acertoGarantido = indice == 0 && proximaRajadaComAcertoGarantido;
+        if (indice == 0) proximaRajadaComAcertoGarantido = !proximaRajadaComAcertoGarantido;
         bolha.tempoAteAcerto = batalha ? batalha.DuracaoAtaque(3f) : 3f;
         if (bolha.acertoGarantido) go.name = "Bolha de sabao perseguidora";
         bolha.Preparar(rumo, indice); bolhas.Add(bolha); BolhasLancadas++;
