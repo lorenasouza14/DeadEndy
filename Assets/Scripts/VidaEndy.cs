@@ -151,6 +151,29 @@ public class VidaEndy : MonoBehaviour
 
     }
 
+    bool vidaExterna;
+    Scene cenaVidaExterna;
+    // A batalha controla os pontos; esta classe fornece os mesmos efeitos das outras fases.
+    public void AtualizarVidaDaBatalha(float fracao, bool sofreuDano)
+    {
+        vidaExterna = true;
+        cenaVidaExterna = SceneManager.GetActiveScene();
+        vidaAtual = Mathf.Clamp01(fracao) * vidaMaxima;
+        estaMorto = fracao <= 0f;
+        EstaRegenerando = false;
+        if (!animEndy) animEndy = GetComponentInChildren<Animator>();
+        if (indicador == null) indicador = GetComponent<IndicadorVidaEndy>();
+        if (indicador == null) indicador = gameObject.AddComponent<IndicadorVidaEndy>();
+        indicador.Preparar(this);
+        if (sofreuDano)
+        {
+            UltimoDanoEm = Time.unscaledTime;
+            tempoFlash = .15f;
+            AtualizarFlash();
+            if (!estaMorto && animEndy) animEndy.SetTrigger("TomarDano");
+        }
+        if (estaMorto) indicador.Ocultar();
+    }
     public void TomarDano()
     {
         TomarDano(1f);
@@ -194,7 +217,8 @@ public class VidaEndy : MonoBehaviour
 
     void AtualizarRecuperacao(float delta)
     {
-        if (estaMorto || !regenerarVida || vidaAtual >= vidaMaxima)
+        if (vidaExterna && cenaVidaExterna != SceneManager.GetActiveScene()) vidaExterna = false;
+        if (estaMorto || vidaExterna || !regenerarVida || vidaAtual >= vidaMaxima)
         {
             EstaRegenerando = false;
             return;

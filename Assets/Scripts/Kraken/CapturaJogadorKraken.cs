@@ -26,34 +26,44 @@ public class CapturaJogadorKraken : MonoBehaviour
     public bool Ativa => Estado != Fase.Livre;
     public int Piscadas { get; private set; }
     [SerializeField] Font fonteInterface;
-    public string Mensagem => Estado==Fase.Levando ? "O Kraken te pegou! Prepare a lanterna!" : Estado==Fase.Soltando ? "A luz incomodou o Kraken! Voltando para as pedras..." : "RAPIDO! CLIQUE ESQUERDO: acenda e apague a lanterna!\n"+Cliques+" / 6 cliques   |   "+TempoRestante.ToString("0.0")+" s";
+    public string Mensagem => Estado==Fase.Levando ? "O Kraken te pegou! Prepare a lanterna!" : Estado==Fase.Soltando ? "A luz incomodou o Kraken! Voltando para a entrada..." : "RAPIDO! CLIQUE ESQUERDO: acenda e apague a lanterna!\n"+Cliques+" / 6 cliques   |   "+TempoRestante.ToString("0.0")+" s";
     ThirdPersonController jogador;
     VidaJogadorKraken vida;
     CharacterController capsula;
     LanternaJogador lanterna;
     Animator animador;
     Camera cameraOriginal, cameraDaCaptura;
-    bool controleAnterior, capsulaAnterior, animadorAnterior, cameraAnterior, luzAnterior, nadoAcompanhava, nadoEstavaAtivo;
+    bool controleAnterior, capsulaAnterior, animadorAnterior, cameraAnterior, luzAnterior;
     Vector3 inicio, destinoPedras, centroLocal, posicaoPresa;
-    Quaternion rotacaoInicial;
+    Quaternion rotacaoInicial, rotacaoRetorno;
     float tempo, tempoDoPiscar;
     bool acendeuNoOlho;
     int indiceDoPiscar=-1;
 
-    public bool TentarCapturar(VidaJogadorKraken alvo)
+    public bool PodeCapturar(VidaJogadorKraken alvo)
     {
+        return PodeCapturar(alvo, out _, out _);
+    }
+    bool PodeCapturar(VidaJogadorKraken alvo, out ThirdPersonController controle, out LanternaJogador luz)
+    {
+        controle = null; luz = null;
+        if (!LocalizarEntradaDaFase()) return false;
         if(!isActiveAndEnabled || Ativa || Reagindo || !alvo || alvo.Morto || !olho || !retornoNasPedras || !tentaculo)return false;
-        if(batalha && ((batalha.inundacao && batalha.inundacao.EmExecucao)
+        if(batalha && (batalha.EmIntroducao || (batalha.inundacao && batalha.inundacao.EmExecucao)
             || (batalha.sabao && (batalha.sabao.EmExecucao || batalha.sabao.BolhasAtivas > 0))))return false;
-        var controle=alvo.GetComponent<ThirdPersonController>();
-        var luz=alvo.GetComponentInChildren<LanternaJogador>(true);
+        controle=alvo.GetComponent<ThirdPersonController>();
+        luz=alvo.GetComponentInChildren<LanternaJogador>(true);
         if(!luz && LanternaJogador.Instancia && LanternaJogador.Instancia.foiColetada)luz=LanternaJogador.Instancia;
         if(!controle || !luz || !luz.foiColetada)return false;
+        return true;
+    }
+    public bool TentarCapturar(VidaJogadorKraken alvo)
+    {
+        if (!PodeCapturar(alvo, out var controle, out var luz)) return false;
         jogador=controle;vida=alvo;capsula=alvo.GetComponent<CharacterController>();lanterna=luz;
         inicio=jogador.transform.position;rotacaoInicial=jogador.transform.rotation;
         destinoPedras=retornoNasPedras.position;
-        // Quando possivel, devolve para o mesmo piso de pedra em que foi capturado.
-        if(capsula && capsula.isGrounded && PisoSeguro(inicio,out var piso))destinoPedras=piso;
+        rotacaoRetorno=Quaternion.Euler(0,retornoNasPedras.eulerAngles.y,0);
         controleAnterior=jogador.enabled;capsulaAnterior=capsula && capsula.enabled;
         centroLocal=apoioDoTentaculo;
         jogador.enabled=false;if(capsula)capsula.enabled=false;
@@ -61,23 +71,25 @@ public class CapturaJogadorKraken : MonoBehaviour
         if(animador){animador.SetFloat("Speed",0);animador.SetBool("Jump",false);animador.SetBool("FreeFall",false);animador.enabled=false;}
         luzAnterior=lanterna.Ligada;lanterna.AlvoDeMiraTemporario=centroDoRosto?centroDoRosto:olho;
         lanterna.EstadoAlterado+=AoAlternarLanterna;
-        nadoAcompanhava=nado && nado.acompanharJogador;if(nado){nado.acompanharJogador=false;nadoEstavaAtivo=nado.enabled;nado.enabled=false;}
+        // O nado pausa a pose do corpo ate terminar a captura e a coceira.
         cameraOriginal=Camera.main;
         if(cameraOriginal){cameraAnterior=cameraOriginal.enabled;var go=new GameObject("Camera da captura do Kraken");cameraDaCaptura=go.AddComponent<Camera>();cameraDaCaptura.CopyFrom(cameraOriginal);cameraDaCaptura.fieldOfView=68;cameraDaCaptura.nearClipPlane=.1f;cameraDaCaptura.depth=cameraOriginal.depth+1;cameraOriginal.enabled=false;}
         indiceDoPiscar=malhaDosOlhos && malhaDosOlhos.sharedMesh?malhaDosOlhos.sharedMesh.GetBlendShapeIndex(nomeDoPiscar):-1;
         Piscadas=0;tempo=0;acendeuNoOlho=false;Estado=Fase.Levando;
         return true;
     }
-    bool PisoSeguro(Vector3 ponto,out Vector3 piso)
+    bool LocalizarEntradaDaFase()
     {
-        piso=ponto;
-        foreach(var h in Physics.RaycastAll(ponto+Vector3.up*2,Vector3.down,5,~0,QueryTriggerInteraction.Ignore))
-        {
-            if(h.normal.y<.65f || h.collider.GetComponentInParent<ThirdPersonController>() || (nado && h.transform.IsChildOf(nado.transform)))continue;
-            string nome=h.collider.name.ToLowerInvariant();
-            if(!nome.Contains("stone") && !nome.Contains("rock") && !nome.Contains("pedra") && !nome.Contains("ground") && !nome.Contains("stalagmite") && !nome.Contains("cave"))continue;
-            piso=h.point+Vector3.up*.12f;return true;
-        }
+        if (retornoNasPedras && retornoNasPedras.name == "PontoEntrada" &&
+            retornoNasPedras.gameObject.scene == gameObject.scene && retornoNasPedras.gameObject.activeInHierarchy) return true;
+        // Usa o mesmo marcador que posiciona o jogador ao entrar nesta fase.
+        foreach (var raiz in gameObject.scene.GetRootGameObjects())
+            foreach (var ponto in raiz.GetComponentsInChildren<Transform>(true))
+                if (ponto.name == "PontoEntrada" && ponto.gameObject.activeInHierarchy)
+                {
+                    retornoNasPedras = ponto;
+                    return true;
+                }
         return false;
     }
     void AoAlternarLanterna(bool ligada)
@@ -168,17 +180,15 @@ public class CapturaJogadorKraken : MonoBehaviour
     {
         tempoDeCoceira=0;
         if(tentaculo)tentaculo.EncerrarCaptura();
-        if(nado){nado.acompanharJogador=nadoAcompanhava;nado.enabled=nadoEstavaAtivo;}
         if(palpebras)palpebras.Fechar(0);
     }
     public void Cancelar(){if(Ativa)Finalizar(true);if(Reagindo)EncerrarReacao();}
     void Finalizar(bool devolver, bool reagir=false)
     {
         if(lanterna){lanterna.EstadoAlterado-=AoAlternarLanterna;lanterna.AlvoDeMiraTemporario=null;lanterna.DefinirLigada(luzAnterior);}
-        if(jogador){if(devolver && (!vida || !vida.Morto))jogador.transform.position=destinoPedras;jogador.transform.rotation=rotacaoInicial;Physics.SyncTransforms();if(capsula)capsula.enabled=capsulaAnterior;if(animador)animador.enabled=animadorAnterior;if(!vida || !vida.Morto){jogador.PrepararTrocaDeMundo(cameraOriginal);jogador.enabled=controleAnterior;}}
+        if(jogador){if(devolver && (!vida || !vida.Morto))jogador.transform.position=destinoPedras;jogador.transform.rotation=devolver?rotacaoRetorno:rotacaoInicial;Physics.SyncTransforms();if(capsula)capsula.enabled=capsulaAnterior;if(animador)animador.enabled=animadorAnterior;if(!vida || !vida.Morto){jogador.PrepararTrocaDeMundo(cameraOriginal);jogador.enabled=controleAnterior;}}
         if(tentaculo)tentaculo.EncerrarCaptura();
         if(reagir)tempoDeCoceira=2.8f;
-        else if(nado){nado.acompanharJogador=nadoAcompanhava;nado.enabled=nadoEstavaAtivo;}
         if(palpebras)palpebras.Fechar(reagir?1:0);
         if(malhaDosOlhos && indiceDoPiscar>=0)malhaDosOlhos.SetBlendShapeWeight(indiceDoPiscar,0);
         if(cameraOriginal)cameraOriginal.enabled=cameraAnterior;

@@ -8,6 +8,8 @@ public class BolhaSabaoKraken : MonoBehaviour
     public float raio = 4f, velocidade = 7, duracao = 28;
     public float impulsoVertical = 6f, gravidade = 2f;
     public float tempoAtePouso = 1f, desvioLateral;
+    public bool acertoGarantido;
+    public float tempoAteAcerto = 3f;
     Vector3 direcao, origem;
     float inicio, fase, tempoAnterior;
     bool estourou, atingiuJogador;
@@ -19,9 +21,17 @@ public class BolhaSabaoKraken : MonoBehaviour
     void Update()
     {
         if (estourou) return;
-        if (!dono || !dono.PodeManterBolhas || !jogador || jogador.Morto || Time.time - inicio >= duracao)
+        if (!dono || !dono.PodeManterBolhas || !jogador || jogador.Morto || (!acertoGarantido && Time.time - inicio >= duracao))
         { Estourar(); return; }
         float t = Time.time - inicio;
+        if (acertoGarantido)
+        {
+            // Esta bolha corrige o destino ate o contato, mesmo durante a esquiva.
+            transform.position = PosicaoGuiada(t);
+            transform.localScale = Vector3.one * (raio * 2f * (1 + Mathf.Sin(t * 2 + fase) * .035f));
+            if (t >= Mathf.Max(.1f, tempoAteAcerto)) AtingirJogador();
+            return;
+        }
         Vector3 destino = PosicaoNoTempo(t);
         // Subpassos evitam atravessar o jogador ou o piso em quadros lentos.
         float percurso = Vector3.Distance(transform.position, destino);
@@ -42,6 +52,14 @@ public class BolhaSabaoKraken : MonoBehaviour
         + Vector3.up * (impulsoVertical * t - .5f * gravidade * t * t)
         + Vector3.Cross(Vector3.up, direcao) * (Mathf.Sin(Mathf.PI * Mathf.Clamp01(t / Mathf.Max(.1f, tempoAtePouso)))
             * Mathf.Sin(t * 1.3f + fase) * desvioLateral);
+
+    Vector3 PosicaoGuiada(float t)
+    {
+        Vector3 alvo = capsula && capsula.enabled ? capsula.bounds.center : jogador.transform.position + Vector3.up;
+        float u = Mathf.Clamp01(t / Mathf.Max(.1f, tempoAteAcerto));
+        return Vector3.Lerp(origem, alvo, Mathf.SmoothStep(0, 1, u))
+            + Vector3.up * (Mathf.Sin(u * Mathf.PI) * Mathf.Min(4f, Vector3.Distance(origem, alvo) * .15f));
+    }
 
     bool TocouChao(Vector3 centro, float raioAtual)
     {
@@ -66,6 +84,8 @@ public class BolhaSabaoKraken : MonoBehaviour
     {
         if (estourou || atingiuJogador || !jogador || jogador.Morto || !dono || !dono.PodeManterBolhas) return;
         atingiuJogador = true;
+        var controle = jogador.GetComponent<StarterAssets.ThirdPersonController>();
+        if (controle) controle.AplicarSabao(dono.duracaoEscorregadio);
         var camera = Camera.main;
         if (camera)
         {

@@ -13,12 +13,20 @@ public class VidaJogadorKraken : MonoBehaviour
     string cenaParaReiniciar;
 
     void Awake() { VidaAtual = vidaMaxima; }
+    void Start() { AtualizarEfeitoVida(false); }
     public void RestaurarVida(int quantidade) { VidaAtual = Mathf.Clamp(quantidade, 1, vidaMaxima); }
-    public bool ReceberDano(int dano)
+    public void RecuperarDano(int quantidade)
     {
-        if (Morto || dano <= 0 || Time.timeScale <= 0f || Time.time < podeReceberEm) return false;
+        if (Morto || quantidade <= 0) return;
+        VidaAtual = Mathf.Min(vidaMaxima, VidaAtual + quantidade);
+        AtualizarEfeitoVida(false);
+    }
+    public bool ReceberDano(int dano, bool danoContinuo = false)
+    {
+        if (Morto || dano <= 0 || Time.timeScale <= 0f || (!danoContinuo && Time.time < podeReceberEm)) return false;
         VidaAtual = Mathf.Max(0, VidaAtual - dano);
-        podeReceberEm = Time.time + invulnerabilidade;
+        if (!danoContinuo) podeReceberEm = Time.time + invulnerabilidade;
+        AtualizarEfeitoVida(true);
         if (VidaAtual == 0) Morrer();
         return true;
     }
@@ -52,6 +60,22 @@ public class VidaJogadorKraken : MonoBehaviour
             controle.DefinirMultiplicadorAgua(1);
             controle.enabled = false;
         }
+        AtualizarEfeitoVida(false);
+        var animator = GetComponent<VidaEndy>()?.animEndy;
+        if (!animator) animator = GetComponentInChildren<Animator>();
+        if (animator) { animator.ResetTrigger("TomarDano"); animator.SetTrigger("Morrer"); }
+        StartCoroutine(MostrarMorteAposAnimacao());
+    }
+    void AtualizarEfeitoVida(bool dano)
+    {
+        var efeito = GetComponent<VidaEndy>();
+        if (!efeito) efeito = gameObject.AddComponent<VidaEndy>();
+        efeito.AtualizarVidaDaBatalha((float)VidaAtual / Mathf.Max(1, vidaMaxima), dano);
+    }
+    System.Collections.IEnumerator MostrarMorteAposAnimacao()
+    {
+        var efeito = GetComponent<VidaEndy>();
+        yield return new WaitForSeconds(efeito ? Mathf.Max(.1f, efeito.tempoAnimacaoMorte) : 2.5f);
         GerenciadorGameOver.MostrarNaFase();
     }
     void AoReiniciarCena(Scene cena, LoadSceneMode modo)
@@ -83,6 +107,9 @@ public class VidaJogadorKraken : MonoBehaviour
         VidaAtual = vidaMaxima;
         podeReceberEm = Time.time + invulnerabilidade;
         Morto = false;
+        AtualizarEfeitoVida(false);
+        var animator = GetComponentInChildren<Animator>();
+        if (animator) { animator.Rebind(); animator.Update(0f); }
     }
     void OnDestroy() { SceneManager.sceneLoaded -= AoReiniciarCena; }
 }

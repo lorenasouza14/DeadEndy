@@ -7,7 +7,11 @@ using StarterAssets;
 [DisallowMultipleComponent]
 public class BatalhaKraken : MonoBehaviour
 {
-    public enum Etapa { Aguardando, Mirando, Avisando, Golpeando, Recuperando, ToucaCaindo, Derrotado, Inundando, Capturando, Sabao }
+    public enum Etapa { Aguardando, Mirando, Avisando, Golpeando, Recuperando, ToucaCaindo, Derrotado, Inundando, Capturando, Sabao, AvisandoCaptura }
+    [Header("Entrada do Kraken")]
+    [Min(0)] public float tempoAntesDeAparecer = 5f;
+    public bool EmIntroducao { get; private set; } = true;
+    readonly Dictionary<GameObject, bool> objetosDaIntroducao = new Dictionary<GameObject, bool>();
     [Header("Referencias da fase 4")]
     public Transform origemTentaculo;
     public TentaculoAtaqueKraken tentaculo;
@@ -21,6 +25,8 @@ public class BatalhaKraken : MonoBehaviour
     [Min(1)] public int golpesEntreSabao = 3;
     [Header("Captura garantida apos os golpes")]
     [Min(1)] public int golpesEntreCapturas = 4;
+    [Min(.1f)] public float raioAvisoCaptura = 1f;
+    [Min(.1f)] public float tempoAvisoCaptura = 1.2f;
     int golpesDesdeSabao, golpesDesdeCaptura;
     public bool CapturaPendente => golpesDesdeCaptura >= Mathf.Max(1, golpesEntreCapturas);
     [Header("Aceleracao gradual por pilar derrubado")]
@@ -43,6 +49,10 @@ public class BatalhaKraken : MonoBehaviour
     [Min(0)] public float tempoAposVitoria = 3f;
     public GameObject krakenVisual;
     public GameObject objetoParaOcultarNaVitoria;
+    [Tooltip("Bloqueia a passagem ate o Kraken desaparecer.")]
+    public GameObject paredeInvisivel;
+    public GameObject quadroFinal, bauFinal;
+    public Transform spawnRetornoFinal;
     [Header("Tremor do desmoronamento apos a vitoria")]
     [Min(0)] public float deslocamentoTremor = .045f;
     [Min(0)] public float rotacaoTremor = .25f;
@@ -61,10 +71,31 @@ public class BatalhaKraken : MonoBehaviour
     LineRenderer aviso;
     Vector3 ponta;
     bool vitoria, desapareceu;
-    GUIStyle texto;
+    GameObject painelDica;
+    float tempoDica = 12f;
+    [SerializeField] Sprite iconeDica;
     [SerializeField] Font fonteInterface;
     readonly List<TremorDesmoronamento> tremores = new List<TremorDesmoronamento>();
 
+    void Awake()
+    {
+        OcultarNaIntroducao(krakenVisual);
+        if (touca) OcultarNaIntroducao(touca.gameObject);
+        if (tentaculo) OcultarNaIntroducao(tentaculo.gameObject);
+    }
+    void OcultarNaIntroducao(GameObject objeto)
+    {
+        if (!objeto || objetosDaIntroducao.ContainsKey(objeto)) return;
+        objetosDaIntroducao.Add(objeto, objeto.activeSelf);
+        objeto.SetActive(false);
+    }
+    void RevelarKraken()
+    {
+        foreach (var par in objetosDaIntroducao)
+            if (par.Key) par.Key.SetActive(par.Value);
+        objetosDaIntroducao.Clear();
+        EmIntroducao = false;
+    }
     void Start()
     {
         var go = new GameObject("Aviso do golpe - alvo cinza escuro");
@@ -75,6 +106,8 @@ public class BatalhaKraken : MonoBehaviour
         aviso.widthMultiplier = .22f; aviso.enabled = false;
         IndicadoresSuavesKraken.Aplicar(aviso);
         ponta = origemTentaculo.position + Vector3.up * 4f;
+        var escolha = gameObject.AddComponent<EscolhaTesouroFinal>();
+        escolha.batalha = this; escolha.quadro = quadroFinal; escolha.bau = bauFinal; escolha.pontoRetorno = spawnRetornoFinal;
         StartCoroutine(Lutar());
     }
     void LocalizarJogador()
@@ -107,16 +140,24 @@ public class BatalhaKraken : MonoBehaviour
     }
     void AtualizarAviso()
     {
+        AtualizarAviso(PontoDoGolpe, raioAtaque);
+    }
+    void AtualizarAviso(Vector3 centro, float raio)
+    {
         for (int i = 0; i < aviso.positionCount; i++)
         {
             float a = i * Mathf.PI * 2 / aviso.positionCount;
-            Vector3 p = PontoDoGolpe + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * raioAtaque;
+            Vector3 p = centro + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * raio;
             aviso.SetPosition(i, Chao(p) + Vector3.up * .12f);
         }
     }
     IEnumerator Lutar()
     {
         Estado = Etapa.Aguardando;
+        // A transicao de cena nao consome os cinco segundos de respiro.
+        while (TelaCarregamento.EmCurso || MenuManager.EstaAberto) yield return null;
+        yield return new WaitForSeconds(tempoAntesDeAparecer);
+        RevelarKraken();
         yield return new WaitForSeconds(DuracaoAtaque(esperaInicial));
         while (!vitoria)
         {
@@ -153,6 +194,15 @@ public class BatalhaKraken : MonoBehaviour
             if (!bolhasNoCenario && CapturaPendente)
             {
                 aviso.enabled = false;
+                Estado = Etapa.Aguardando;
+                if (!captura || !captura.PodeCapturar(vida)) { yield return null; continue; }
+                Estado = Etapa.AvisandoCaptura;
+                AtualizarAviso(jogador.transform.position, Mathf.Max(.1f, raioAvisoCaptura));
+                aviso.enabled = true;
+                for (float t = 0; t < Mathf.Max(.1f, tempoAvisoCaptura) && !vitoria && captura.PodeCapturar(vida); t += Time.deltaTime)
+                    yield return null;
+                aviso.enabled = false;
+                if (vitoria) yield break;
                 Estado = Etapa.Aguardando;
                 if (!captura || !captura.TentarCapturar(vida)) { yield return null; continue; }
                 golpesDesdeCaptura -= Mathf.Max(1, golpesEntreCapturas);
@@ -225,6 +275,7 @@ public class BatalhaKraken : MonoBehaviour
         if (tentaculo) tentaculo.gameObject.SetActive(false);
         if (touca) touca.gameObject.SetActive(false);
         if (krakenVisual) krakenVisual.SetActive(false);
+        if (paredeInvisivel) paredeInvisivel.SetActive(false);
         if (objetoParaOcultarNaVitoria) objetoParaOcultarNaVitoria.SetActive(false);
         Estado = Etapa.Derrotado;
         IniciarDesmoronamento();
@@ -243,6 +294,8 @@ public class BatalhaKraken : MonoBehaviour
     }
     void OnDisable()
     {
+        if (painelDica) painelDica.SetActive(false);
+        if (aviso) aviso.enabled = false;
         if (sabao) sabao.Cancelar();
         foreach (var tremor in tremores) if (tremor) tremor.Parar();
         tremores.Clear();
@@ -301,6 +354,8 @@ public class BatalhaKraken : MonoBehaviour
     public void RegistrarPilar(PilarKraken pilar)
     {
         if (vitoria || !pilar || System.Array.IndexOf(pilares, pilar) < 0 || !quebrados.Add(pilar)) return;
+        LocalizarJogador();
+        if (vida) vida.RecuperarDano(dano);
         if (quebrados.Count >= pilares.Length)
         {
             vitoria = true;
@@ -309,7 +364,14 @@ public class BatalhaKraken : MonoBehaviour
     }
     void LateUpdate()
     {
-        if (desapareceu) return;
+        AtualizarDica();
+        if (desapareceu || EmIntroducao) return;
+        // O alvo da captura segue o jogador ate o instante em que ele e pego.
+        if (Estado == Etapa.AvisandoCaptura && aviso)
+        {
+            aviso.enabled = !vitoria && jogador && vida && !vida.Morto && captura && captura.PodeCapturar(vida);
+            if (aviso.enabled) AtualizarAviso(jogador.transform.position, Mathf.Max(.1f, raioAvisoCaptura));
+        }
         if (tentaculo)
         {
             var visual = tentaculo.GetComponent<Renderer>();
@@ -317,15 +379,30 @@ public class BatalhaKraken : MonoBehaviour
         }
         if (tentaculo && origemTentaculo) tentaculo.Desenhar(origemTentaculo.position, ponta, Estado == Etapa.Golpeando ? 10f : 25f);
     }
-    void OnGUI()
+    void AtualizarDica()
     {
-        if (texto == null) texto = new GUIStyle(GUI.skin.label) { font = fonteInterface, fontSize = 18, wordWrap = true };
-        bool mare = inundacao && inundacao.EmExecucao;
-        GUI.Box(new Rect(16, 16, 440, mare ? 190 : 130), "");
-        string mensagem = Estado == Etapa.Derrotado ? "Kraken derrotado! A touquinha caiu." : Estado == Etapa.ToucaCaindo ? "As correntes se soltaram!" : Estado == Etapa.Avisando || Estado == Etapa.Golpeando ? "DESVIE! Saia do circulo cinza." : "Atraia o golpe para perto de um pilar.";
-        if (Estado == Etapa.Sabao) mensagem = "O KRAKEN VAI APERTAR O SABONETE!\nDesvie das bolhas gigantes!";
-        if (captura && captura.Ativa) mensagem = captura.Mensagem;
-        if (mare) mensagem = inundacao.Mensagem + (inundacao.JogadorNaAgua ? "\nNa agua: movimento reduzido!" : "");
-        GUI.Label(new Rect(28, 24, 415, mare ? 170 : 110), "VIDA: " + (vida ? vida.VidaAtual : 100) + " / " + (vida ? vida.vidaMaxima : 100) + "\nPILARES: " + quebrados.Count + " / " + pilares.Length + "\n" + mensagem, texto);
+        if (EmIntroducao) return;
+        if (vitoria || desapareceu || tempoDica <= 0f || (vida && vida.Morto))
+        {
+            if (painelDica) painelDica.SetActive(false);
+            return;
+        }
+        LocalizarJogador();
+        if (!jogador) return;
+        if (!painelDica)
+        {
+            var indicador = jogador.GetComponent<IndicadorItemEndy>();
+            if (!indicador) return;
+            painelDica = indicador.CriarDicaDeFase(iconeDica, out var mensagemDica);
+            mensagemDica.text = "Atraia os golpes do Kraken para perto dos 4 pilares.";
+        }
+        bool visivel = Time.timeScale > 0f && !MenuManager.EstaAberto;
+        painelDica.SetActive(visivel);
+        // O tempo so conta enquanto a dica esta realmente visivel.
+        if (visivel && painelDica.activeInHierarchy) tempoDica -= Time.deltaTime;
+    }
+    void OnDestroy()
+    {
+        if (painelDica) Destroy(painelDica);
     }
 }

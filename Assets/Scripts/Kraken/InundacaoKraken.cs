@@ -146,9 +146,18 @@ public class InundacaoKraken : MonoBehaviour
         if (!cancelado && isActiveAndEnabled) atualizar(1);
         TempoRestante = 0;
     }
+    FlutuacaoSimples[] plataformasFlutuantes;
     void DefinirNivel(float y)
     {
-        if (superficieAgua) superficieAgua.position = posicaoInicial + Vector3.up * (y - NivelInicial);
+        if (!superficieAgua) return;
+        float anterior = NivelAtual;
+        superficieAgua.position = posicaoInicial + Vector3.up * (y - NivelInicial);
+        if (plataformasFlutuantes == null)
+            plataformasFlutuantes = FindObjectsByType<FlutuacaoSimples>(FindObjectsSortMode.None);
+        LocalizarJogador();
+        foreach (var plataforma in plataformasFlutuantes)
+            if (plataforma && plataforma.isActiveAndEnabled && plataforma.planoDaAgua == superficieAgua)
+                plataforma.AcompanharSubida(anterior, NivelAtual, capsula);
     }
     void LocalizarJogador()
     {
@@ -187,10 +196,14 @@ public class InundacaoKraken : MonoBehaviour
                 profundidadeNoMar = Mathf.Max(profundidadeNoMar, niveisDeRepouso[i] - pes.y);
             }
         }
-        // Cair no mar mata mesmo fora dos ataques e durante a invulnerabilidade.
-        // A agua elevada pela mare continua causando dano gradual nas rochas.
-        if (AguaCausaDano && dentro && profundidadeNoMar > altura * fracaoDaCapsulaParaDano)
+        // Cair no mar original do buraco mata imediatamente. A mare sobre as
+        // plataformas conserva seu dano gradual durante o ataque de inundacao.
+        bool sendoCarregado = jogador && jogador.GetComponent<StarterAssets.ThirdPersonController>() &&
+            FindAnyObjectByType<CapturaJogadorKraken>() is CapturaJogadorKraken captura && captura.Ativa;
+        if (dentro && profundidadeNoMar > .05f && vida && !vida.Morto && !sendoCarregado)
         {
+            JogadorNaAgua = false;
+            if (jogador) jogador.DefinirMultiplicadorAgua(1);
             vida.Morrer();
             return;
         }
@@ -198,7 +211,7 @@ public class InundacaoKraken : MonoBehaviour
         if (jogador) jogador.DefinirMultiplicadorAgua(JogadorNaAgua ? velocidadeNaAgua : 1);
         if (AguaCausaDano && dentro && profundidade > profundidadeParaDano && Time.time >= proximoDano)
         {
-            if (vida.ReceberDano(danoAgua)) proximoDano = Time.time + intervaloDano;
+            if (vida.ReceberDano(danoAgua, true)) proximoDano = Time.time + intervaloDano;
         }
         AtualizarOndas();
     }

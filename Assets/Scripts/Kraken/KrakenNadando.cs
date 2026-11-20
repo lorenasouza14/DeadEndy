@@ -22,6 +22,8 @@ public class KrakenNadando : MonoBehaviour
     [Min(0)] public float flutuacao = 1.8f;
     [Range(0, 15)] public float inclinacaoCorpo = 6f;
     [Min(.1f)] public float velocidadeCorpo = .7f;
+    [Header("Expressividade do nado")]
+    [Range(1f, 2.5f)] public float expressividadeNado = 1.7f;
     [Header("Ondas nos tentaculos - graus")]
     [Range(0, 30)] public float amplitudeRaiz = 12f;
     [Range(0, 50)] public float amplitudePonta = 29f;
@@ -92,6 +94,12 @@ public class KrakenNadando : MonoBehaviour
         Vector3 frente = jogador ? jogador.position - armadura.position : transform.forward;
         frente = Vector3.ProjectOnPlane(frente, Vector3.up).normalized;
         if (frente.sqrMagnitude < .1f) frente = Vector3.forward;
+        // A frente do modelo e fixa: nunca recalibrar com a posicao do jogador
+        // ao terminar uma captura ou ao reativar o componente.
+        var captura = batalha ? batalha.captura : GetComponent<CapturaJogadorKraken>();
+        Transform rosto = captura ? (captura.centroDoRosto ? captura.centroDoRosto : captura.olho) : null;
+        frenteInicialDoOlhar = rosto ? Vector3.ProjectOnPlane(rosto.forward, Vector3.up).normalized : frente;
+        if (frenteInicialDoOlhar.sqrMagnitude < .1f) frenteInicialDoOlhar = frente;
         eixoBalanco = Vector3.Cross(Vector3.up, frente).normalized;
         atacante = batalha && batalha.tentaculoDoCorpo ? batalha.tentaculoDoCorpo.indiceDoTentaculo : 1;
         if (atacante >= 0 && atacante < tentaculos.Length && tentaculos[atacante].ossos.Length > 1)
@@ -138,6 +146,15 @@ public class KrakenNadando : MonoBehaviour
     void LateUpdate()
     {
         if (!preparado) return;
+        // Mantem exatamente a pose do corpo durante a captura e a coceira.
+        // O rig do tentaculo continua executando depois, sem disputar com o nado.
+        if (batalha && batalha.captura && (batalha.captura.Ativa || batalha.captura.Reagindo))
+        {
+            historicoDeOlhar.Clear();
+            olharAnterior = new AmostraDeOlhar(Time.time, giroDeOlhar);
+            velocidadeDeOlhar = 0;
+            return;
+        }
         tempo += Time.deltaTime;
         bool terminou = batalha && (batalha.Estado == BatalhaKraken.Etapa.ToucaCaindo || batalha.Estado == BatalhaKraken.Etapa.Derrotado);
         float alvoPeso = terminou ? 0 : intensidade;
@@ -157,17 +174,19 @@ public class KrakenNadando : MonoBehaviour
         float t = tempo * velocidadeCorpo;
         Vector3 deslocamento = eixoBalanco * (Mathf.Sin(t) + .18f * Mathf.Sin(t * 1.73f)) * balancoLateral;
         deslocamento += Vector3.up * (Mathf.Sin(t * 1.5f) * flutuacao);
-        deslocamento *= .45f * (1 - mergulho * .65f);
+        deslocamento *= .45f * expressividadeNado * (1 - mergulho * .65f);
         Vector3 deslocamentoFinal = deslocamento * peso;
         if (mare) deslocamentoFinal += Vector3.down * mare.profundidadeMergulho * mergulho;
         armadura.localPosition = posicaoBase + (armadura.parent ? armadura.parent.InverseTransformVector(deslocamentoFinal) : deslocamentoFinal);
         Quaternion giroMundo = Quaternion.AngleAxis(Mathf.Sin(t * .85f) * inclinacaoCorpo * .4f * peso, Vector3.up)
-            * Quaternion.AngleAxis(Mathf.Sin(t + .6f) * inclinacaoCorpo * .4f * peso, eixoBalanco);
+            * Quaternion.AngleAxis(Mathf.Sin(t + .6f) * inclinacaoCorpo * .4f * peso * expressividadeNado, eixoBalanco);
         AtualizarAcompanhamento(Time.time, Time.deltaTime, terminou);
         giroMundo = Quaternion.AngleAxis(giroDeOlhar, Vector3.up) * giroMundo;
         Quaternion giroLocal = armadura.parent ? Quaternion.Inverse(armadura.parent.rotation) * giroMundo * armadura.parent.rotation : giroMundo;
         armadura.localRotation = giroLocal * rotacaoBase;
-        armadura.localScale = escalaBase * (1 + Mathf.Sin(t * 2f) * .004f * peso);
+        // Contracao suave do manto, como uma pulsacao de propulsao.
+        float pulso = Mathf.Sin(t * 2f) * .012f * peso * expressividadeNado;
+        armadura.localScale = Vector3.Scale(escalaBase, new Vector3(1 - pulso * .5f, 1 + pulso, 1 - pulso * .5f));
         if (cabeca)
         {
             // Dois balancos pequenos, com entrada e saida suaves antes do recolhimento.
@@ -179,25 +198,9 @@ public class KrakenNadando : MonoBehaviour
                 balanco * 3.5f * peso, (Mathf.Sin(t) * .8f + balanco * 1.2f) * peso);
         }
 
-        pesoRepouso = Mathf.MoveTowards(pesoRepouso, EmRepouso ? 1f : 0f, Time.deltaTime * 2f);
+        // Todos os bracos ondulam. Os rigs de golpe e sabao aplicam seus gestos depois.
         for (int i = 0; i < tentaculos.Length; i++)
-        {
-            if (i == atacante || i == segundo)
-                BalancarTentaculo(i);
-            else
-            {
-                var ossos = tentaculos[i].ossos;
-                for (int j = 0; j < ossos.Length; j++)
-                    ossos[j].localRotation = pose[i][j];
-                if (ossos.Length == 0 || pesoRepouso <= 0f) continue;
-
-                // Gira o braco inteiro pela base, preservando a curva original da ponta.
-                float fase = tempo * velocidadeCorpo + i * 2.4f;
-                float angulo = (Mathf.Sin(fase) + .25f * Mathf.Sin(.63f * fase)) / 1.25f;
-                ossos[0].localRotation = pose[i][0] * Quaternion.AngleAxis(
-                    angulo * amplitudeBalancoTentaculos * peso * pesoRepouso, eixoDobra[i][0]);
-            }
-        }
+            BalancarTentaculo(i);
     }
 
     void BalancarTentaculo(int indice)
@@ -207,14 +210,14 @@ public class KrakenNadando : MonoBehaviour
         for (int j = 0; j < ossos.Length; j++)
             ossos[j].localRotation = pose[indice][j];
         if (ossos.Length == 0) return;
-        float fase = indice == atacante ? 0 : .65f;
+        float fase = indice * 1.37f;
         float t = tempo * velocidadeBalancoTentaculos + fase;
         float angulo = (Mathf.Sin(t) + .15f * Mathf.Sin(t * .57f)) / 1.15f
-            * amplitudeBalancoTentaculos * peso;
+            * amplitudeBalancoTentaculos * peso * expressividadeNado;
         ossos[0].localRotation = pose[indice][0]
             * Quaternion.AngleAxis(angulo, eixoBalancoVisivel[indice]);
         int inicioPonta = Mathf.Max(1, ossos.Length - 3);
-        float faseDoBraco = indice == atacante ? 0 : 1.35f;
+        float faseDoBraco = indice * 2.399963f;
         float respiracao = .85f + .15f * Mathf.Sin(tempo * .23f + faseDoBraco);
         for (int j = 1; j < ossos.Length; j++)
         {
@@ -229,7 +232,7 @@ public class KrakenNadando : MonoBehaviour
                 amplitude = Mathf.Lerp(amplitudeOndulacaoCorpo, amplitudeEnrolarPontas,
                     Mathf.SmoothStep(0, 1, ponta));
             }
-            amplitude *= peso * respiracao;
+            amplitude *= peso * respiracao * expressividadeNado;
             // Pequena oscilacao fora do plano evita um movimento mecanico de dobradica.
             float lateral = Mathf.Sin(onda * .67f + 1.1f) * amplitude * .16f;
             ossos[j].localRotation = pose[indice][j]
@@ -262,13 +265,14 @@ public class KrakenNadando : MonoBehaviour
         Vector3 direcao = Vector3.ProjectOnPlane(jogador.position - origem, Vector3.up);
         if (direcao.sqrMagnitude < .01f) return;
         direcao.Normalize();
+        float angulo = Vector3.SignedAngle(frenteInicialDoOlhar, direcao, Vector3.up);
         if (!olharPreparado)
         {
-            frenteInicialDoOlhar = direcao;
-            olharAnterior = new AmostraDeOlhar(agora, giroDeOlhar);
+            giroDeOlhar = angulo;
+            velocidadeDeOlhar = 0;
+            olharAnterior = new AmostraDeOlhar(agora, angulo);
             historicoDeOlhar.Clear(); olharPreparado = true;
         }
-        float angulo = Vector3.SignedAngle(frenteInicialDoOlhar, direcao, Vector3.up);
         // Limita cada correcao a partir da orientacao atual, sem prender o Kraken
         // ao setor inicial quando o jogador muda de lado durante o mergulho.
         angulo = giroDeOlhar + Mathf.Clamp(Mathf.DeltaAngle(giroDeOlhar, angulo),

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Spawna fantasmas da caverna gradualmente após a ativação da pedra vermelha.
+/// Spawna fantasmas da caverna gradualmente apÃ³s a ativaÃ§Ã£o da pedra vermelha.
 /// </summary>
 public class GerenciadorFantasmasCaverna : MonoBehaviour
 {
@@ -87,7 +87,7 @@ public class GerenciadorFantasmasCaverna : MonoBehaviour
         ConferirHordaFinal();
     }
 
-    // Método chamado pelo script da pedra vermelha quando o jogador acerta a sequência
+    // MÃ©todo chamado pelo script da pedra vermelha quando o jogador acerta a sequÃªncia
     public void AtivarSpawnsAposPedraVermelha()
     {
         if (!spawnsAtivados && !hordaFinalAtiva && contagemInicial == null)
@@ -104,12 +104,12 @@ public class GerenciadorFantasmasCaverna : MonoBehaviour
         contagemInicial = null;
         if (hordaFinalAtiva) yield break;
         spawnsAtivados = true;
-        proximoSpawn = Time.time; // Libera o spawn imediato após passar o minuto
+        proximoSpawn = Time.time; // Libera o spawn imediato apÃ³s passar o minuto
     }
 
     private void Update()
     {
-        // Se a pedra vermelha ainda não foi ativada, o gestor não faz nada
+        // Se a pedra vermelha ainda nÃ£o foi ativada, o gestor nÃ£o faz nada
         if (!spawnsAtivados)
             return;
 
@@ -178,5 +178,18 @@ public class GerenciadorFantasmasCaverna : MonoBehaviour
     public void RemoverFantasma(FantasmaCaverna fantasma)
     {
         fantasmasAtivos.Remove(fantasma);
+    }
+
+    public void ReiniciarTentativaDeFuga()
+    {
+        foreach (var fantasma in fantasmasAtivos.ToArray())
+            if (fantasma != null)
+            {
+                fantasma.gameObject.SetActive(false);
+                Destroy(fantasma.gameObject);
+            }
+        fantasmasAtivos.Clear();
+        proximoPontoDeSpawn = 0;
+        proximoSpawn = Time.time + IntervaloAtualDeSpawn();
     }
 }

@@ -3,7 +3,7 @@ using StarterAssets;
 
 // Fica no PontoEntrada da caverna. O jogador persiste ao viajar para o Kraken.
 [DisallowMultipleComponent]
-public sealed class AutosaveCaverna : AutosaveDeFase
+public sealed partial class AutosaveCaverna : AutosaveDeFase
 {
     DadosJogo progresso;
     InteracaoBauLanterna bau;
@@ -93,6 +93,7 @@ public sealed class AutosaveCaverna : AutosaveDeFase
 
     protected override void OnDestroy()
     {
+        if (hudFuga != null) Destroy(hudFuga);
         PedraBrilhante.PedraSelecionada -= SalvarAoTocarPedra;
         if (bau != null) bau.LanternaEntregue -= SolicitarAutosave;
         base.OnDestroy();

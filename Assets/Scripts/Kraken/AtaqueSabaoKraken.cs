@@ -29,7 +29,8 @@ public class AtaqueSabaoKraken : MonoBehaviour
     [Tooltip("Superficies voltadas para cima; paredes, gatilhos, jogador e Kraken sao ignorados.")]
     public LayerMask camadasChao = Physics.DefaultRaycastLayers & ~(1 << 4);
     [Min(1)] public float vidaDaBolha = 28;
-    [Min(.1f)] public float duracaoEmbacamento = 7f;
+    [Min(.1f)] public float duracaoEmbacamento = 5f;
+    [Min(.1f)] public float duracaoEscorregadio = 10f;
     public bool EmExecucao { get; private set; }
     public int BolhasAtivas
     {
@@ -232,6 +233,10 @@ public class AtaqueSabaoKraken : MonoBehaviour
         bolha.tempoAtePouso = tempoVoo;
         bolha.desvioLateral = desvioLateralBolhas;
         bolha.duracao = Mathf.Max(vidaDaBolha, tempoVoo + 3f);
+        // Uma por rajada sempre atinge; as demais conservam seus pousos na arena.
+        bolha.acertoGarantido = indice == 0;
+        bolha.tempoAteAcerto = batalha ? batalha.DuracaoAtaque(3f) : 3f;
+        if (bolha.acertoGarantido) go.name = "Bolha de sabao perseguidora";
         bolha.Preparar(rumo, indice); bolhas.Add(bolha); BolhasLancadas++;
     }
     void Restaurar()
@@ -245,6 +250,8 @@ public class AtaqueSabaoKraken : MonoBehaviour
         foreach (var bolha in bolhas) if (bolha) bolha.Estourar();
         bolhas.Clear();
         foreach (var efeito in FindObjectsByType<VisaoEnsaboada>()) efeito.Limpar();
+        foreach (var controle in FindObjectsByType<ThirdPersonController>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            controle.LimparSabao();
     }
     void OnDisable() { Cancelar(); }
 }

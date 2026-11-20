@@ -92,6 +92,7 @@ public partial class InventarioEndy : MonoBehaviour
     void Update()
     {
         AtualizarBananaCarregada();
+        if (EscolhaTesouroFinal.BloqueiaItens) return;
         if (fimVelocidade > 0 && Time.time >= fimVelocidade) RestaurarVelocidade();
         var vida = GetComponent<VidaEndy>();
         if (vida != null && vida.EstaMorto) { CancelarTrompete(); CancelarBebida(); return; }

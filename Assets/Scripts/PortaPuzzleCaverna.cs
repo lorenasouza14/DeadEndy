@@ -24,7 +24,15 @@ public class PortaPuzzleCaverna : MonoBehaviour
         if (jogador != null) IniciarTravessia(jogador);
     }
 
-    public void IniciarTravessia(TrocarMundo jogador) => jogador.PassarPelaPorta(tela);
+    public void IniciarTravessia(TrocarMundo jogador)
+    {
+        if (jogador == null || porta == null || porta.activeSelf ||
+            PedraBrilhante.ProximaCorEsperada.HasValue || passagem == null || !passagem.enabled) return;
+        // O atalho de troca de mundo tambem exige chegar fisicamente a porta.
+        var capsula = jogador.GetComponent<CharacterController>();
+        if (capsula == null || !passagem.bounds.Intersects(capsula.bounds)) return;
+        jogador.PassarPelaPorta(tela);
+    }
 
     void OnEnable()
     {

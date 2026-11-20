@@ -97,6 +97,28 @@ public class IndicadorItemEndy : MonoBehaviour
         return painel.gameObject;
     }
 
+    public GameObject CriarEscolhaFinal(out TMP_Text confirmacao)
+    {
+        var painel = Rect("Escolha do tesouro final", areaSegura, new Vector2(.5f, 0), new Vector2(.5f, 0),
+            new Vector2(0, 200), new Vector2(700, 210));
+        var fundo = painel.gameObject.AddComponent<Image>();
+        fundo.sprite = Resources.Load<Sprite>("FundoDicaFase");
+        fundo.type = Image.Type.Sliced; fundo.raycastTarget = false;
+        var titulo = Text("Titulo", painel, "Escolha o que deseja levar", 34, Creme, new Vector2(660, 48));
+        titulo.rectTransform.anchoredPosition = new Vector2(0, 68);
+        titulo.alignment = TextAlignmentOptions.Center;
+        var quadro = Row(painel, "Pegar quadro", 12, "Q", "Pegar o quadro", out _, out _);
+        quadro.anchoredPosition = new Vector2(50, 12);
+        var bau = Row(painel, "Pegar bau", -48, "F", "Pegar o baú do tesouro", out _, out var textoBau);
+        bau.anchoredPosition = new Vector2(50, -48);
+        textoBau.rectTransform.sizeDelta = new Vector2(520, 48);
+        confirmacao = Text("Confirmacao", painel, "", 36, Creme, new Vector2(660, 150));
+        confirmacao.alignment = TextAlignmentOptions.Center;
+        confirmacao.gameObject.SetActive(false);
+        painel.gameObject.SetActive(false);
+        return painel.gameObject;
+    }
+
     void Atualizar()
     {
         if (interfaceItem == null) return;
