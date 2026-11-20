@@ -93,17 +93,16 @@ public static class DiarioProgressaoValidation
             }
             else if (passo == 1 && agora - passoEm > 7)
             {
-                var bloqueio = UnityEngine.Object.FindAnyObjectByType<BloqueioLeituraKraken>();
-                Exigir(bloqueio != null && bloqueio.GetComponentsInChildren<BoxCollider>().Length == 2, "Duas paredes invisíveis na entrada");
-                Exigir(!diario.GetComponent<StarterAssets.ThirdPersonController>().enabled && batalha.EmIntroducao, "Movimento e Kraken aguardam leitura mesmo após sete segundos");
-                Exigir(diario.Abrir(), "Diário abre com jogador bloqueado");
+                Exigir(GameObject.Find("Bloqueio de entrada - ler diario") == null, "Entrada sem paredes do diario");
+                Exigir(diario.GetComponent<StarterAssets.ThirdPersonController>().enabled && batalha.EmIntroducao, "Movimento livre enquanto Kraken aguarda leitura mesmo após sete segundos");
+                Exigir(diario.Abrir(), "Diário abre durante a exploracao");
                 Exigir(diario.PaginaEsquerda == 20 && !diario.LeuFinal, "Abrir p21-p22 não conclui o trecho");
                 diario.Fechar();
                 passo = 2; passoEm = agora;
             }
             else if (passo == 2 && agora - passoEm > 1)
             {
-                Exigir(!diario.GetComponent<StarterAssets.ThirdPersonController>().enabled && batalha.EmIntroducao, "Fechar cedo mantém bloqueio");
+                Exigir(diario.GetComponent<StarterAssets.ThirdPersonController>().enabled && batalha.EmIntroducao, "Fechar cedo devolve movimento e mantem Kraken aguardando");
                 Exigir(diario.Abrir() && diario.Folhear(1), "Folheia para p23-p24");
                 passo = 3; passoEm = agora;
             }
@@ -120,7 +119,7 @@ public static class DiarioProgressaoValidation
             }
             else if (passo == 4 && agora - passoEm > 7)
             {
-                Exigir(UnityEngine.Object.FindAnyObjectByType<BloqueioLeituraKraken>() == null, "Paredes removidas após leitura");
+                Exigir(GameObject.Find("Bloqueio de entrada - ler diario") == null, "Entrada continua sem paredes do diario após leitura");
                 Exigir(diario.GetComponent<StarterAssets.ThirdPersonController>().enabled, "Movimento restaurado");
                 Exigir(!batalha.EmIntroducao, "Kraken inicia após fechar o diário");
                 Terminar();

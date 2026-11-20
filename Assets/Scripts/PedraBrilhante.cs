@@ -22,6 +22,8 @@ public class PedraBrilhante : MonoBehaviour
     [ColorUsage(true, true)] public Color corDoBrilho = new Color(0.15f, 1f, 0.8f, 1f);
     [Min(0f)] public float intensidadeDoBrilho = 6f;
     [SerializeField, Min(0f)] private float brilhoEmRepouso;
+    [Tooltip("Aparencia das pedras antes do acerto e depois de reiniciar a sequencia.")]
+    [SerializeField] private Material materialEmRepouso;
 
     [Header("Puzzle da sequencia")]
     [Tooltip("Normalmente fica desligado: o puzzle le a cor usada no brilho da pedra.")]
@@ -107,6 +109,10 @@ public class PedraBrilhante : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (materiais != null)
+            foreach (var lista in materiais)
+                foreach (var material in lista)
+                    if (material != null) Destroy(material);
         PedrasDoPuzzle.Remove(this);
         if (PedrasDoPuzzle.Count == 0)
         {
@@ -129,7 +135,14 @@ public class PedraBrilhante : MonoBehaviour
         materiais = new Material[renderizadores.Length][];
         for (int i = 0; i < renderizadores.Length; i++)
         {
-            materiais[i] = renderizadores[i].materials;
+            var originais = renderizadores[i].sharedMaterials;
+            materiais[i] = new Material[originais.Length];
+            for (int j = 0; j < originais.Length; j++)
+            {
+                var fonte = materialEmRepouso != null ? materialEmRepouso : originais[j];
+                if (fonte != null) materiais[i][j] = new Material(fonte);
+            }
+            renderizadores[i].sharedMaterials = materiais[i];
         }
     }
 
@@ -271,6 +284,18 @@ public class PedraBrilhante : MonoBehaviour
     {
         acesa = true;
 
+        if (materialEmRepouso != null)
+        {
+            Color cor = corDoBrilho / Mathf.Max(1f, corDoBrilho.maxColorComponent);
+            cor.a = 1f;
+            foreach (var lista in materiais)
+                foreach (var material in lista)
+                {
+                    if (material == null) continue;
+                    if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", cor);
+                    if (material.HasProperty("_Color")) material.SetColor("_Color", cor);
+                }
+        }
         AplicarEmissao(corDoBrilho * intensidadeDoBrilho);
 
         if (luzDaPedra != null)
@@ -297,8 +322,15 @@ public class PedraBrilhante : MonoBehaviour
     {
         acesa = false;
 
-        // Preserva a tonalidade sem amplificar o brilho de repouso das cores HDR.
-        AplicarEmissao(corDoBrilho * (brilhoEmRepouso / Mathf.Max(1f, corDoBrilho.maxColorComponent)));
+        if (materialEmRepouso != null)
+        {
+            // Restaura tambem a emissao original: a cor secreta nao aparece antes do acerto.
+            foreach (var lista in materiais)
+                foreach (var material in lista)
+                    if (material != null) material.CopyPropertiesFromMaterial(materialEmRepouso);
+        }
+        else
+            AplicarEmissao(corDoBrilho * (brilhoEmRepouso / Mathf.Max(1f, corDoBrilho.maxColorComponent)));
 
         if (luzDaPedra != null)
             luzDaPedra.enabled = false;
