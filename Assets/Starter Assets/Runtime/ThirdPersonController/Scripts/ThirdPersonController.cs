@@ -202,7 +202,7 @@ namespace StarterAssets
         private void GroundedCheck()
         {
             // A esfera pode tocar paredes ou antecipar o piso. O pouso usa a capsula real.
-            Grounded = _verticalVelocity <= 0f && _controller.isGrounded && !ApoiadoEmParedeNaoEscalavel();
+            Grounded = DetectarApoioDosPes();
 
             // update animator if using character
             if (_hasAnimator)
@@ -214,7 +214,7 @@ namespace StarterAssets
         private void AtualizarPousoAposMovimento()
         {
             // Move atualiza isGrounded neste quadro, antes de o Animator avaliar a pose.
-            Grounded = _verticalVelocity <= 0f && _controller.isGrounded && !ApoiadoEmParedeNaoEscalavel();
+            Grounded = DetectarApoioDosPes();
             if (_hasAnimator) _animator.SetBool(_animIDGrounded, Grounded);
             if (!Grounded) return;
             _fallTimeoutDelta = FallTimeout;
@@ -325,9 +325,10 @@ namespace StarterAssets
 
         private void JumpAndGravity()
         {
-            if (BloquearPulo) _input.jump = false;
+            if (BloquearPulo) { _input.jump = false; puloPendenteAte = -1f; }
+            else if (_input.jump) { puloPendenteAte = Time.time + .15f; _input.jump = false; }
             // The foot probe anticipates landing for animation. Only a landing can reset the fall or start a jump.
-            if (Grounded && _controller.isGrounded && !ApoiadoEmParedeNaoEscalavel())
+            if (Grounded)
             {
                 // reset the fall timeout timer
                 _fallTimeoutDelta = FallTimeout;
@@ -346,9 +347,12 @@ namespace StarterAssets
                 }
 
                 // Jump
-                if (_input.jump && _jumpTimeoutDelta <= 0.0f)
+                if (!BloquearPulo && Time.time <= puloPendenteAte && _jumpTimeoutDelta <= 0.0f)
                 {
                     // the square root of H * -2 * G = how much velocity needed to reach desired height
+                    puloPendenteAte = -1f;
+                    Grounded = false;
+                    if (_hasAnimator) _animator.SetBool(_animIDGrounded, false);
                     _verticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
 
                     // update animator if using character
@@ -367,7 +371,7 @@ namespace StarterAssets
             else
             {
                 // reset the jump timeout timer
-                _jumpTimeoutDelta = JumpTimeout;
+                _jumpTimeoutDelta = Mathf.Min(JumpTimeout, .1f);
 
                 // fall timeout
                 if (_fallTimeoutDelta >= 0.0f)
@@ -436,5 +440,6 @@ namespace StarterAssets
         }
     }
 }
+
 
 

@@ -214,7 +214,7 @@ public class GerenciadorPause : MonoBehaviour
         var eventos = new GameObject("EventSystemPause", typeof(EventSystem));
         eventos.transform.SetParent(dono, false);
 #if ENABLE_INPUT_SYSTEM
-        eventos.AddComponent<InputSystemUIInputModule>();
+        eventos.AddComponent<InputSystemUIInputModule>().AssignDefaultActions();
 #else
         eventos.AddComponent<StandaloneInputModule>();
 #endif
@@ -302,3 +302,4 @@ public class GerenciadorPause : MonoBehaviour
         rect.offsetMin = rect.offsetMax = Vector2.zero;
     }
 }
+

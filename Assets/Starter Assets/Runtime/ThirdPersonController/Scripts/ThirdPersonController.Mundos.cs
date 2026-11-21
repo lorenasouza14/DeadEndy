@@ -8,6 +8,7 @@ namespace StarterAssets
         {
             _mainCamera = cameraPrincipal != null ? cameraPrincipal.gameObject : null;
             _verticalVelocity = 0f;
+            puloPendenteAte = -1f;
             _speed = 0f;
             _animationBlend = 0f;
             _rotationVelocity = 0f;
@@ -32,3 +33,4 @@ namespace StarterAssets
         }
     }
 }
+

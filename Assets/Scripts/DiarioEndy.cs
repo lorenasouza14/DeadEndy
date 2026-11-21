@@ -84,6 +84,8 @@ public partial class DiarioEndy : MonoBehaviour
             Time.frameCount == frameFechamento || (vida != null && vida.EstaMorto)) return false;
         AtualizarEtapa();
         if (tela == null) CriarInterface();
+        // O EventSystem do menu nao acompanha a troca para as fases 3 e 4.
+        GerenciadorPause.GarantirEventSystem(transform);
         PaginaEsquerda = Mathf.Clamp(PaginaEsquerda, 0, ((PaginasLiberadas - 1) / 2) * 2);
         escalaTempoAnterior = Time.timeScale;
         travaAnterior = Cursor.lockState;
@@ -322,3 +324,4 @@ public class GestoFolhearDiario : MonoBehaviour, IBeginDragHandler, IDragHandler
         if (Mathf.Abs(delta) > Screen.width * 0.04f) diario.Folhear(delta < 0 ? 1 : -1);
     }
 }
+

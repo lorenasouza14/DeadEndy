@@ -7,13 +7,27 @@ public sealed partial class AutosaveCaverna
     const float DuracaoFuga = 50f;
     float tempoFuga = DuracaoFuga;
     bool fugaAtiva;
+    bool animandoMorteFuga;
+    bool cutscenePortaIniciada, cutscenePortaConcluida;
     GameObject hudFuga;
     TMP_Text textoFuga;
 
     void Update()
     {
+        if (animandoMorteFuga) return;
         bool exibir = Pronto && ContextoDeJogo && !JogadorMorto &&
             !PedraBrilhante.ProximaCorEsperada.HasValue && !TelaCarregamento.EmCurso;
+        if (PedraBrilhante.ProximaCorEsperada.HasValue)
+            cutscenePortaIniciada = cutscenePortaConcluida = false;
+        if (exibir && !cutscenePortaIniciada)
+        {
+            cutscenePortaIniciada = true;
+            CutsceneInicio.IniciarPortaCaverna(() =>
+            {
+                if (this) cutscenePortaConcluida = true;
+            });
+        }
+        exibir = exibir && cutscenePortaConcluida;
         if (hudFuga != null) hudFuga.SetActive(exibir);
         if (!exibir) { fugaAtiva = false; return; }
         if (!fugaAtiva)
@@ -23,11 +37,55 @@ public sealed partial class AutosaveCaverna
             if (hudFuga == null) CriarCronometro();
         }
         else tempoFuga = Mathf.Max(0f, tempoFuga - Time.deltaTime);
-        if (tempoFuga <= 0f) ReiniciarFuga();
+        if (tempoFuga <= 0f)
+        {
+            StartCoroutine(MorrerAntesDeReiniciarFuga());
+            return;
+        }
         int segundosRestantes = Mathf.CeilToInt(tempoFuga);
         textoFuga.text = "ENCONTRE A SAÍDA\n" + (segundosRestantes / 60) + ":" + (segundosRestantes % 60).ToString("00")
             + "\n<size=26>Corra antes que a porta se feche!</size>";
         textoFuga.color = tempoFuga <= 10f ? new Color(1f, .3f, .2f) : new Color(1f, .91f, .76f);
+    }
+
+    System.Collections.IEnumerator MorrerAntesDeReiniciarFuga()
+    {
+        animandoMorteFuga = true;
+        if (hudFuga) hudFuga.SetActive(false);
+        var efeito = movimento.GetComponent<VidaEndy>();
+        var animator = efeito && efeito.animEndy ? efeito.animEndy : movimento.GetComponentInChildren<Animator>();
+        bool movimentoAtivo = movimento.enabled;
+        bool inventarioAtivo = inventario && inventario.enabled;
+        float escalaAnterior = Time.timeScale;
+        var modoAnterior = animator ? animator.updateMode : AnimatorUpdateMode.Normal;
+        // Congela ataques e controles; somente a animacao de morte segue em tempo real.
+        movimento.enabled = false;
+        if (inventario) inventario.enabled = false;
+        Time.timeScale = 0f;
+        try
+        {
+            if (animator)
+            {
+                animator.updateMode = AnimatorUpdateMode.UnscaledTime;
+                animator.ResetTrigger("TomarDano");
+                animator.SetTrigger("Morrer");
+            }
+            yield return new WaitForSecondsRealtime(efeito ? Mathf.Max(.1f, efeito.tempoAnimacaoMorte) : 2.5f);
+            if (movimento && ContextoDeJogo)
+            {
+                ReiniciarFuga();
+                if (vidaKraken) vidaKraken.RestaurarVida(vidaKraken.vidaMaxima);
+                if (animator) { animator.Rebind(); animator.Update(0f); }
+            }
+        }
+        finally
+        {
+            if (animator) animator.updateMode = modoAnterior;
+            if (movimento) movimento.enabled = movimentoAtivo;
+            if (inventario) inventario.enabled = inventarioAtivo;
+            Time.timeScale = escalaAnterior;
+            animandoMorteFuga = false;
+        }
     }
 
     void ReiniciarFuga()
@@ -72,3 +130,5 @@ public sealed partial class AutosaveCaverna
         rect.sizeDelta = new Vector2(700, 150);
     }
 }
+
+

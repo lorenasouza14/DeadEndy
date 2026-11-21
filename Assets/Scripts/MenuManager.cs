@@ -138,7 +138,8 @@ public class MenuManager : MonoBehaviour
         FecharDialogo();
         Time.timeScale = 1;
         // O personagem assume o cursor quando a fase estiver pronta, nunca no clique do menu.
-        SceneManager.LoadSceneAsync(destino, LoadSceneMode.Single);
+        if (novo) CutsceneInicio.Iniciar(destino);
+        else SceneManager.LoadSceneAsync(destino, LoadSceneMode.Single);
     }
 
     public void MostrarCreditos()
@@ -234,3 +235,4 @@ public class MenuManager : MonoBehaviour
         if (dialogo != null) Destroy(dialogo);
     }
 }
+

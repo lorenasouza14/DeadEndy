@@ -48,6 +48,8 @@ public class FragmentosPilarKraken : MonoBehaviour
 
             var rb = go.AddComponent<Rigidbody>();
             rb.mass = 4f;
+            // Despedaca e cai sem girar os blocos do pilar.
+            rb.constraints = RigidbodyConstraints.FreezeRotation;
             rb.interpolation = RigidbodyInterpolation.Interpolate;
             // Fragmentos visuais atravessam o cenario e nao bloqueiam o jogador.
             rb.detectCollisions = false;
@@ -60,7 +62,7 @@ public class FragmentosPilarKraken : MonoBehaviour
             var rb = pedras[i];
             Vector3 fora = Vector3.ProjectOnPlane(rb.worldCenterOfMass - centro, Vector3.up).normalized;
             rb.AddForce(fora * 1.8f + direcao.normalized * 2f + Vector3.up * .4f, ForceMode.VelocityChange);
-            rb.AddTorque(new Vector3(i % 3 - 1f, .5f, (i + 1) % 3 - 1f) * 2f, ForceMode.VelocityChange);
+
         }
         StartCoroutine(Recolher());
         return true;
@@ -92,3 +94,4 @@ public class FragmentosPilarKraken : MonoBehaviour
     void OnDisable() { StopAllCoroutines(); Limpar(); }
     void OnDestroy() { Limpar(); }
 }
+

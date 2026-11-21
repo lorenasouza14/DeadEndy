@@ -17,6 +17,13 @@ public class FugaDesmoronamentoKraken : MonoBehaviour
     VidaJogadorKraken vida;
     readonly RaycastHit[] contatos = new RaycastHit[32];
 
+    public void ReiniciarParkour()
+    {
+        if (inundacao) inundacao.CancelarERestaurar();
+        Acionada = false;
+        NivelDestino = 0f;
+    }
+
     void Update()
     {
         if (Acionada || !batalha || !batalha.isActiveAndEnabled || batalha.Estado != BatalhaKraken.Etapa.Derrotado
@@ -47,3 +54,4 @@ public class FugaDesmoronamentoKraken : MonoBehaviour
         if (inundacao.IniciarSubidaDeFuga(NivelDestino, duracaoSubida)) Acionada = true;
     }
 }
+

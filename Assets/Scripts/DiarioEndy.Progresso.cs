@@ -59,7 +59,8 @@ public partial class DiarioEndy
         AtualizarEtapa();
         string cena = SceneManager.GetActiveScene().name;
         bool final = cena == "Level_Kraken_4";
-        bool pendente = inventario.temDiario && (final ? !LeuFinal : cena == "Level_Cave_3" && !LeuIntervalo(13, 20));
+        bool pendente = inventario.temDiario && (final ? !LeuFinal : cena == "Level_Cave_3"
+            && PedraBrilhante.ProximaCorEsperada.HasValue && !LeuIntervalo(13, 20));
         if (pendente && dicaNovasPaginas == null && TryGetComponent<IndicadorItemEndy>(out var indicador))
         {
             dicaNovasPaginas = indicador.CriarDicaDeFase(indicador.diario, out var mensagem);
@@ -77,3 +78,4 @@ public partial class DiarioEndy
         FindAnyObjectByType<AutosaveCaverna>()?.SolicitarAutosave();
     }
 }
+

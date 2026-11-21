@@ -168,7 +168,7 @@ public class BatalhaKraken : MonoBehaviour
     IEnumerator Lutar()
     {
         Estado = Etapa.Aguardando;
-        // A transicao de cena nao consome os cinco segundos de respiro.
+        // Aguarda a transicao e o menu antes de verificar a leitura.
         while (TelaCarregamento.EmCurso || MenuManager.EstaAberto) yield return null;
         // A leitura antiga da ilha nao libera as paginas novas da fase final.
         while (true)
@@ -178,9 +178,11 @@ public class BatalhaKraken : MonoBehaviour
             if (diario != null && diario.LeuFinal && !diario.Aberto) break;
             yield return null;
         }
-        yield return new WaitForSeconds(tempoAntesDeAparecer);
+        // Prepara a fase sob o video; os ataques aguardam o fim da transicao.
+        bool entradaConcluida = false;
+        CutsceneInicio.IniciarEntradaKraken(() => entradaConcluida = true);
         RevelarKraken();
-        yield return new WaitForSeconds(DuracaoAtaque(esperaInicial));
+        while (!entradaConcluida) yield return null;
         while (!vitoria)
         {
             // A animacao de um especial e a reacao da captura bloqueiam as batidas.
@@ -290,10 +292,12 @@ public class BatalhaKraken : MonoBehaviour
         if (inundacao) inundacao.CancelarERestaurar();
         Estado = Etapa.ToucaCaindo;
         if (captura) captura.Cancelar();
-        if (touca) touca.Soltar();
-        // A espera tem duracao fixa, mesmo se a touca nao conseguir encaixar.
-        yield return new WaitForSeconds(tempoAposVitoria);
-        FinalizarVitoria(true);
+        // A derrota so libera a fase depois do video, ainda sob a tela preta.
+        CutsceneInicio.IniciarDesmoronamento(() =>
+        {
+            if (this) FinalizarVitoria(true);
+        });
+        yield break;
     }
     void FinalizarVitoria(bool registrarCheckpoint)
     {
@@ -450,3 +454,5 @@ public class BatalhaKraken : MonoBehaviour
         if (painelDica) Destroy(painelDica);
     }
 }
+
+

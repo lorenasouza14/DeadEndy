@@ -72,21 +72,68 @@ public class EscolhaTesouroFinal : MonoBehaviour
         confirmacao.gameObject.SetActive(true);
         confirmacao.text = pegarQuadro ? "Você escolheu levar o quadro!" : "Você escolheu levar o baú do tesouro!";
         confirmarAte = Time.time + 6f;
-        if (!pegarQuadro && pontoRetorno)
+        painel.SetActive(false);
+        confirmarAte = 0;
+        CutsceneInicio.IniciarFinal(pegarQuadro, pegarQuadro ? null : (System.Action)RetornarAoParkour);
+    }
+
+    void RetornarAoParkour()
+    {
+        if (!jogador) return;
+        var vida = jogador.GetComponent<VidaJogadorKraken>();
+        Pose destino;
+        if (vida && vida.TentarObterCheckpointVitoria(gameObject.scene, out var checkpoint))
+            destino = checkpoint;
+        else if (batalha && batalha.spawnAposVitoria)
+            destino = new Pose(batalha.spawnAposVitoria.position, batalha.spawnAposVitoria.rotation);
+        else
+        {
+            Debug.LogError("Retorno do bau: checkpoint do parkour ausente.", this);
+            return;
+        }
+        foreach (var fuga in FindObjectsByType<FugaDesmoronamentoKraken>(FindObjectsSortMode.None))
+            fuga.ReiniciarParkour();
+        if (vida) vida.RestaurarVida(vida.vidaMaxima);
+        if (jogador)
         {
             var capsula = jogador.GetComponent<CharacterController>();
             bool ativa = capsula && capsula.enabled;
             if (capsula) capsula.enabled = false;
-            jogador.transform.SetPositionAndRotation(pontoRetorno.position, pontoRetorno.rotation);
+            jogador.transform.SetPositionAndRotation(destino.position, destino.rotation);
             Physics.SyncTransforms();
             if (ativa) capsula.enabled = true;
             var controle = jogador.GetComponent<StarterAssets.ThirdPersonController>();
-            if (controle) controle.PrepararTrocaDeMundo(Camera.main);
+            if (controle)
+            {
+                controle.DefinirMultiplicadorAgua(1);
+                controle.PrepararTrocaDeMundo(Camera.main);
+            }
             foreach (var camera in FindObjectsByType<Unity.Cinemachine.CinemachineCamera>(FindObjectsSortMode.None))
                 camera.PreviousStateIsValid = false;
+            RestaurarEscolhaDoTesouro();
         }
+    }
+
+    void RestaurarEscolhaDoTesouro()
+    {
+        Escolha = null;
+        confirmarAte = 0f;
+        frameEscolha = -1;
+        if (quadro) quadro.SetActive(true);
+        if (bau) bau.SetActive(true);
+        // A escolha escondeu os filhos do painel. Recria as opcoes ao se aproximar.
+        if (painel)
+        {
+            painel.SetActive(false);
+            Destroy(painel);
+        }
+        painel = null;
+        confirmacao = null;
     }
 
     void OnDisable() { if (painel) painel.SetActive(false); }
     void OnDestroy() { if (painel) Destroy(painel); }
 }
+
+
+
