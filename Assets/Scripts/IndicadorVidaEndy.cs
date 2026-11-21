@@ -10,6 +10,7 @@ public class IndicadorVidaEndy : MonoBehaviour
     private VinhetaVidaEndy vinheta;
     private float intensidade;
     private float pulso;
+    private Image flashDano;
     public bool Visivel => interfaceVida != null && interfaceVida.activeSelf;
 
     public void Preparar(VidaEndy origem)
@@ -43,6 +44,19 @@ public class IndicadorVidaEndy : MonoBehaviour
     }
 
     void LateUpdate() { Atualizar(Time.deltaTime); }
+
+    public Image GarantirFlashDano()
+    {
+        if (flashDano != null) return flashDano;
+        var rect = Rect("Flash vermelho de dano", interfaceVida.transform);
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = rect.offsetMax = Vector2.zero;
+        flashDano = rect.gameObject.AddComponent<Image>();
+        flashDano.raycastTarget = false;
+        flashDano.color = Color.clear;
+        return flashDano;
+    }
 
     void Atualizar(float delta)
     {

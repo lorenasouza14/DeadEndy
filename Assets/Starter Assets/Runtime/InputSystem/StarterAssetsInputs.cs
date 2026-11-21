@@ -67,14 +67,20 @@ namespace StarterAssets
 			sprint = !gameplayInputBlocked && newSprintState;
 		}
 		
-		private void OnApplicationFocus(bool hasFocus)
+		private void Start()
 		{
 			SetCursorState(cursorLocked);
+		}
+
+		private void OnApplicationFocus(bool hasFocus)
+		{
+			if (hasFocus) SetCursorState(cursorLocked);
 		}
 
 		private void SetCursorState(bool newState)
 		{
 			Cursor.lockState = newState ? CursorLockMode.Locked : CursorLockMode.None;
+			Cursor.visible = !newState;
 		}
 	}
 	

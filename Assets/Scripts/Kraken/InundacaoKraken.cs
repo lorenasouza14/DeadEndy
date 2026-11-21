@@ -152,12 +152,16 @@ public class InundacaoKraken : MonoBehaviour
         if (!superficieAgua) return;
         float anterior = NivelAtual;
         superficieAgua.position = posicaoInicial + Vector3.up * (y - NivelInicial);
+        AtualizarPlataformas(anterior, NivelAtual);
+    }
+    void AtualizarPlataformas(float anterior, float nivel)
+    {
         if (plataformasFlutuantes == null)
             plataformasFlutuantes = FindObjectsByType<FlutuacaoSimples>(FindObjectsSortMode.None);
         LocalizarJogador();
         foreach (var plataforma in plataformasFlutuantes)
             if (plataforma && plataforma.isActiveAndEnabled && plataforma.planoDaAgua == superficieAgua)
-                plataforma.AcompanharSubida(anterior, NivelAtual, capsula);
+                plataforma.AcompanharSubida(anterior, nivel, capsula);
     }
     void LocalizarJogador()
     {
@@ -172,6 +176,8 @@ public class InundacaoKraken : MonoBehaviour
     {
         if (!iniciado || Time.timeScale <= 0f) return;
         LocalizarJogador();
+        // Corrige a flutuacao antes de avaliar dano, inclusive antes da primeira mare.
+        AtualizarPlataformas(NivelAtual, NivelAtual);
         if (EmFuga)
         {
             float progresso = Mathf.Clamp01((Time.time - inicioFuga) / duracaoFuga);

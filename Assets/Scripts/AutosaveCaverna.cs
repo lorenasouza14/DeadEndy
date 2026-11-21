@@ -16,7 +16,7 @@ public sealed partial class AutosaveCaverna : AutosaveDeFase
     protected override bool JogadorMorto => vidaKraken != null && vidaKraken.Morto;
     protected override float VidaAtual => vidaKraken.VidaAtual;
     protected override bool PodeGravar => movimento != null;
-    // Dois pontos fixos: entrada da fase e conclusao da sequencia (inicio da fuga).
+    // A posicao so avanca ao completar um par de pedras, nunca pelo save periodico.
     protected override bool PodeAtualizarPonto() => false;
 
     public Pose Preparar(ThirdPersonController jogador, Pose entrada)
@@ -46,33 +46,36 @@ public sealed partial class AutosaveCaverna : AutosaveDeFase
         }
 
         var caverna = progresso.cena == ProgressoJogo.CenaCaverna ? progresso.caverna : null;
-        // Saves antigos nas pedras intermediarias voltam para a entrada, com o puzzle reiniciado.
-        pedrasDoCheckpoint = caverna != null && caverna.pedrasAcesas == 6 ? 6 : 0;
+        // Saves antigos em pedras impares nao possuem a posicao do par anterior.
+        pedrasDoCheckpoint = caverna != null && DadosCaverna.EhCheckpointDePedras(caverna.pedrasAcesas)
+            ? caverna.pedrasAcesas : 0;
         PedraBrilhante.RestaurarProgresso(pedrasDoCheckpoint);
         if (caverna != null)
         {
-            if (pedrasDoCheckpoint == 6)
+            if (pedrasDoCheckpoint > 0)
                 entrada = new Pose(new Vector3(progresso.x, progresso.y, progresso.z),
                     Quaternion.Euler(0f, progresso.direcao, 0f));
             if (caverna.temLanterna && bau != null) bau.RestaurarLanterna(caverna.lanternaLigada);
-            if (pedrasDoCheckpoint == 6 && fantasmas != null) fantasmas.AtivarSpawnsAposPedraVermelha();
+            if (pedrasDoCheckpoint > 0 && fantasmas != null) fantasmas.AtivarSpawnsAposPedraVermelha();
         }
         pontoSeguro = entrada.position;
         direcaoSegura = entrada.rotation.eulerAngles.y;
         vidaSegura = vidaKraken.vidaMaxima;
         temPontoSeguro = true;
-        PedraBrilhante.PedraSelecionada += SalvarInicioDaFuga;
+        PedraBrilhante.PedraSelecionada += SalvarParDePedras;
         if (bau != null) bau.LanternaEntregue += SolicitarAutosave;
         IniciarAutosave();
         SolicitarAutosave();
         return entrada;
     }
 
-    void SalvarInicioDaFuga()
+    void SalvarParDePedras()
     {
-        if (JogadorMorto || !ContextoDeJogo || pedrasDoCheckpoint == 6 ||
-            PedraBrilhante.ProximaCorEsperada.HasValue) return;
-        pedrasDoCheckpoint = PedraBrilhante.ProgressoAtual;
+        int quantidade = PedraBrilhante.ProgressoAtual;
+        // Um erro ou uma pedra isolada nao substitui o ultimo par salvo.
+        if (JogadorMorto || !ContextoDeJogo || quantidade <= pedrasDoCheckpoint ||
+            !DadosCaverna.EhCheckpointDePedras(quantidade)) return;
+        pedrasDoCheckpoint = quantidade;
         pontoSeguro = movimento.transform.position;
         direcaoSegura = movimento.transform.eulerAngles.y;
         if (!TentarSalvar()) SolicitarAutosave();
@@ -94,7 +97,7 @@ public sealed partial class AutosaveCaverna : AutosaveDeFase
         {
             // Autosaves de pausa, saida e intervalo tambem respeitam o checkpoint fixo.
             pedrasAcesas = pedrasDoCheckpoint,
-            fantasmasDespertos = pedrasDoCheckpoint == 6,
+            fantasmasDespertos = pedrasDoCheckpoint > 0,
             temLanterna = equipada,
             lanternaLigada = equipada && lanterna.Ligada
         };
@@ -104,7 +107,7 @@ public sealed partial class AutosaveCaverna : AutosaveDeFase
     protected override void OnDestroy()
     {
         if (hudFuga != null) Destroy(hudFuga);
-        PedraBrilhante.PedraSelecionada -= SalvarInicioDaFuga;
+        PedraBrilhante.PedraSelecionada -= SalvarParDePedras;
         if (bau != null) bau.LanternaEntregue -= SolicitarAutosave;
         base.OnDestroy();
     }

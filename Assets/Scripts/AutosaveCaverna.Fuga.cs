@@ -4,7 +4,7 @@ using TMPro;
 
 public sealed partial class AutosaveCaverna
 {
-    const float DuracaoFuga = 80f;
+    const float DuracaoFuga = 50f;
     float tempoFuga = DuracaoFuga;
     bool fugaAtiva;
     GameObject hudFuga;

@@ -156,6 +156,8 @@ public class VidaEndy : MonoBehaviour
     // A batalha controla os pontos; esta classe fornece os mesmos efeitos das outras fases.
     public void AtualizarVidaDaBatalha(float fracao, bool sofreuDano)
     {
+        enabled = true;
+        mostrarIndicadorVida = true;
         vidaExterna = true;
         cenaVidaExterna = SceneManager.GetActiveScene();
         vidaAtual = Mathf.Clamp01(fracao) * vidaMaxima;
@@ -164,7 +166,10 @@ public class VidaEndy : MonoBehaviour
         if (!animEndy) animEndy = GetComponentInChildren<Animator>();
         if (indicador == null) indicador = GetComponent<IndicadorVidaEndy>();
         if (indicador == null) indicador = gameObject.AddComponent<IndicadorVidaEndy>();
+        indicador.enabled = true;
         indicador.Preparar(this);
+        // Na caverna/Kraken este componente nasce em runtime, sem a imagem da fase 1.
+        if (telaVermelha == null) telaVermelha = indicador.GarantirFlashDano();
         if (sofreuDano)
         {
             UltimoDanoEm = Time.unscaledTime;
@@ -217,6 +222,15 @@ public class VidaEndy : MonoBehaviour
 
     void AtualizarRecuperacao(float delta)
     {
+        if (vidaExterna && TryGetComponent<VidaJogadorKraken>(out var batalha) && batalha.isActiveAndEnabled)
+        {
+            // O jogador persiste entre as fases 3 e 4: o HUD nunca regenera por conta propria.
+            vidaAtual = (float)batalha.VidaAtual / Mathf.Max(1, batalha.vidaMaxima) * vidaMaxima;
+            estaMorto = batalha.Morto;
+            cenaVidaExterna = SceneManager.GetActiveScene();
+            EstaRegenerando = false;
+            return;
+        }
         if (vidaExterna && cenaVidaExterna != SceneManager.GetActiveScene()) vidaExterna = false;
         if (estaMorto || vidaExterna || !regenerarVida || vidaAtual >= vidaMaxima)
         {

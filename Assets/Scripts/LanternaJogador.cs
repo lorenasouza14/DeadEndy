@@ -191,10 +191,12 @@ public class LanternaJogador : MonoBehaviour
         filtro.sharedMesh = CriarMalhaDeCone();
 
         MeshRenderer renderizador = feixeVisual.AddComponent<MeshRenderer>();
-        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+        // Resources inclui o shader na build; o alpha nao depende de variantes URP.
+        Shader shader = Resources.Load<Shader>("FeixeLanterna");
         if (shader == null)
         {
-            Debug.LogWarning("Nao encontrei o shader URP Unlit para o feixe da lanterna.");
+            Debug.LogError("Nao encontrei Resources/FeixeLanterna para o feixe da lanterna.");
+            renderizador.enabled = false;
             feixeVisual.SetActive(false);
             return;
         }
@@ -204,17 +206,11 @@ public class LanternaJogador : MonoBehaviour
             name = "Material do Feixe da Lanterna",
             renderQueue = 3000
         };
-        material.SetFloat("_Surface", 1f);
-        material.SetFloat("_Blend", 0f);
-        material.SetFloat("_ZWrite", 0f);
-        material.SetFloat("_Cull", 0f);
-        material.SetInt("_SrcBlend", (int)BlendMode.SrcAlpha);
-        material.SetInt("_DstBlend", (int)BlendMode.OneMinusSrcAlpha);
-        material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
-        material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
         material.SetColor("_BaseColor", new Color(
             corDoFeixe.r, corDoFeixe.g, corDoFeixe.b, transparenciaDoFeixe));
         renderizador.sharedMaterial = material;
+        renderizador.shadowCastingMode = ShadowCastingMode.Off;
+        renderizador.receiveShadows = false;
     }
 
     private Mesh CriarMalhaDeCone()

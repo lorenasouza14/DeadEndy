@@ -7,14 +7,61 @@ public class VidaJogadorKraken : MonoBehaviour
 {
     [Min(1)] public int vidaMaxima = 100;
     [Min(0)] public float invulnerabilidade = .8f;
+    [Header("Recuperacao na caverna")]
+    [Min(0f)] public float esperaSemDano = 5f;
+    [Min(.05f)] public float intervaloRecuperacao = 1f;
+    [Min(1)] public int vidaPorRecuperacao = 10;
     public int VidaAtual { get; private set; }
     public bool Morto { get; private set; }
     float podeReceberEm;
+    float tempoAteRecuperar;
     string cenaParaReiniciar;
+    string cenaCheckpointVitoria;
+    Pose checkpointVitoria;
 
-    void Awake() { VidaAtual = vidaMaxima; }
+    public void RegistrarCheckpointVitoria(Pose ponto)
+    {
+        cenaCheckpointVitoria = SceneManager.GetActiveScene().path;
+        checkpointVitoria = ponto;
+    }
+    public bool TentarObterCheckpointVitoria(Scene cena, out Pose ponto)
+    {
+        ponto = checkpointVitoria;
+        return !string.IsNullOrEmpty(cenaCheckpointVitoria) && cena.path == cenaCheckpointVitoria;
+    }
+    void OnEnable() { SceneManager.sceneLoaded += LimparCheckpointAoSair; }
+    void LimparCheckpointAoSair(Scene cena, LoadSceneMode modo)
+    {
+        if (modo == LoadSceneMode.Single && cena.path != cenaCheckpointVitoria)
+            cenaCheckpointVitoria = null;
+    }
+    void OnDisable() { SceneManager.sceneLoaded -= LimparCheckpointAoSair; }
+
+    void Awake() { VidaAtual = vidaMaxima; tempoAteRecuperar = esperaSemDano; }
     void Start() { AtualizarEfeitoVida(false); }
-    public void RestaurarVida(int quantidade) { VidaAtual = Mathf.Clamp(quantidade, 1, vidaMaxima); }
+    void Update() { AtualizarRecuperacao(Time.deltaTime); }
+    void AtualizarRecuperacao(float delta)
+    {
+        // O mesmo jogador persiste na fase 4, onde a cura continua sendo por pilares.
+        if (SceneManager.GetActiveScene().path != ProgressoJogo.CenaCaverna)
+        {
+            tempoAteRecuperar = Mathf.Max(0f, esperaSemDano);
+            return;
+        }
+        if (Morto || VidaAtual >= vidaMaxima || delta <= 0f) return;
+        tempoAteRecuperar -= delta;
+        while (tempoAteRecuperar <= 0f && VidaAtual < vidaMaxima)
+        {
+            RecuperarDano(Mathf.Max(1, vidaPorRecuperacao));
+            tempoAteRecuperar += Mathf.Max(.05f, intervaloRecuperacao);
+        }
+    }
+    public void RestaurarVida(int quantidade)
+    {
+        VidaAtual = Mathf.Clamp(quantidade, 1, vidaMaxima);
+        tempoAteRecuperar = Mathf.Max(0f, esperaSemDano);
+        AtualizarEfeitoVida(false);
+    }
     public void RecuperarDano(int quantidade)
     {
         if (Morto || quantidade <= 0) return;
@@ -25,6 +72,7 @@ public class VidaJogadorKraken : MonoBehaviour
     {
         if (Morto || dano <= 0 || Time.timeScale <= 0f || (!danoContinuo && Time.time < podeReceberEm)) return false;
         VidaAtual = Mathf.Max(0, VidaAtual - dano);
+        tempoAteRecuperar = Mathf.Max(0f, esperaSemDano);
         if (!danoContinuo) podeReceberEm = Time.time + invulnerabilidade;
         AtualizarEfeitoVida(true);
         if (VidaAtual == 0) Morrer();
@@ -72,6 +120,14 @@ public class VidaJogadorKraken : MonoBehaviour
         if (!efeito) efeito = gameObject.AddComponent<VidaEndy>();
         efeito.AtualizarVidaDaBatalha((float)VidaAtual / Mathf.Max(1, vidaMaxima), dano);
     }
+    public void ConfigurarAvisoVidaBaixa(int danoDoGolpe)
+    {
+        AtualizarEfeitoVida(false);
+        var efeito = GetComponent<VidaEndy>();
+        // Com golpes de 34, sobram 32 pontos antes do golpe fatal: 30% nunca avisaria.
+        efeito.limiteVidaBaixa = Mathf.Clamp(Mathf.Max(.3f,
+            (float)danoDoGolpe / Mathf.Max(1, vidaMaxima)), .05f, 1f);
+    }
     System.Collections.IEnumerator MostrarMorteAposAnimacao()
     {
         var efeito = GetComponent<VidaEndy>();
@@ -87,7 +143,9 @@ public class VidaJogadorKraken : MonoBehaviour
         var capsula = GetComponent<CharacterController>();
         if (capsula) capsula.enabled = false;
         // Na caverna, TrocarMundo já posiciona o jogador no checkpoint da pedra.
-        if (cena.path != ProgressoJogo.CenaCaverna || !TryGetComponent<TrocarMundo>(out _))
+        if (TentarObterCheckpointVitoria(cena, out var checkpoint))
+            transform.SetPositionAndRotation(checkpoint.position, checkpoint.rotation);
+        else if (cena.path != ProgressoJogo.CenaCaverna || !TryGetComponent<TrocarMundo>(out _))
         {
             foreach (var raiz in cena.GetRootGameObjects())
                 foreach (var entrada in raiz.GetComponentsInChildren<Transform>(true))
@@ -105,6 +163,7 @@ public class VidaJogadorKraken : MonoBehaviour
         foreach (var camera in FindObjectsByType<Unity.Cinemachine.CinemachineCamera>(FindObjectsSortMode.None))
             camera.PreviousStateIsValid = false;
         VidaAtual = vidaMaxima;
+        tempoAteRecuperar = Mathf.Max(0f, esperaSemDano);
         podeReceberEm = Time.time + invulnerabilidade;
         Morto = false;
         AtualizarEfeitoVida(false);

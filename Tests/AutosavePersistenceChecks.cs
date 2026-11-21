@@ -76,6 +76,15 @@ public static class AutosavePersistenceChecks
         Check(!dados.Valido(), "Progresso parcial exige despertar dos fantasmas");
         dados.caverna.fantasmasDespertos = true;
         Check(dados.Valido(), "Checkpoint aceita sequência parcial e lanterna equipada");
+        foreach (int par in new[] { 2, 4, 6 })
+        {
+            dados.caverna.pedrasAcesas = par;
+            Check(DadosCaverna.EhCheckpointDePedras(par) && dados.Valido(),
+                "Checkpoint a cada duas pedras aceita progresso " + par);
+        }
+        foreach (int parcial in new[] { -1, 0, 1, 3, 5, 7, 8 })
+            Check(!DadosCaverna.EhCheckpointDePedras(parcial),
+                "Nao avanca checkpoint com quantidade " + parcial);
         dados.caverna.pedrasAcesas = 0;
         Check(dados.Valido(), "Erro na sequência conserva o despertar dos fantasmas");
         dados.caverna.pedrasAcesas = 6;

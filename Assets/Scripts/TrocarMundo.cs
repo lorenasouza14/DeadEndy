@@ -113,6 +113,7 @@ public class TrocarMundo : MonoBehaviour
         var destino = new Pose(entrada.position, Quaternion.Euler(0, entrada.eulerAngles.y, 0));
         var vida = GetComponent<VidaJogadorKraken>();
         if (vida == null) vida = gameObject.AddComponent<VidaJogadorKraken>();
+        if (vida.TentarObterCheckpointVitoria(cena, out var checkpointVitoria)) destino = checkpointVitoria;
         if (!MenuManager.EstaAberto) GerenciadorPause.Instalar(vida, cena);
         if (cena.path == ProgressoJogo.CenaCaverna && !MenuManager.EstaAberto && cena == SceneManager.GetActiveScene())
         {
@@ -141,6 +142,14 @@ public class TrocarMundo : MonoBehaviour
         {
             diario.AtualizarEtapa();
             BloqueioLeituraKraken.Preparar(diario);
+        }
+        // Ao continuar pelo menu, o jogador persistente pode nao receber Start novamente.
+        if (!MenuManager.EstaAberto && !vida.Morto && (diario == null || !diario.Aberto))
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+            var inputs = GetComponent<StarterAssets.StarterAssetsInputs>();
+            if (inputs != null) inputs.cursorLocked = inputs.cursorInputForLook = true;
         }
         cenaPreparada = cena;
         trocando = false;

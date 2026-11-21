@@ -19,8 +19,8 @@ public class PedraBrilhante : MonoBehaviour
     }
 
     [Header("Brilho quando o jogador encostar")]
-    [ColorUsage(true, true)] public Color corDoBrilho = new Color(0.15f, 1f, 0.8f, 1f);
-    [Min(0f)] public float intensidadeDoBrilho = 6f;
+    [ColorUsage(true, false)] public Color corDoBrilho = new Color(0.15f, 1f, 0.8f, 1f);
+    [Min(0f)] public float intensidadeDoBrilho = 2f;
     [SerializeField, Min(0f)] private float brilhoEmRepouso;
     [Tooltip("Aparencia das pedras antes do acerto e depois de reiniciar a sequencia.")]
     [SerializeField] private Material materialEmRepouso;
@@ -35,7 +35,7 @@ public class PedraBrilhante : MonoBehaviour
 
     [Header("Luz espalhada no ambiente")]
     [SerializeField] private bool criarLuzNoAmbiente = true;
-    [SerializeField, Min(0f)] private float intensidadeDaLuz = 4f;
+    [SerializeField, Min(0f)] private float intensidadeDaLuz = 1f;
     [SerializeField, Min(0.1f)] private float alcanceDaLuz = 5f;
     [SerializeField] private Light luzDaPedra;
 
@@ -133,6 +133,7 @@ public class PedraBrilhante : MonoBehaviour
         }
 
         materiais = new Material[renderizadores.Length][];
+        var shaderRunico = Resources.Load<Shader>("PedraRunica");
         for (int i = 0; i < renderizadores.Length; i++)
         {
             var originais = renderizadores[i].sharedMaterials;
@@ -140,7 +141,14 @@ public class PedraBrilhante : MonoBehaviour
             for (int j = 0; j < originais.Length; j++)
             {
                 var fonte = materialEmRepouso != null ? materialEmRepouso : originais[j];
-                if (fonte != null) materiais[i][j] = new Material(fonte);
+                if (fonte != null)
+                {
+                    var material = new Material(fonte);
+                    if (shaderRunico != null && material.HasProperty("_EmissionMap") &&
+                        material.GetTexture("_EmissionMap") != null)
+                        material.shader = shaderRunico;
+                    materiais[i][j] = material;
+                }
             }
             renderizadores[i].sharedMaterials = materiais[i];
         }
@@ -191,7 +199,7 @@ public class PedraBrilhante : MonoBehaviour
         if (luzDaPedra == null)
             return;
 
-        luzDaPedra.color = corDoBrilho;
+        luzDaPedra.color = CorDoBrilhoNormalizada();
         luzDaPedra.intensity = intensidadeDaLuz;
         luzDaPedra.range = alcanceDaLuz;
         luzDaPedra.enabled = false;
@@ -284,22 +292,19 @@ public class PedraBrilhante : MonoBehaviour
     {
         acesa = true;
 
-        if (materialEmRepouso != null)
-        {
-            Color cor = corDoBrilho / Mathf.Max(1f, corDoBrilho.maxColorComponent);
-            cor.a = 1f;
-            foreach (var lista in materiais)
-                foreach (var material in lista)
-                {
-                    if (material == null) continue;
-                    if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", cor);
-                    if (material.HasProperty("_Color")) material.SetColor("_Color", cor);
-                }
-        }
-        AplicarEmissao(corDoBrilho * intensidadeDoBrilho);
+        // Mantem a rocha neutra: somente o simbolo definido pela mascara emite cor.
+        // Cores HDR antigas nao devem multiplicar a intensidade uma segunda vez.
+        AplicarEmissao(CorDoBrilhoNormalizada() * intensidadeDoBrilho);
 
         if (luzDaPedra != null)
             luzDaPedra.enabled = true;
+    }
+
+    private Color CorDoBrilhoNormalizada()
+    {
+        Color cor = corDoBrilho / Mathf.Max(1f, corDoBrilho.maxColorComponent);
+        cor.a = 1f;
+        return cor;
     }
 
     private void AplicarEmissao(Color emissao)

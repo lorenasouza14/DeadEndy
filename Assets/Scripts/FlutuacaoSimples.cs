@@ -11,6 +11,8 @@ public class FlutuacaoSimples : MonoBehaviour
     public float forcaFlutuacao = 15f;
     public float atritoNaAgua = 3f; // Desacelera o objeto debaixo d'�gua para n�o quicar infinitamente
     public float atritoAngularNaAgua = 1f;
+    [Tooltip("Folga da face de apoio acima da agua, inclusive nas pontas inclinadas.")]
+    [Min(.1f)] public float folgaAcimaDaAgua = .35f;
 
     private Rigidbody rb;
     private float atritoOriginal;
@@ -43,13 +45,38 @@ public class FlutuacaoSimples : MonoBehaviour
             apoiado = colisor.Raycast(new Ray(pes + Vector3.up * .25f, Vector3.down), out var hit, .5f)
                 && hit.normal.y > .5f;
         }
-        float subida = Mathf.Max(nivel - anterior, nivel + .25f - limites.max.y);
+        float subida = Mathf.Max(nivel - anterior, nivel + folgaAcimaDaAgua - AlturaMinimaDeApoio(colisor));
         if (subida <= 0f) return;
         Vector3 deslocamento = Vector3.up * subida;
         // Move o passageiro antes para o suporte nao invadir a capsula.
         if (apoiado) jogador.Move(deslocamento);
         rb.position += deslocamento;
+        // Evita a velocidade acumulada de queda afundar a madeira novamente na proxima simulacao.
+        if (!rb.isKinematic && rb.linearVelocity.y < 0f)
+        {
+            var velocidade = rb.linearVelocity;
+            velocidade.y = 0f;
+            rb.linearVelocity = velocidade;
+        }
         Physics.SyncTransforms();
+    }
+
+    static float AlturaMinimaDeApoio(Collider colisor)
+    {
+        Bounds local;
+        if (colisor is BoxCollider caixa) local = new Bounds(caixa.center, caixa.size);
+        else if (colisor is MeshCollider malha && malha.sharedMesh != null) local = malha.sharedMesh.bounds;
+        else return colisor.bounds.max.y;
+
+        float altura = float.PositiveInfinity;
+        // O topo do AABB mundial e a ponta mais alta, nao a parte onde o jogador pisa.
+        for (int x = -1; x <= 1; x += 2)
+            for (int z = -1; z <= 1; z += 2)
+            {
+                Vector3 canto = local.center + new Vector3(local.extents.x * x, local.extents.y, local.extents.z * z);
+                altura = Mathf.Min(altura, colisor.transform.TransformPoint(canto).y);
+            }
+        return altura;
     }
 
     void FixedUpdate()

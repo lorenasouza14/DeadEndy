@@ -53,6 +53,7 @@ public class BatalhaKraken : MonoBehaviour
     public GameObject paredeInvisivel;
     public GameObject quadroFinal, bauFinal;
     public Transform spawnRetornoFinal;
+    public Transform spawnAposVitoria;
     [Header("Tremor do desmoronamento apos a vitoria")]
     [Min(0)] public float deslocamentoTremor = .045f;
     [Min(0)] public float rotacaoTremor = .25f;
@@ -98,7 +99,7 @@ public class BatalhaKraken : MonoBehaviour
     }
     void Start()
     {
-        var go = new GameObject("Aviso do golpe - alvo cinza escuro");
+        var go = new GameObject("Aviso do golpe - alvo vermelho suave");
         go.transform.SetParent(transform, false);
         aviso = go.AddComponent<LineRenderer>();
         aviso.sharedMaterial = materialAviso;
@@ -108,7 +109,19 @@ public class BatalhaKraken : MonoBehaviour
         ponta = origemTentaculo.position + Vector3.up * 4f;
         var escolha = gameObject.AddComponent<EscolhaTesouroFinal>();
         escolha.batalha = this; escolha.quadro = quadroFinal; escolha.bau = bauFinal; escolha.pontoRetorno = spawnRetornoFinal;
-        StartCoroutine(Lutar());
+        LocalizarJogador();
+        if (vida && vida.TentarObterCheckpointVitoria(gameObject.scene, out _))
+        {
+            vitoria = true;
+            foreach (var suporte in pilares)
+            {
+                if (!suporte) continue;
+                quebrados.Add(suporte);
+                suporte.RestaurarQuebrado();
+            }
+            FinalizarVitoria(false);
+        }
+        else StartCoroutine(Lutar());
     }
     void LocalizarJogador()
     {
@@ -118,6 +131,7 @@ public class BatalhaKraken : MonoBehaviour
         {
             vida = jogador.GetComponent<VidaJogadorKraken>();
             if (!vida) vida = jogador.gameObject.AddComponent<VidaJogadorKraken>();
+            vida.ConfigurarAvisoVidaBaixa(dano);
         }
     }
     bool PodeAtacar()
@@ -279,13 +293,35 @@ public class BatalhaKraken : MonoBehaviour
         if (touca) touca.Soltar();
         // A espera tem duracao fixa, mesmo se a touca nao conseguir encaixar.
         yield return new WaitForSeconds(tempoAposVitoria);
+        FinalizarVitoria(true);
+    }
+    void FinalizarVitoria(bool registrarCheckpoint)
+    {
         desapareceu = true;
+        EmIntroducao = false;
+        objetosDaIntroducao.Clear();
         if (tentaculo) tentaculo.gameObject.SetActive(false);
         if (touca) touca.gameObject.SetActive(false);
         if (krakenVisual) krakenVisual.SetActive(false);
         if (paredeInvisivel) paredeInvisivel.SetActive(false);
         if (objetoParaOcultarNaVitoria) objetoParaOcultarNaVitoria.SetActive(false);
         Estado = Etapa.Derrotado;
+        if (registrarCheckpoint && spawnAposVitoria && vida)
+        {
+            Physics.SyncTransforms();
+            Vector3 posicao = spawnAposVitoria.position;
+            var hits = Physics.RaycastAll(posicao + Vector3.up * 5f, Vector3.down, 50f,
+                jogador.GroundLayers, QueryTriggerInteraction.Ignore);
+            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+            foreach (var hit in hits)
+            {
+                if (hit.transform.IsChildOf(jogador.transform) || hit.normal.y < .5f) continue;
+                posicao.y = hit.point.y + .15f;
+                break;
+            }
+            spawnAposVitoria.position = posicao;
+            vida.RegistrarCheckpointVitoria(new Pose(posicao, spawnAposVitoria.rotation));
+        }
         IniciarDesmoronamento();
         aoDerrotar.Invoke();
     }

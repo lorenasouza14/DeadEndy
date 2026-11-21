@@ -47,6 +47,8 @@ public class DadosCaverna
     public int pedrasAcesas;
     public bool temLanterna, lanternaLigada, fantasmasDespertos;
 
+    public static bool EhCheckpointDePedras(int quantidade) => quantidade == 2 || quantidade == 4 || quantidade == 6;
+
     public bool Valido() => pedrasAcesas >= 0 && pedrasAcesas <= 6 &&
         (pedrasAcesas == 0 || fantasmasDespertos) && (!lanternaLigada || temLanterna);
 }

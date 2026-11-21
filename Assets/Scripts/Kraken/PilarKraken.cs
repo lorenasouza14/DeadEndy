@@ -12,6 +12,13 @@ public class PilarKraken : MonoBehaviour
     public UnityEvent aoQuebrar = new UnityEvent();
     public bool Quebrado { get; private set; }
     public bool Rachado { get; private set; }
+    public void RestaurarQuebrado()
+    {
+        Quebrado = Rachado = true;
+        foreach (var marca in GetComponentsInChildren<LineRenderer>()) marca.enabled = false;
+        if (pilar) pilar.gameObject.SetActive(false);
+        if (corrente) corrente.gameObject.SetActive(false);
+    }
     public void ReceberGolpe(Vector3 origem)
     {
         if (Quebrado) return;
