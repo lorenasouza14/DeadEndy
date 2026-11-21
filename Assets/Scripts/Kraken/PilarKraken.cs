@@ -9,6 +9,8 @@ public class PilarKraken : MonoBehaviour
     public BatalhaKraken batalha;
     public CorpoLiberavelKraken pilar;
     public CorpoLiberavelKraken corrente;
+    public FragmentosPilarKraken fragmentos;
+    public BalancoCorrenteKraken balancoCorrente;
     public UnityEvent aoQuebrar = new UnityEvent();
     public bool Quebrado { get; private set; }
     public bool Rachado { get; private set; }
@@ -22,6 +24,7 @@ public class PilarKraken : MonoBehaviour
     public void ReceberGolpe(Vector3 origem)
     {
         if (Quebrado) return;
+        if (balancoCorrente) balancoCorrente.ReceberImpacto();
         if (!Rachado)
         {
             Rachado = true;
@@ -33,7 +36,7 @@ public class PilarKraken : MonoBehaviour
         foreach (var marca in GetComponentsInChildren<LineRenderer>()) marca.enabled = false;
         Vector3 direcao = Vector3.ProjectOnPlane(transform.position - origem, Vector3.up);
         if (direcao.sqrMagnitude < .01f) direcao = Vector3.forward;
-        if (pilar) pilar.Liberar(direcao, 5f);
+        if ((!fragmentos || !fragmentos.Desmoronar(direcao)) && pilar) pilar.Liberar(direcao, 5f);
         if (corrente) corrente.Liberar(direcao, 2f);
         aoQuebrar.Invoke();
         if (batalha)
