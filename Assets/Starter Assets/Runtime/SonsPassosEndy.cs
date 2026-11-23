@@ -36,6 +36,10 @@ public static class SonsPassosEndy
     }
     public static string Identificar(RaycastHit hit)
     {
+        // As pontes da caverna usam o mesmo material atlas das pedras.
+        // A estrutura de madeira tem prioridade sobre esse material compartilhado.
+        for (Transform t = hit.collider.transform; t != null; t = t.parent)
+            if (Classificar(t.name) == "Madeira") return "Madeira";
         var terreno = hit.collider.GetComponent<Terrain>();
         if (terreno && terreno.terrainData)
         {

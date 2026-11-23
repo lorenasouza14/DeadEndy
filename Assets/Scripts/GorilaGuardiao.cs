@@ -192,6 +192,7 @@ public partial class GorilaGuardiao : MonoBehaviour
     private void AplicarImpacto()
     {
         if (DocilPelaSopa || !guardandoCaverna || SonoImpedeAtaque || !AlvoAoAlcance()) return;
+        EfeitosSonoros.Tocar("LanternaClique", capsulaEndy.bounds.center, .55f);
         Vector3 direcao = pontoDeExpulsao != null
             ? pontoDeExpulsao.position - movimentoEndy.transform.position
             : movimentoEndy.transform.position - transform.position;

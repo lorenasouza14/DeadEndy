@@ -61,6 +61,7 @@ public class GorilaSopa : MonoBehaviour
     private void Update()
     {
         Avancar(Time.deltaTime);
+        EfeitosSonoros.Repetir(this, "GorilaComendo", Etapa == EtapaSopa.Comendo, .25f);
         // O painel preto e apenas o fundo visual. Sua barreira acompanha a
         // presenca fisica do gorila, inclusive quando ele e reposicionado
         // sem passar pela etapa Caminhando (por exemplo, no editor).

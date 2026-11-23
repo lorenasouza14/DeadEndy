@@ -163,3 +163,93 @@ public class AmbienciaIlha : MonoBehaviour
         suspenso = false;
     }
 }
+
+// Instalado em cada fase; limita apenas malhas de cenario sem scripts de gameplay.
+public sealed class RenderizacaoCenarioPorDistancia : MonoBehaviour
+{
+    const float Distancia = 180f;
+    readonly System.Collections.Generic.List<MeshRenderer> malhas = new();
+    readonly System.Collections.Generic.List<bool> estadosOriginais = new();
+    CullingGroup grupo;
+    ThirdPersonController jogador;
+    bool suspenso = true;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    static void Registrar()
+    {
+        SceneManager.sceneLoaded -= Instalar;
+        SceneManager.sceneLoaded += Instalar;
+    }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    static void InstalarAbertas()
+    {
+        for (int i = 0; i < SceneManager.sceneCount; i++)
+            Instalar(SceneManager.GetSceneAt(i), LoadSceneMode.Additive);
+    }
+
+    static void Instalar(Scene cena, LoadSceneMode modo)
+    {
+        if (!ProgressoJogo.EhCenaJogo(cena.path) && cena.name != "Level_Kraken_4") return;
+        foreach (var raiz in cena.GetRootGameObjects())
+            if (raiz.GetComponent<RenderizacaoCenarioPorDistancia>()) return;
+        var objeto = new GameObject("Renderizacao do cenario por distancia");
+        SceneManager.MoveGameObjectToScene(objeto, cena);
+        objeto.AddComponent<RenderizacaoCenarioPorDistancia>();
+    }
+
+    void Start()
+    {
+        var esferas = new System.Collections.Generic.List<BoundingSphere>();
+        foreach (var raiz in gameObject.scene.GetRootGameObjects())
+        foreach (var malha in raiz.GetComponentsInChildren<MeshRenderer>(true))
+        {
+            // Mantem personagens, puzzles, plataformas moveis, agua e paisagens grandes.
+            if (malha.GetComponentInParent<MonoBehaviour>() || malha.GetComponentInParent<Rigidbody>() ||
+                malha.GetComponentInParent<Animator>() || malha.GetComponentInParent<Canvas>() ||
+                malha.gameObject.layer == LayerMask.NameToLayer("Water") ||
+                malha.name.ToLowerInvariant().Contains("water") ||
+                malha.bounds.extents.magnitude > 150f) continue;
+            malhas.Add(malha);
+            estadosOriginais.Add(malha.forceRenderingOff);
+            esferas.Add(new BoundingSphere(malha.bounds.center, malha.bounds.extents.magnitude));
+        }
+        grupo = new CullingGroup();
+        grupo.SetBoundingSpheres(esferas.ToArray());
+        grupo.SetBoundingSphereCount(esferas.Count);
+        grupo.SetBoundingDistances(new[] { Distancia });
+        grupo.onStateChanged = MudouDistancia;
+    }
+
+    void LateUpdate()
+    {
+        if (grupo == null) return;
+        if (!jogador) jogador = FindAnyObjectByType<ThirdPersonController>();
+        var camera = Camera.main;
+        bool pausar = !jogador || !camera || MenuManager.EstaAberto ||
+            TelaCarregamento.EmCurso || gameObject.scene != SceneManager.GetActiveScene() ||
+            FindAnyObjectByType<CutsceneInicio>() != null;
+        grupo.targetCamera = camera;
+        if (jogador) grupo.SetDistanceReferencePoint(jogador.transform);
+        if (pausar == suspenso) return;
+        suspenso = pausar;
+        for (int i = 0; i < malhas.Count; i++)
+            if (malhas[i]) malhas[i].forceRenderingOff = estadosOriginais[i] ||
+                (!suspenso && grupo.GetDistance(i) > 0);
+    }
+
+    void MudouDistancia(CullingGroupEvent evento)
+    {
+        if (!suspenso && malhas[evento.index])
+            malhas[evento.index].forceRenderingOff = estadosOriginais[evento.index] || evento.currentDistance > 0;
+    }
+
+    void OnDisable()
+    {
+        suspenso = true;
+        for (int i = 0; i < malhas.Count; i++)
+            if (malhas[i]) malhas[i].forceRenderingOff = estadosOriginais[i];
+    }
+
+    void OnDestroy() { grupo?.Dispose(); }
+}

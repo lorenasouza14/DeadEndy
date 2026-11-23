@@ -18,12 +18,17 @@ public class MenuManager : MonoBehaviour
     bool carregando;
     GameObject dialogo;
     TMP_Text mensagem;
+    AudioSource musicaMenu;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ReiniciarInstancia() { instancia = null; }
 
     void OnEnable() { SceneManager.sceneLoaded += AoCarregarCena; }
-    void OnDisable() { SceneManager.sceneLoaded -= AoCarregarCena; }
+    void OnDisable()
+    {
+        SceneManager.sceneLoaded -= AoCarregarCena;
+        if (musicaMenu) musicaMenu.Stop();
+    }
 
     void AoCarregarCena(Scene cena, LoadSceneMode modo)
     {
@@ -85,6 +90,7 @@ public class MenuManager : MonoBehaviour
     {
         PrepararMenu();
         GarantirEventos();
+        PrepararMusica();
         var canvas = GetComponentInParent<Canvas>();
         if (canvas == null)
             foreach (var candidato in FindObjectsByType<Canvas>())
@@ -95,11 +101,33 @@ public class MenuManager : MonoBehaviour
         if (canvas != null)
         {
             mensagem = Texto(canvas.transform, "Estado do save", "", new Vector2(0, 0), new Vector2(900, 75), 24);
-            mensagem.rectTransform.anchorMin = mensagem.rectTransform.anchorMax = new Vector2(0.5f, 0);
-            mensagem.rectTransform.pivot = new Vector2(0.5f, 0);
-            mensagem.rectTransform.anchoredPosition = new Vector2(0, 16);
+            mensagem.rectTransform.anchorMin = mensagem.rectTransform.anchorMax = new Vector2(0.5f, 1);
+            mensagem.rectTransform.pivot = new Vector2(0.5f, 1);
+            mensagem.rectTransform.anchoredPosition = new Vector2(0, -16);
         }
         AtualizarContinuar();
+    }
+
+    void PrepararMusica()
+    {
+        // O menu usa apenas Canvas e nao tem camera com AudioListener como as fases.
+        bool temListener = false;
+        foreach (var listener in FindObjectsByType<AudioListener>())
+            if (listener.isActiveAndEnabled) { temListener = true; break; }
+        if (!temListener) gameObject.AddComponent<AudioListener>();
+        AudioListener.pause = false;
+        musicaMenu = gameObject.AddComponent<AudioSource>();
+        musicaMenu.playOnAwake = false;
+        musicaMenu.spatialBlend = 0f;
+        musicaMenu.volume = .15f;
+        musicaMenu.loop = true;
+        musicaMenu.clip = Resources.Load<AudioClip>("EfeitosSonoros/TrilhaMenu");
+        if (!musicaMenu.clip)
+        {
+            Debug.LogWarning("Musica do menu ausente: TrilhaMenu", this);
+            return;
+        }
+        musicaMenu.Play();
     }
 
     public void AtualizarContinuar()
@@ -142,6 +170,7 @@ public class MenuManager : MonoBehaviour
         }
         carregando = true;
         if (mensagem != null) mensagem.text = "Carregando...";
+        if (musicaMenu) musicaMenu.Stop();
         FecharDialogo();
         Time.timeScale = 1;
         // O personagem assume o cursor quando a fase estiver pronta, nunca no clique do menu.
@@ -153,12 +182,14 @@ public class MenuManager : MonoBehaviour
     {
         if (carregando || (dialogo != null && dialogo.activeSelf)) return;
         carregando = true;
+        if (musicaMenu) musicaMenu.Pause();
         var selecionado = EventSystem.current ? EventSystem.current.currentSelectedGameObject : null;
         if (EventSystem.current) EventSystem.current.SetSelectedGameObject(null);
         CutsceneInicio.IniciarCreditos(() =>
         {
             if (!this) return;
             carregando = false;
+            if (musicaMenu && isActiveAndEnabled) musicaMenu.UnPause();
             if (EventSystem.current && selecionado && selecionado.activeInHierarchy)
                 EventSystem.current.SetSelectedGameObject(selecionado);
         });

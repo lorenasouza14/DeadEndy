@@ -8,6 +8,7 @@ public class TrilhaSonoraFase : MonoBehaviour
     [Range(0f, 1f)] public float volume = .15f;
     [Min(.1f)] public float duracaoEntrada = 2f;
     AudioSource fonte;
+    AudioSource desmoronamento;
     BatalhaKraken batalha;
     EscolhaTesouroFinal escolha;
     bool faseFinal, iniciada, pausada;
@@ -47,6 +48,15 @@ public class TrilhaSonoraFase : MonoBehaviour
         string nome = faseFinal ? "TrilhaKraken" : "TrilhaCaverna";
         fonte.clip = Resources.Load<AudioClip>("EfeitosSonoros/" + nome);
         if (!fonte.clip) Debug.LogWarning("Trilha sonora ausente: " + nome, this);
+        if (faseFinal)
+        {
+            desmoronamento = gameObject.AddComponent<AudioSource>();
+            desmoronamento.playOnAwake = false;
+            desmoronamento.loop = true;
+            desmoronamento.spatialBlend = 0f;
+            desmoronamento.volume = .12f;
+            desmoronamento.clip = EfeitosSonoros.Carregar("Desmoronamento");
+        }
     }
 
     void Update()
@@ -71,7 +81,17 @@ public class TrilhaSonoraFase : MonoBehaviour
             FindAnyObjectByType<CutsceneInicio>() != null)
         {
             if (iniciada && !pausada) { fonte.Pause(); pausada = true; }
+            if (desmoronamento) desmoronamento.Pause();
             return;
+        }
+        if (desmoronamento && desmoronamento.clip)
+        {
+            if (batalha && batalha.Estado == BatalhaKraken.Etapa.Derrotado)
+            {
+                desmoronamento.UnPause();
+                if (!desmoronamento.isPlaying) desmoronamento.Play();
+            }
+            else desmoronamento.Stop();
         }
         if (!fonte.clip) return;
         if (!iniciada)
@@ -81,13 +101,15 @@ public class TrilhaSonoraFase : MonoBehaviour
         }
         else if (pausada) fonte.UnPause();
         pausada = false;
-        fonte.volume = Mathf.MoveTowards(fonte.volume, volume,
-            volume * Time.unscaledDeltaTime / Mathf.Max(.1f, duracaoEntrada));
+        float volumeAlvo = faseFinal ? volume * .5f : volume;
+        fonte.volume = Mathf.MoveTowards(fonte.volume, volumeAlvo,
+            volumeAlvo * Time.unscaledDeltaTime / Mathf.Max(.1f, duracaoEntrada));
     }
 
     void Parar()
     {
         if (fonte) { fonte.Stop(); fonte.volume = 0f; }
+        if (desmoronamento) desmoronamento.Stop();
         iniciada = pausada = false;
     }
 

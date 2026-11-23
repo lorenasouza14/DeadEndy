@@ -56,7 +56,7 @@ public class InundacaoKraken : MonoBehaviour
             if (Fase == EtapaMare.Avisando) return "O KRAKEN VAI AFUNDAR!\nSuba nas rochas: " + Mathf.CeilToInt(TempoRestante) + "s";
             if (Fase == EtapaMare.Mergulhando) return "ELE ESTA MERGULHANDO!\nSuba nas rochas: a agua vai subir!";
             if (Fase == EtapaMare.AguardandoSubida) return "O KRAKEN AFUNDOU!\nA agua vai subir: fique no alto das rochas.";
-            if (Fase == EtapaMare.Subindo) return "A AGUA ESTA SUBINDO!\nFique no alto das rochas.";
+            if (Fase == EtapaMare.Subindo) return "A ÁGUA ESTÁ SUBINDO!\nSuba nas madeiras ou nas pedras altas para se proteger!";
             if (Fase == EtapaMare.Cheia) return "AGUA PERIGOSA! Fique nas rochas.\nA cheia dura mais " + Mathf.CeilToInt(TempoRestante) + "s";
             if (Fase == EtapaMare.Baixando) return "A agua esta baixando.\nEspere para descer das rochas.";
             if (Fase == EtapaMare.Emergindo) return "O Kraken esta voltando!";
@@ -109,6 +109,10 @@ public class InundacaoKraken : MonoBehaviour
         {
             yield return Transicao(EtapaMare.Avisando, tempoAviso / ritmo, p => PreparacaoNormalizada = p);
             if (cancelado) yield break;
+            // O grunido anuncia o mergulho em toda a arena, mesmo longe do corpo do Kraken.
+            var camera = Camera.main;
+            Vector3 origemSom = camera ? camera.transform.position : (centroKraken ? centroKraken.position : transform.position);
+            EfeitosSonoros.Tocar("GrunidoKraken", origemSom, .35f);
             yield return Transicao(EtapaMare.Mergulhando, tempoMergulho / ritmo, p => MergulhoNormalizado = p);
             if (cancelado) yield break;
             // A espera so comeca depois que o mergulho chegou a 100%.

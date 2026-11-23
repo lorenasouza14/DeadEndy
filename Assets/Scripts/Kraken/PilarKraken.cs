@@ -33,6 +33,7 @@ public class PilarKraken : MonoBehaviour
             return;
         }
         Quebrado = true;
+        EfeitosSonoros.Tocar("Desmoronamento", transform.position, .45f);
         foreach (var marca in GetComponentsInChildren<LineRenderer>()) marca.enabled = false;
         Vector3 direcao = Vector3.ProjectOnPlane(transform.position - origem, Vector3.up);
         if (direcao.sqrMagnitude < .01f) direcao = Vector3.forward;

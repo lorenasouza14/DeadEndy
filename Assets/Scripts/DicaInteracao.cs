@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 // Usa o aviso criado no projeto e mantém seu tamanho legível mesmo nos itens pequenos.
 [DefaultExecutionOrder(150)]
@@ -32,7 +33,10 @@ public class DicaInteracao : MonoBehaviour
         carrinho = GetComponent<InteracaoCarrinho>();
         malhas = GetComponentsInChildren<Renderer>(true);
         var go = new GameObject("Aviso de interação", typeof(RectTransform), typeof(Canvas));
-        go.transform.SetParent(transform, false);
+        // Uma escala nao uniforme no item deforma o texto ao gira-lo para a camera.
+        // Mantem o aviso na mesma cena, mas fora da hierarquia escalada do objeto.
+        SceneManager.MoveGameObjectToScene(go, gameObject.scene);
+        go.transform.localScale = Vector3.one * .007f;
         go.layer = 5;
         canvas = go.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.WorldSpace;
@@ -42,6 +46,8 @@ public class DicaInteracao : MonoBehaviour
         aviso.transform.SetParent(go.transform, false);
         aviso.SetActive(true);
         var rect = aviso.GetComponent<RectTransform>();
+        rect.localRotation = Quaternion.identity;
+        rect.localScale = Vector3.one;
         rect.anchorMin = Vector2.zero;
         rect.anchorMax = Vector2.one;
         rect.offsetMin = new Vector2(12, 6);
@@ -80,12 +86,10 @@ public class DicaInteracao : MonoBehaviour
         if (altar != null) bounds = new Bounds(altar.alavanca.position + Vector3.up * 0.5f, Vector3.zero);
         if (caldeirao != null) bounds = new Bounds(caldeirao.PontoInteracao, Vector3.zero);
         canvas.transform.position = new Vector3(bounds.center.x, bounds.max.y + 0.55f, bounds.center.z);
-        Vector3 escala = transform.lossyScale;
-        canvas.transform.localScale = new Vector3(0.007f / Mathf.Max(0.001f, Mathf.Abs(escala.x)),
-            0.007f / Mathf.Max(0.001f, Mathf.Abs(escala.y)), 0.007f / Mathf.Max(0.001f, Mathf.Abs(escala.z)));
         var camera = Camera.main;
         if (camera != null) canvas.transform.rotation = camera.transform.rotation;
     }
 
     void OnDisable() { if (canvas != null) canvas.gameObject.SetActive(false); }
+    void OnDestroy() { if (canvas != null) Destroy(canvas.gameObject); }
 }
