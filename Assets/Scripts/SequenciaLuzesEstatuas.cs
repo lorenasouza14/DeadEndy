@@ -23,6 +23,15 @@ public class SequenciaLuzesEstatuas : MonoBehaviour
         PedraBrilhante.ProgressoAlterado -= AtualizarDica;
     }
 
+    void Update()
+    {
+        if (luzesDasEstatuas == null) return;
+        Transform origem = null;
+        foreach (var luz in luzesDasEstatuas)
+            if (luz) { origem = luz.transform; break; }
+        EfeitosSonoros.Repetir(this, "CoroEstatua", origem != null, .22f, origem);
+    }
+
     void AtualizarDica()
     {
         if (cores == null || cores.Length == 0 || luzesDasEstatuas == null) return;

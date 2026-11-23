@@ -90,6 +90,7 @@ public class CaranguejoChefe : MonoBehaviour
 
     void FixedUpdate()
     {
+        EfeitosSonoros.Repetir(this, "CaranguejoAtordoado", estadoAtual == EstadoChefe.Atordoado, .4f);
         if (Time.time < fimContatoEndy) PararMovimentoNoEndy();
         // Não depende das corrotinas de ataque, que são interrompidas pelos baús.
         if (fimEfeitoVelocidade > 0f && Time.time >= fimEfeitoVelocidade)
@@ -383,6 +384,8 @@ public class CaranguejoChefe : MonoBehaviour
     IEnumerator RotinaAtordoado()
     {
         estadoAtual = EstadoChefe.Atordoado;
+        EfeitosSonoros.Tocar("CabecaBatendo", transform.position);
+        EfeitosSonoros.Repetir(this, "CaranguejoAtordoado", true, .4f);
         ataqueTeleguiado = false;
         ignorarPedrasNoArranque = false;
         NumeroAtordoamento++;
@@ -394,6 +397,7 @@ public class CaranguejoChefe : MonoBehaviour
 
         Debug.Log("CRASH! Chefe bateu na pedra!");
         yield return new WaitForSeconds(4f);
+        EfeitosSonoros.Repetir(this, "CaranguejoAtordoado", false);
 
         if (estadoAtual == EstadoChefe.Atordoado)
         {

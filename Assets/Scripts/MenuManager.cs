@@ -41,6 +41,13 @@ public class MenuManager : MonoBehaviour
             if (!cena.isLoaded || cena == gameObject.scene || !ProgressoJogo.EhCenaJogo(cena.path)) continue;
             foreach (var raiz in cena.GetRootGameObjects()) raiz.SetActive(false);
         }
+        // O Endy das fases finais persiste entre cenas; encerra sua sessao no menu.
+        foreach (var jogador in FindObjectsByType<TrocarMundo>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            if (jogador.gameObject.scene != gameObject.scene)
+            {
+                jogador.gameObject.SetActive(false);
+                Destroy(jogador.gameObject);
+            }
         LiberarCursor();
     }
 

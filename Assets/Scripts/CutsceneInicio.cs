@@ -52,9 +52,10 @@ public class CutsceneInicio : MonoBehaviour
         DontDestroyOnLoad(go);
         var player = go.AddComponent<CutsceneInicio>();
         player.StartCoroutine(player.Reproduzir(quadro ? "MenuPrincipal" : null,
-            quadro ? "FinalQuadro.mp4" : "FinalBau.mp4", retornar, true));
+            quadro ? "FinalQuadro.mp4" : "FinalBau.mp4", retornar, true,
+            encerrarJogo: quadro));
     }
-    IEnumerator Reproduzir(string cena, string arquivo = "Inicio.mp4", System.Action retornar = null, bool final = false, System.Action aposTransicao = null)
+    IEnumerator Reproduzir(string cena, string arquivo = "Inicio.mp4", System.Action retornar = null, bool final = false, System.Action aposTransicao = null, bool encerrarJogo = false)
     {
         float tempoAnterior = Time.timeScale;
         if (final) Time.timeScale = 0;
@@ -89,27 +90,14 @@ public class CutsceneInicio : MonoBehaviour
         video.targetTexture = textura; imagem.texture = textura;
         video.loopPointReached += AoTerminar;
         video.errorReceived += AoErro;
-        video.Prepare();
-        float prazo = Time.realtimeSinceStartup + 30;
-        while (!video.isPrepared && !terminou && Time.realtimeSinceStartup < prazo)
+        video.isLooping = false;
+        yield return ReproduzirVideo(arquivo, audio, final, false);
+        if (encerrarJogo)
         {
-            if (!final && Pular()) terminou = true;
-            yield return null;
+            yield return ReproduzirVideo("TheEndy.mp4", audio, true, true);
+            yield return ReproduzirVideo("Creditos.mp4", audio, true, true);
+            ProgressoJogo.MarcarConcluido();
         }
-        if (video.isPrepared && !terminou)
-        {
-            imagem.color = Color.white;
-            video.Play();
-            while (!terminou) { if (!final && Pular()) terminou = true; yield return null; }
-        }
-        float volume = audio.volume;
-        for (float t=0;t<0.6f;t+=Time.unscaledDeltaTime)
-        {
-            float a=1-t/0.6f;
-            imagem.color=new Color(a,a,a,1); audio.volume=volume*a;
-            yield return null;
-        }
-        imagem.color=Color.black; video.Stop();
         if (listenerTemporario != null) listenerTemporario.enabled = false;
         if (!string.IsNullOrEmpty(cena))
         {
@@ -132,6 +120,46 @@ public class CutsceneInicio : MonoBehaviour
         aposTransicao?.Invoke();
         Destroy(gameObject);
     }
+    IEnumerator ReproduzirVideo(string arquivo, AudioSource audio, bool final, bool esmaecerEntrada)
+    {
+        terminou = false;
+        imagem.color = Color.black;
+        audio.volume = 1f;
+        video.url = Path.Combine(Application.streamingAssetsPath, "Cutscenes", arquivo);
+        video.Prepare();
+        float prazo = Time.realtimeSinceStartup + 30;
+        while (!video.isPrepared && !terminou && Time.realtimeSinceStartup < prazo)
+        {
+            if (!final && Pular()) terminou = true;
+            yield return null;
+        }
+        if (video.isPrepared && !terminou)
+        {
+            video.Play();
+            if (esmaecerEntrada)
+            {
+                for (float t = 0; t < 0.6f && !terminou; t += Time.unscaledDeltaTime)
+                {
+                    float a = Mathf.Clamp01(t / 0.6f);
+                    imagem.color = new Color(a, a, a, 1);
+                    audio.volume = a;
+                    yield return null;
+                }
+            }
+            imagem.color = Color.white;
+            audio.volume = 1f;
+            while (!terminou) { if (!final && Pular()) terminou = true; yield return null; }
+        }
+        float volume = audio.volume;
+        for (float t=0;t<0.6f;t+=Time.unscaledDeltaTime)
+        {
+            float a=1-t/0.6f;
+            imagem.color=new Color(a,a,a,1); audio.volume=volume*a;
+            yield return null;
+        }
+        imagem.color=Color.black; video.Stop();
+    }
+
     T Criar<T>(string nome) where T : Graphic
     {
         var go=new GameObject(nome,typeof(RectTransform)); go.transform.SetParent(transform,false);

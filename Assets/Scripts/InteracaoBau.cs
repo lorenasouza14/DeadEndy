@@ -221,6 +221,7 @@ public class InteracaoBau : MonoBehaviour
         if (barraPuzzle.value >= zonaVerdeMin && barraPuzzle.value <= zonaVerdeMax)
         {
             trancasQuebradas++;
+            EfeitosSonoros.Tocar("TrancaBau", transform.position);
 
             if (trancasQuebradas >= trancasParaAbrir)
             {
@@ -236,6 +237,7 @@ public class InteracaoBau : MonoBehaviour
         else
         {
             Debug.Log("ERROU! Faíscas saíram do baú! As trancas zeraram!");
+            EfeitosSonoros.Tocar("RespostaIncorreta", transform.position, .5f);
             trancasQuebradas = 0;
             velocidadePonteiro = velocidadeInicial;
 
@@ -361,6 +363,7 @@ public class InteracaoBau : MonoBehaviour
 
     IEnumerator AbrirERevelarItem()
     {
+        EfeitosSonoros.Tocar("BauAbrindo", transform.position);
         if (animBau != null)
         {
             animBau.speed = 1;

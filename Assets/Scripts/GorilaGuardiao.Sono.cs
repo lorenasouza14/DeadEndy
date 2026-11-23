@@ -138,6 +138,7 @@ public partial class GorilaGuardiao
                         poseSonoCongelada = true;
                     }
                     EstadoSono = EstadoSonoGorila.Dormindo;
+                    EfeitosSonoros.Repetir(this, "GorilaRonco", true, .5f);
                     tempoEstadoSono = SortearDuracao(intervaloDormindo);
                     if (bolhasRonco != null) bolhasRonco.Play(true);
                 }
@@ -239,6 +240,7 @@ public partial class GorilaGuardiao
 
     private void PararBolhasRonco()
     {
+        EfeitosSonoros.Repetir(this, "GorilaRonco", false);
         if (bolhasRonco != null) bolhasRonco.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
     }
 

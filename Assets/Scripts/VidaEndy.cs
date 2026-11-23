@@ -192,6 +192,7 @@ public class VidaEndy : MonoBehaviour
 
         UltimoDanoEm = Time.unscaledTime;
         vidaAtual = Mathf.Max(0f, vidaAtual - quantidade);
+        EfeitosSonoros.Tocar("DanoEndy", transform.position);
         // Tres parcelas de 1/3 podem deixar um residuo de ponto flutuante.
         if (vidaAtual <= vidaMaxima * 0.000001f) vidaAtual = 0f;
         tempoAteRecuperar = Mathf.Max(0f, esperaSemDano);

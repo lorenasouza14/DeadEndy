@@ -112,6 +112,7 @@ public class AlavancaTriangulo : MonoBehaviour
     IEnumerator AnimarHaste()
     {
         yield return new WaitForSeconds(atrasoDoGesto);
+        EfeitosSonoros.Tocar("Alavanca", transform.position);
         // O pivô importado fica no encaixe da haste. A base e o gatilho permanecem imóveis.
         if (haste != null && haste != transform)
         {
@@ -142,6 +143,6 @@ public class AlavancaTriangulo : MonoBehaviour
         puxada = Concluida = true;
         if (iconeTeclaE != null) iconeTeclaE.SetActive(false);
         if (haste != null && haste != transform) haste.localRotation = rotacaoInicialHaste * Quaternion.Euler(rotacaoAoPuxar);
-        if (gerenciadorCentral != null) gerenciadorCentral.AcenderParteDoTriangulo(indiceDaLuz);
+        if (gerenciadorCentral != null) gerenciadorCentral.AcenderParteDoTriangulo(indiceDaLuz, false);
     }
 }

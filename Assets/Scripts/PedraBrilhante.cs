@@ -238,7 +238,7 @@ public class PedraBrilhante : MonoBehaviour
             PedraSelecionada?.Invoke();
 
             // Dispara o som e o tremor autom�tico na c�mara do player
-            JogadorErrouSequencia();
+            // O feedback sonoro ja foi emitido por TocarSomDeErro().
             return;
         }
 
@@ -253,6 +253,7 @@ public class PedraBrilhante : MonoBehaviour
 
         Acender();
         proximaCor++;
+        EfeitosSonoros.Tocar("RespostaCerta", transform.position, .5f);
         ProgressoAlterado?.Invoke();
         PedraSelecionada?.Invoke();
 
@@ -352,21 +353,7 @@ public class PedraBrilhante : MonoBehaviour
 
     private void TocarSomDeErro()
     {
-        AudioClip som = somDaSequenciaIncorreta;
-        if (som == null)
-        {
-            foreach (PedraBrilhante pedra in PedrasDoPuzzle)
-            {
-                if (pedra != null && pedra.somDaSequenciaIncorreta != null)
-                {
-                    som = pedra.somDaSequenciaIncorreta;
-                    break;
-                }
-            }
-        }
-
-        if (som != null && Camera.main != null)
-            AudioSource.PlayClipAtPoint(som, Camera.main.transform.position);
+        EfeitosSonoros.Tocar("RespostaIncorreta", transform.position, .5f);
     }
 
     public void JogadorErrouSequencia()

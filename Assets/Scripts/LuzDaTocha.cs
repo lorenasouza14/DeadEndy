@@ -16,6 +16,7 @@ public class LuzDaTocha : MonoBehaviour
 
     void Update()
     {
+        EfeitosSonoros.Repetir(this, "TochaAcesa", luz != null && luz.enabled, .2f);
         float ruido = Mathf.PerlinNoise(fase, Time.time * 7f) * 2f - 1f;
         luz.intensity = intensidade * (1f + ruido * oscilacao);
     }

@@ -25,7 +25,7 @@ public class GerenciadorPuzzleTriangulo : MonoBehaviour
         }
     }
 
-    public void AcenderParteDoTriangulo(int indiceDaLuz)
+    public void AcenderParteDoTriangulo(int indiceDaLuz, bool emitirSom = true)
     {
         if (fogoDasTochas == null || indiceDaLuz < 0 || indiceDaLuz >= fogoDasTochas.Length ||
             fogoDasTochas[indiceDaLuz] == null || !tochasAcesas.Add(indiceDaLuz)) return;
@@ -34,12 +34,13 @@ public class GerenciadorPuzzleTriangulo : MonoBehaviour
 
         if (tochasAcesas.Count == fogoDasTochas.Length)
         {
-            CompletarPuzzle();
+            CompletarPuzzle(emitirSom);
         }
     }
 
-    void CompletarPuzzle()
+    void CompletarPuzzle(bool emitirSom)
     {
+        if (emitirSom) EfeitosSonoros.Tocar("RespostaCerta", transform.position, .5f);
         Debug.Log("As três tochas estão acesas! O Bilhete apareceu!");
         if (bilheteSecreto != null) bilheteSecreto.SetActive(true);
     }

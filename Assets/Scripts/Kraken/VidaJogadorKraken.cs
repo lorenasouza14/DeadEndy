@@ -72,6 +72,7 @@ public class VidaJogadorKraken : MonoBehaviour
     {
         if (Morto || dano <= 0 || Time.timeScale <= 0f || (!danoContinuo && Time.time < podeReceberEm)) return false;
         VidaAtual = Mathf.Max(0, VidaAtual - dano);
+        EfeitosSonoros.Tocar("DanoEndy", transform.position);
         tempoAteRecuperar = Mathf.Max(0f, esperaSemDano);
         if (!danoContinuo) podeReceberEm = Time.time + invulnerabilidade;
         AtualizarEfeitoVida(true);

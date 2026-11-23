@@ -96,6 +96,7 @@ public class CaldeiraoSopa : MonoBehaviour
 
     private void Update()
     {
+        EfeitosSonoros.Repetir(this, "AguaFervendo", true, .3f, pontoInteracao);
         if (jogador == null || Time.timeScale <= 0f) return;
 #if ENABLE_INPUT_SYSTEM
         bool apertou = Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame;

@@ -78,6 +78,7 @@ public class BauDiario : MonoBehaviour
 
     IEnumerator Abrir()
     {
+        EfeitosSonoros.Tocar("BauAbrindo", transform.position);
         abrindo = true;
         if (animBau != null)
         {

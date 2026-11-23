@@ -66,6 +66,7 @@ public class ArmadilhaMola : MonoBehaviour
         Vector3 destino = pontoDeQueda.position + Vector3.up * (alturaDaOrigem + capsula.skinWidth + 0.05f);
         if (!movimento.ReceberCatapulta(destino, alturaDoArco)) return;
         Disparada = true;
+        EfeitosSonoros.Tocar("Mola", transform.position);
         animador.speed = 1f;
         animador.Play(hashAnimacao, 0, 0f);
     }

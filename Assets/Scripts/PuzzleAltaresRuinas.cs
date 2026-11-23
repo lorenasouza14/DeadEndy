@@ -120,6 +120,7 @@ public class PuzzleAltaresRuinas : MonoBehaviour
         if (indice < 0 || !altar.isActiveAndEnabled ||
             (altar.alavanca.position - jogador.transform.position).sqrMagnitude > alcanceInteracao * alcanceInteracao || !TemAcesso(altar)) return false;
         indiceGirando = indice;
+        EfeitosSonoros.Tocar("Alavanca", altar.alavanca.position);
         tempoGiro = 0f;
         var proximo = altares[(indice + 1) % 3];
         inicioPrimeiro = altar.pivo.localRotation;
@@ -163,6 +164,7 @@ public class PuzzleAltaresRuinas : MonoBehaviour
         if (todos && !Ocupado && !Resolvido && Time.timeScale > 0f)
         {
             Resolvido = true;
+            EfeitosSonoros.Tocar("RespostaCerta", jogador.transform.position, .5f);
             AltarProximo = null;
             monolito.Desmoronar();
             AutosaveEndy.Instancia?.SolicitarAutosave();

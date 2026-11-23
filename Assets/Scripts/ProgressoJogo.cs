@@ -113,6 +113,14 @@ public static class ProgressoJogo
     public static string CenaParaContinuar => carregamento?.cena == CenaCaverna ? CenaCaverna : CenaIntegrada;
     public static string Caminho => Path.Combine(Application.persistentDataPath,
         Application.isEditor ? "autosave-editor.json" : "autosave.json");
+    static string ChaveConclusao => Application.isEditor ? "DeadEndy.Concluido.Editor" : "DeadEndy.Concluido";
+    public static bool JogoConcluido => PlayerPrefs.GetInt(ChaveConclusao, 0) == 1;
+    public static void MarcarConcluido()
+    {
+        PlayerPrefs.SetInt(ChaveConclusao, 1);
+        PlayerPrefs.Save();
+        carregamento = null;
+    }
     public static bool ExisteArquivo => new ArquivoSave(Caminho).Existe;
 
     [Serializable] class Registro { public string dados, sha256; }
@@ -146,6 +154,11 @@ public static class ProgressoJogo
     public static bool TentarCarregar(out DadosJogo dados, out string aviso)
     {
         dados = null;
+        if (JogoConcluido)
+        {
+            aviso = "Aventura concluída! Selecione Novo Jogo para começar novamente.";
+            return false;
+        }
         var arquivo = new ArquivoSave(Caminho);
         if (!arquivo.Ler(t => Decodificar(t, out _), out string texto, out bool backup, out aviso)) return false;
         if (!Decodificar(texto, out dados)) return false;
@@ -161,7 +174,13 @@ public static class ProgressoJogo
         return new ArquivoSave(Caminho).Gravar(registro, t => Decodificar(t, out _), novaPartida, out erro);
     }
 
-    public static void PrepararNovoJogo() { ProximaEntrada = Entrada.NovoJogo; carregamento = null; }
+    public static void PrepararNovoJogo()
+    {
+        PlayerPrefs.DeleteKey(ChaveConclusao);
+        PlayerPrefs.Save();
+        ProximaEntrada = Entrada.NovoJogo;
+        carregamento = null;
+    }
     public static void PrepararEntradaCaverna(DadosJogo progressoDaIlha, bool novaPartida)
     {
         ProximaEntrada = novaPartida ? Entrada.NovoJogo : Entrada.Automatica;

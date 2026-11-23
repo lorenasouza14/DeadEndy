@@ -122,7 +122,7 @@ public class IndicadorItemEndy : MonoBehaviour
     void Atualizar()
     {
         if (interfaceItem == null) return;
-        bool exibir = inventario.isActiveAndEnabled && inventario.mostrarControles && (vida == null || !vida.EstaMorto);
+        bool exibir = !MenuManager.EstaAberto && inventario.isActiveAndEnabled && inventario.mostrarControles && (vida == null || !vida.EstaMorto);
         interfaceItem.SetActive(exibir);
         if (!exibir) return;
         var resolucao = new Vector2(Screen.width, Screen.height);

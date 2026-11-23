@@ -103,6 +103,7 @@ public class FantasmaCaverna : MonoBehaviour
 
     private void Update()
     {
+        EfeitosSonoros.Repetir(this, "Fantasma", !EmMorte && jogador != null, .2f);
         if (EmMorte)
         {
             tempoDeMorte += Time.deltaTime;
@@ -204,6 +205,8 @@ public class FantasmaCaverna : MonoBehaviour
     {
         if (EmMorte) return;
         EmMorte = true;
+        EfeitosSonoros.Repetir(this, "Fantasma", false);
+        EfeitosSonoros.Tocar("FantasmaMorrendo", transform.position, .55f);
         tempoDeMorte = 0f;
         escalaAntesDaMorte = transform.localScale;
         foreach (var colisor in GetComponentsInChildren<Collider>(true)) colisor.enabled = false;

@@ -442,7 +442,7 @@ public class BatalhaKraken : MonoBehaviour
             var indicador = jogador.GetComponent<IndicadorItemEndy>();
             if (!indicador) return;
             painelDica = indicador.CriarDicaDeFase(iconeDica, out var mensagemDica);
-            mensagemDica.text = "Atraia os golpes do Kraken para perto dos 4 pilares.";
+            mensagemDica.text = "Atraia os golpes do Kraken (círculo vermelho) para derrubar os pilares (círculos amarelos).";
         }
         bool visivel = Time.timeScale > 0f && !MenuManager.EstaAberto;
         painelDica.SetActive(visivel);

@@ -153,6 +153,7 @@ public partial class DiarioEndy : MonoBehaviour
     IEnumerator AnimarFolha(int direcao)
     {
         Folheando = true;
+        EfeitosSonoros.Tocar("PaginaDiario", transform.position, .55f, true);
         anterior.interactable = proxima.interactable = false;
         int origem = PaginaEsquerda;
         int destino = origem + direcao * 2;

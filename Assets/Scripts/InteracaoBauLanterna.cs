@@ -73,6 +73,7 @@ public class InteracaoBauLanterna : MonoBehaviour
 
     private void AbrirBau()
     {
+        EfeitosSonoros.Tocar("BauAbrindo", transform.position);
         bauAberto = true;
 
         AnimacaoInteracaoEndy.Tocar(jogador.GetComponent<InventarioEndy>(), animEndy);

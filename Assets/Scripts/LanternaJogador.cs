@@ -70,8 +70,11 @@ public class LanternaJogador : MonoBehaviour
     private void Update()
     {
         // S� permite ligar/desligar se a lanterna j� foi coletada
-        if (foiColetada && Time.timeScale > 0f && Input.GetMouseButtonDown(0))
+        if (foiColetada && Time.timeScale > 0f && !MenuManager.EstaAberto && Input.GetMouseButtonDown(0))
+        {
             AtualizarLuz(!luzDaLanterna.enabled);
+            EfeitosSonoros.Tocar("LanternaClique", transform.position, .55f);
+        }
     }
 
     private void LateUpdate()
