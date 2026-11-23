@@ -41,3 +41,8 @@ ExportedObj/
 *.aab
 *.unitypackage
 *.app
+# Backup local da limpeza de assets (fora da build)
+/Backups/AssetsNaoUtilizados-2026-11-23/
+/Backups/PacotesNaoUtilizados-2026-11-23/
+/Backups/LimpezaConservadora-2026-11-23/
+/Backups/PastasSemUso-2026-11-23/

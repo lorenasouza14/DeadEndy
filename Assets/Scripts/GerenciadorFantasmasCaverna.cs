@@ -80,6 +80,9 @@ public class GerenciadorFantasmasCaverna : MonoBehaviour
 
     private void Start()
     {
+        // Prepara a malha durante a entrada na fase, antes do primeiro fantasma.
+        // Antes esta construcao sincrona interrompia a partida no primeiro spawn.
+        RotasChaoFantasmas.Obter(gameObject.scene);
         StarterAssets.ThirdPersonController controlador =
             FindFirstObjectByType<StarterAssets.ThirdPersonController>();
         if (controlador != null)

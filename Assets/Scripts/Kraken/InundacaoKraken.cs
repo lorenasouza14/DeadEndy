@@ -71,6 +71,8 @@ public class InundacaoKraken : MonoBehaviour
     ThirdPersonController jogador;
     VidaJogadorKraken vida;
     CharacterController capsula;
+    bool primeiraMareIniciada, dicaPrimeiraMare;
+    GameObject painelSobrevivencia;
     readonly List<Renderer> aguasDaFase = new List<Renderer>();
     readonly List<float> niveisDeRepouso = new List<float>();
 
@@ -104,6 +106,8 @@ public class InundacaoKraken : MonoBehaviour
         if (!iniciado || !isActiveAndEnabled || EmExecucao || EmFuga || pendentes <= 0) yield break;
         float ritmo = Mathf.Max(1f, multiplicadorVelocidade);
         pendentes--; cancelado = false; EmExecucao = true; proximoDano = Time.time;
+        dicaPrimeiraMare = !primeiraMareIniciada;
+        primeiraMareIniciada = true;
         MostrarRefugios(true);
         try
         {
@@ -126,7 +130,7 @@ public class InundacaoKraken : MonoBehaviour
             if (cancelado) yield break;
             yield return Transicao(EtapaMare.Emergindo, tempoRetorno / ritmo, p => { MergulhoNormalizado = 1 - p; PreparacaoNormalizada = 1 - p; });
         }
-        finally { if (!EmFuga) RestaurarAmbiente(); }
+        finally { dicaPrimeiraMare = false; if (painelSobrevivencia) painelSobrevivencia.SetActive(false); if (!EmFuga) RestaurarAmbiente(); }
     }
     public bool IniciarSubidaDeFuga(float nivelDestino, float duracao)
     {
@@ -176,8 +180,29 @@ public class InundacaoKraken : MonoBehaviour
         vida = jogador.GetComponent<VidaJogadorKraken>();
         if (!vida) vida = jogador.gameObject.AddComponent<VidaJogadorKraken>();
     }
+    void AtualizarDicaSobrevivencia()
+    {
+        bool mostrar = dicaPrimeiraMare && !EmFuga && Fase != EtapaMare.Baixando && Fase != EtapaMare.Emergindo
+            && Time.timeScale > 0f && !MenuManager.EstaAberto && !TelaCarregamento.EmCurso;
+        if (mostrar)
+        {
+            LocalizarJogador();
+            mostrar = jogador && vida && !vida.Morto;
+            if (mostrar && !painelSobrevivencia)
+            {
+                var indicador = jogador.GetComponent<IndicadorItemEndy>();
+                if (indicador)
+                {
+                    painelSobrevivencia = indicador.CriarDicaDeFase(null, out var texto);
+                    texto.text = "A água vai subir! Para sobreviver, suba nas pedras altas ou nas madeiras acima da água.";
+                }
+            }
+        }
+        if (painelSobrevivencia) painelSobrevivencia.SetActive(mostrar);
+    }
     void Update()
     {
+        AtualizarDicaSobrevivencia();
         if (!iniciado || Time.timeScale <= 0f) return;
         LocalizarJogador();
         // Corrige a flutuacao antes de avaliar dano, inclusive antes da primeira mare.
@@ -251,7 +276,8 @@ public class InundacaoKraken : MonoBehaviour
         if (ondaMergulho) ondaMergulho.enabled = false;
     }
     public void CancelarERestaurar() { EmFuga = false; cancelado = true; pendentes = 0; RestaurarAmbiente(); }
-    void OnDisable() { CancelarERestaurar(); }
+    void OnDisable() { CancelarERestaurar(); if (painelSobrevivencia) painelSobrevivencia.SetActive(false); }
+    void OnDestroy() { if (painelSobrevivencia) Destroy(painelSobrevivencia); }
     void OnGUI()
     {
         if (!JogadorNaAgua) return;

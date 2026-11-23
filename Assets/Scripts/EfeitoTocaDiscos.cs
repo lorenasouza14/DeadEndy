@@ -22,7 +22,7 @@ public class EfeitoTocaDiscos : MonoBehaviour
     {
         fonte = GetComponent<AudioSource>() ?? gameObject.AddComponent<AudioSource>();
         fonte.playOnAwake = false;
-        fonte.loop = true;
+        fonte.loop = false;
         fonte.volume *= .5f;
         fonte.spatialBlend = 1f;
         // A distância muda o volume, mas o movimento não altera o tom da música.
@@ -122,6 +122,11 @@ public class EfeitoTocaDiscos : MonoBehaviour
 
     void Update()
     {
+        if (Ligado && !AudioListener.pause && Time.timeScale > 0f && !fonte.isPlaying)
+        {
+            Ligado = false;
+            if (chefeOuvindo != null) chefeOuvindo.RadioDesligado(this);
+        }
         if (Ligado && Time.time >= proximaBusca) NotificarChefe();
     }
 

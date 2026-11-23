@@ -19,6 +19,8 @@ public sealed class RotasChaoFantasmas : MonoBehaviour
     NavMeshQueryFilter filtro;
     Scene cena;
     const float Celula = 10f;
+    int quadroCalculos = -1, calculosNoQuadro;
+    public bool PodeCalcularNesteQuadro => quadroCalculos != Time.frameCount || calculosNoQuadro < 2;
     public bool Pronto => instancia.valid;
     public int QuantidadeDeLigacoes => ligacoes.Count;
 
@@ -26,7 +28,8 @@ public sealed class RotasChaoFantasmas : MonoBehaviour
     static void Reiniciar() { instancias.Clear(); }
     public static RotasChaoFantasmas Obter(Scene scene)
     {
-        if (instancias.TryGetValue(scene, out var atual) && atual && atual.Pronto) return atual;
+        // Uma falha de construcao nao deve reconstruir toda a caverna a cada spawn.
+        if (instancias.TryGetValue(scene, out var atual) && atual) return atual;
         var go = new GameObject("Rotas do piso - somente fantasmas");
         go.hideFlags = HideFlags.HideInHierarchy;
         SceneManager.MoveGameObjectToScene(go, scene);
@@ -83,6 +86,12 @@ public sealed class RotasChaoFantasmas : MonoBehaviour
     }
     public bool Calcular(Vector3 origem, Vector3 destino, NavMeshPath caminho)
     {
+        if (Application.isPlaying)
+        {
+            if (!PodeCalcularNesteQuadro) return false;
+            if (quadroCalculos != Time.frameCount) { quadroCalculos = Time.frameCount; calculosNoQuadro = 0; }
+            calculosNoQuadro++;
+        }
         if (!Pronto || !NavMesh.SamplePosition(Plano(origem), out var inicio, 20, filtro)
             || !NavMesh.SamplePosition(Plano(destino), out var fim, 20, filtro)) return false;
         for (int tentativa = 0; tentativa < 8; tentativa++)

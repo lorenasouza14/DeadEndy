@@ -109,7 +109,7 @@ public class CaranguejoChefe : MonoBehaviour
             estadoAtual == EstadoChefe.Atordoado || estadoAtual == EstadoChefe.PreparandoGiro ||
             estadoAtual == EstadoChefe.Atacando || EstaDancando || EstaReagindoComRaiva)
         {
-            if (rb != null) rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
+            if (rb != null && !rb.isKinematic) rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
             return;
         }
 
@@ -513,6 +513,67 @@ public class CaranguejoChefe : MonoBehaviour
         EncolhimentoConcluido = true;
         AutosaveEndy.Instancia?.SolicitarAutosave();
         Debug.Log("Poção funcionou! O Caranguejo Rei encolheu e parou de atacar!");
+        yield return CaminharParaOMar();
+    }
+
+    IEnumerator CaminharParaOMar()
+    {
+        var margem = BarreiraDaAgua.Garantir(gameObject.scene);
+        if (!margem || margem.Trechos.Count == 0) yield break;
+        Vector3 destino = transform.position, paraMar = Vector3.zero;
+        float menor = float.PositiveInfinity;
+        foreach (var trecho in margem.Trechos)
+        {
+            Vector3 segmento = trecho.fim - trecho.inicio;
+            float t = Mathf.Clamp01(Vector3.Dot(transform.position - trecho.inicio, segmento) / Mathf.Max(.0001f, segmento.sqrMagnitude));
+            Vector3 ponto = trecho.inicio + segmento * t;
+            float distancia = (ponto - transform.position).sqrMagnitude;
+            if (distancia >= menor) continue;
+            menor = distancia; destino = ponto; paraMar = -trecho.direcaoTerra.normalized;
+        }
+        if (rb) { if (!rb.isKinematic) { rb.linearVelocity = Vector3.zero; rb.angularVelocity = Vector3.zero; } rb.isKinematic = true; }
+        foreach (var colisor in colisoresDoChefe) if (colisor) colisor.enabled = false;
+        if (!TocarAnimacaoReacao("Walk Forward In Place") && animChefe) animChefe.SetTrigger("Perseguir");
+        var terrenos = FindObjectsByType<Terrain>(FindObjectsSortMode.None);
+        float alturaPe = 0f;
+        var visuais = GetComponentsInChildren<Renderer>();
+        // Um save feito depois da fuga ja guarda o chefe dentro do mar.
+        if (margem.EstaSobreAgua(transform.position))
+        {
+            foreach (var visual in visuais) if (visual) visual.enabled = false;
+            yield break;
+        }
+        if (visuais.Length > 0)
+        {
+            float baseY = float.PositiveInfinity;
+            foreach (var visual in visuais) baseY = Mathf.Min(baseY, visual.bounds.min.y);
+            alturaPe = transform.position.y - baseY;
+        }
+        destino += paraMar * 6f;
+        while (Vector3.ProjectOnPlane(destino - transform.position, Vector3.up).sqrMagnitude > .04f)
+        {
+            Vector3 direcao = Vector3.ProjectOnPlane(destino - transform.position, Vector3.up).normalized;
+            Vector3 proxima = transform.position + direcao * Mathf.Min(2.5f * Time.deltaTime,
+                Vector3.ProjectOnPlane(destino - transform.position, Vector3.up).magnitude);
+            foreach (var terreno in terrenos)
+            {
+                if (terreno.gameObject.scene != gameObject.scene) continue;
+                Vector3 local = proxima - terreno.transform.position;
+                Vector3 tamanho = terreno.terrainData.size;
+                if (local.x >= 0 && local.z >= 0 && local.x <= tamanho.x && local.z <= tamanho.z)
+                { proxima.y = terreno.SampleHeight(proxima) + terreno.transform.position.y + alturaPe; break; }
+            }
+            transform.SetPositionAndRotation(proxima, Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(direcao), 180f * Time.deltaTime));
+            yield return null;
+        }
+        Vector3 inicio = transform.position;
+        for (float t = 0; t < 2f; t += Time.deltaTime)
+        {
+            transform.position = inicio + paraMar * t - Vector3.up * t;
+            yield return null;
+        }
+        foreach (var visual in visuais) if (visual) visual.enabled = false;
+        AutosaveEndy.Instancia?.SolicitarAutosave();
     }
 
     public void RestaurarDerrota(Vector3 posicao)
@@ -531,6 +592,7 @@ public class CaranguejoChefe : MonoBehaviour
         if (rb != null && !rb.isKinematic) { rb.linearVelocity = Vector3.zero; rb.angularVelocity = Vector3.zero; }
         if (animChefe != null) animChefe.SetTrigger("Atordoar");
         if (barreirasInvisiveis != null) barreirasInvisiveis.SetActive(false);
+        StartCoroutine(CaminharParaOMar());
     }
 
     public void FicarRapido(float tempoDeEfeito)

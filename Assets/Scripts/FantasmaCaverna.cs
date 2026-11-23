@@ -219,7 +219,7 @@ public class FantasmaCaverna : MonoBehaviour
         Vector3 pes = transform.position - Vector3.up * AlturaDeFlutuacao;
         bool emPiso = rotas.Amostrar(pes, 1.5f, out var local)
             && Vector3.ProjectOnPlane(local - pes, Vector3.up).sqrMagnitude < .5f;
-        if (Time.time >= recalcularEm && (emPiso || cantos.Length == 0))
+        if (Time.time >= recalcularEm && rotas.PodeCalcularNesteQuadro && (emPiso || cantos.Length == 0))
         {
             recalcularEm = Time.time + .7f + (GetHashCode() & 7) * .025f;
             if (rotas.Calcular(pes, jogador.position, caminho))
