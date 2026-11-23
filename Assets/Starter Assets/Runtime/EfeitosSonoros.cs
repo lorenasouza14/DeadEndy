@@ -29,6 +29,7 @@ public static class EfeitosSonoros
         {
             if (Time.unscaledTime < proximoDano) return;
             proximoDano = Time.unscaledTime + .25f;
+            volume *= .5f;
         }
         var clip = Carregar(nome);
         if (!clip) return;

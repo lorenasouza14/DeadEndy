@@ -21,7 +21,9 @@ public class BolhaSabaoKraken : MonoBehaviour
     void Update()
     {
         if (estourou) return;
-        if (!dono || !dono.PodeManterBolhas || !jogador || jogador.Morto || (!acertoGarantido && Time.time - inicio >= duracao))
+        if (!dono || !dono.PodeManterBolhas || !jogador || jogador.Morto)
+        { Estourar(false); return; }
+        if (!acertoGarantido && Time.time - inicio >= duracao)
         { Estourar(); return; }
         float t = Time.time - inicio;
         if (acertoGarantido)
@@ -95,9 +97,11 @@ public class BolhaSabaoKraken : MonoBehaviour
         }
         Estourar();
     }
-    public void Estourar()
+    public void Estourar(bool emitirSom = true)
     {
         if (estourou) return;
-        estourou = true; gameObject.SetActive(false); Destroy(gameObject);
+        estourou = true;
+        if (emitirSom) EfeitosSonoros.Tocar("BolhaSabao", transform.position, .3f);
+        gameObject.SetActive(false); Destroy(gameObject);
     }
 }

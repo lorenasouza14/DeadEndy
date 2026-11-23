@@ -250,7 +250,7 @@ public class AtaqueSabaoKraken : MonoBehaviour
     public void Cancelar()
     {
         cancelado = true; Restaurar();
-        foreach (var bolha in bolhas) if (bolha) bolha.Estourar();
+        foreach (var bolha in bolhas) if (bolha) bolha.Estourar(false);
         bolhas.Clear();
         foreach (var efeito in FindObjectsByType<VisaoEnsaboada>()) efeito.Limpar();
         foreach (var controle in FindObjectsByType<ThirdPersonController>(FindObjectsInactive.Include, FindObjectsSortMode.None))

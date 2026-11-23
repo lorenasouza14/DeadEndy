@@ -22,6 +22,14 @@ public class CutsceneInicio : MonoBehaviour
         DontDestroyOnLoad(go);
         go.AddComponent<CutsceneInicio>().StartCoroutine(go.GetComponent<CutsceneInicio>().Reproduzir(cena));
     }
+    public static void IniciarCreditos(System.Action concluir)
+    {
+        var go = new GameObject("Creditos do menu");
+        DontDestroyOnLoad(go);
+        var player = go.AddComponent<CutsceneInicio>();
+        player.StartCoroutine(player.Reproduzir(null, "Creditos.mp4", aposTransicao: concluir));
+    }
+
     public static void IniciarEntradaKraken(System.Action concluir)
     {
         var go = new GameObject("Cutscene entrada Kraken");
@@ -53,9 +61,9 @@ public class CutsceneInicio : MonoBehaviour
         var player = go.AddComponent<CutsceneInicio>();
         player.StartCoroutine(player.Reproduzir(quadro ? "MenuPrincipal" : null,
             quadro ? "FinalQuadro.mp4" : "FinalBau.mp4", retornar, true,
-            encerrarJogo: quadro));
+            encerrarJogo: quadro, videoSeguinte: quadro ? null : "VideoFinal2.mp4"));
     }
-    IEnumerator Reproduzir(string cena, string arquivo = "Inicio.mp4", System.Action retornar = null, bool final = false, System.Action aposTransicao = null, bool encerrarJogo = false)
+    IEnumerator Reproduzir(string cena, string arquivo = "Inicio.mp4", System.Action retornar = null, bool final = false, System.Action aposTransicao = null, bool encerrarJogo = false, string videoSeguinte = null)
     {
         float tempoAnterior = Time.timeScale;
         if (final) Time.timeScale = 0;
@@ -91,7 +99,11 @@ public class CutsceneInicio : MonoBehaviour
         video.loopPointReached += AoTerminar;
         video.errorReceived += AoErro;
         video.isLooping = false;
-        yield return ReproduzirVideo(arquivo, audio, final, false);
+        bool temVideoSeguinte = !string.IsNullOrEmpty(videoSeguinte);
+        yield return ReproduzirVideo(arquivo, audio, final, false,
+            temVideoSeguinte ? 1.2f : 0.6f, temVideoSeguinte);
+        if (temVideoSeguinte)
+            yield return ReproduzirVideo(videoSeguinte, audio, true, true, 1.2f, true);
         if (encerrarJogo)
         {
             yield return ReproduzirVideo("TheEndy.mp4", audio, true, true);
@@ -120,11 +132,12 @@ public class CutsceneInicio : MonoBehaviour
         aposTransicao?.Invoke();
         Destroy(gameObject);
     }
-    IEnumerator ReproduzirVideo(string arquivo, AudioSource audio, bool final, bool esmaecerEntrada)
+    IEnumerator ReproduzirVideo(string arquivo, AudioSource audio, bool final, bool esmaecerEntrada,
+        float duracaoTransicao = 0.6f, bool anteciparSaida = false)
     {
         terminou = false;
         imagem.color = Color.black;
-        audio.volume = 1f;
+        audio.volume = esmaecerEntrada ? 0f : 1f;
         video.url = Path.Combine(Application.streamingAssetsPath, "Cutscenes", arquivo);
         video.Prepare();
         float prazo = Time.realtimeSinceStartup + 30;
@@ -138,9 +151,9 @@ public class CutsceneInicio : MonoBehaviour
             video.Play();
             if (esmaecerEntrada)
             {
-                for (float t = 0; t < 0.6f && !terminou; t += Time.unscaledDeltaTime)
+                for (float t = 0; t < duracaoTransicao && !terminou; t += Time.unscaledDeltaTime)
                 {
-                    float a = Mathf.Clamp01(t / 0.6f);
+                    float a = Mathf.Clamp01(t / duracaoTransicao);
                     imagem.color = new Color(a, a, a, 1);
                     audio.volume = a;
                     yield return null;
@@ -148,12 +161,20 @@ public class CutsceneInicio : MonoBehaviour
             }
             imagem.color = Color.white;
             audio.volume = 1f;
-            while (!terminou) { if (!final && Pular()) terminou = true; yield return null; }
+            while (!terminou)
+            {
+                if (!final && Pular()) terminou = true;
+                // Escurece os ultimos quadros enquanto ainda ha imagem e audio,
+                // em vez de esperar um eventual quadro preto no fim do arquivo.
+                if (anteciparSaida && video.length > 0 &&
+                    video.time >= System.Math.Max(0, video.length - duracaoTransicao)) break;
+                yield return null;
+            }
         }
         float volume = audio.volume;
-        for (float t=0;t<0.6f;t+=Time.unscaledDeltaTime)
+        for (float t=0;t<duracaoTransicao;t+=Time.unscaledDeltaTime)
         {
-            float a=1-t/0.6f;
+            float a=1-t/duracaoTransicao;
             imagem.color=new Color(a,a,a,1); audio.volume=volume*a;
             yield return null;
         }

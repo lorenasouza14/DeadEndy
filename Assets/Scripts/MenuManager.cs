@@ -151,7 +151,17 @@ public class MenuManager : MonoBehaviour
 
     public void MostrarCreditos()
     {
-        if (!carregando) AbrirDialogo(creditos, "Voltar", FecharDialogo);
+        if (carregando || (dialogo != null && dialogo.activeSelf)) return;
+        carregando = true;
+        var selecionado = EventSystem.current ? EventSystem.current.currentSelectedGameObject : null;
+        if (EventSystem.current) EventSystem.current.SetSelectedGameObject(null);
+        CutsceneInicio.IniciarCreditos(() =>
+        {
+            if (!this) return;
+            carregando = false;
+            if (EventSystem.current && selecionado && selecionado.activeInHierarchy)
+                EventSystem.current.SetSelectedGameObject(selecionado);
+        });
     }
 
     public void SairDoJogo()

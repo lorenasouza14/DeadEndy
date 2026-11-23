@@ -35,6 +35,7 @@ public class EfeitoTrompete : MonoBehaviour
         if (!coletado || jaTocou) return;
         jaTocou = true;
         if (somTrompete != null) AudioSource.PlayClipAtPoint(somTrompete, transform.position);
+        else EfeitosSonoros.Tocar("Trompete", transform.position);
         // Procura no momento do uso: o chefe pode ter sido ativado depois da coleta.
         var chefe = FindAnyObjectByType<CaranguejoChefe>();
         if (chefe == null) return;

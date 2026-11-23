@@ -73,7 +73,7 @@ public class LanternaJogador : MonoBehaviour
         if (foiColetada && Time.timeScale > 0f && !MenuManager.EstaAberto && Input.GetMouseButtonDown(0))
         {
             AtualizarLuz(!luzDaLanterna.enabled);
-            EfeitosSonoros.Tocar("LanternaClique", transform.position, .55f);
+            EfeitosSonoros.Tocar("Lanterna2", transform.position, .55f);
         }
     }
 

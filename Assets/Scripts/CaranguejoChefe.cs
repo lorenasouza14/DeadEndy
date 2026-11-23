@@ -214,6 +214,7 @@ public class CaranguejoChefe : MonoBehaviour
     {
         if (estadoAtual == EstadoChefe.Escondido && !EstaCalmo)
         {
+            AreiaAparicaoCaranguejo.Emitir(this);
             estadoAtual = EstadoChefe.Perseguindo;
             if (animChefe != null) animChefe.SetTrigger("Perseguir");
         }
