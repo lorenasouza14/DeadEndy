@@ -30,7 +30,18 @@ public class GerenciadorGameOver : MonoBehaviour
         {
             fundo.anchorMin = Vector2.zero;
             fundo.anchorMax = Vector2.one;
-            fundo.offsetMin = fundo.offsetMax = Vector2.zero;
+            // Ultrapassa as bordas para evitar frestas por arredondamento na build.
+            fundo.offsetMin = new Vector2(-2f, -2f);
+            fundo.offsetMax = new Vector2(2f, 2f);
+            fundo.localScale = Vector3.one;
+            var imagemFundo = fundo.GetComponent<Image>();
+            if (imagemFundo)
+            {
+                imagemFundo.sprite = null;
+                imagemFundo.overrideSprite = null;
+                imagemFundo.type = Image.Type.Simple;
+                imagemFundo.preserveAspect = false;
+            }
         }
         var arte = transform.Find("GameOver");
         var imagem = arte ? arte.GetComponent<Image>() : null;

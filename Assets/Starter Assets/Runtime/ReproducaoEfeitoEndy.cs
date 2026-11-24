@@ -8,13 +8,13 @@ public sealed class ReproducaoEfeitoEndy : MonoBehaviour
     AudioSource fonte;
     bool interfaceUI, continuo, pausado;
     float restante;
-    public void Configurar(AudioClip clip, float volume, bool ui, bool loop, MonoBehaviour dono, float duracao)
+    public void Configurar(AudioClip clip, float volume, bool ui, bool loop, MonoBehaviour dono, float duracao, bool espacial = true)
     {
         Dono = dono; Nome = clip.name; interfaceUI = ui; continuo = loop;
         restante = duracao > 0f ? Mathf.Min(duracao, clip.length) : clip.length;
         fonte = gameObject.AddComponent<AudioSource>();
         fonte.playOnAwake = false; fonte.clip = clip; fonte.loop = loop;
-        fonte.volume = volume; fonte.spatialBlend = ui ? 0f : 1f;
+        fonte.volume = volume; fonte.spatialBlend = ui || !espacial ? 0f : 1f;
         fonte.rolloffMode = AudioRolloffMode.Linear; fonte.minDistance = 3f; fonte.maxDistance = 22f;
         fonte.dopplerLevel = 0f; fonte.ignoreListenerPause = ui;
         if (!EfeitosSonoros.Suspenso || ui) fonte.Play();

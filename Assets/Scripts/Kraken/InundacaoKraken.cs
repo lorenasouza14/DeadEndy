@@ -16,6 +16,7 @@ public class InundacaoKraken : MonoBehaviour
     public Transform[] pontosSeguros;
     public LineRenderer ondaMergulho;
     public Transform centroKraken;
+    [SerializeField] Sprite iconeDica;
     [Header("Tempos para subir nas rochas")]
     [Min(.1f)] public float tempoAviso = 3f;
     [Min(.1f)] public float tempoMergulho = 1.8f;
@@ -193,7 +194,7 @@ public class InundacaoKraken : MonoBehaviour
                 var indicador = jogador.GetComponent<IndicadorItemEndy>();
                 if (indicador)
                 {
-                    painelSobrevivencia = indicador.CriarDicaDeFase(null, out var texto);
+                    painelSobrevivencia = indicador.CriarDicaDeFase(iconeDica, out var texto);
                     texto.text = "A água vai subir! Para sobreviver, suba nas pedras altas ou nas madeiras acima da água.";
                 }
             }

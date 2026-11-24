@@ -215,6 +215,13 @@ public class CaranguejoChefe : MonoBehaviour
         if (estadoAtual == EstadoChefe.Escondido && !EstaCalmo)
         {
             AreiaAparicaoCaranguejo.Emitir(this);
+            EfeitosSonoros.Tocar("CaranguejoNascendo", transform.position, espacial: false);
+            foreach (var camera in FindObjectsByType<Unity.Cinemachine.CinemachineCamera>(FindObjectsSortMode.None))
+            {
+                var tremor = camera.GetComponent<TremorDesmoronamento>();
+                if (!tremor) tremor = camera.gameObject.AddComponent<TremorDesmoronamento>();
+                tremor.Iniciar(.08f, .35f, 18f, .04f, .65f);
+            }
             estadoAtual = EstadoChefe.Perseguindo;
             if (animChefe != null) animChefe.SetTrigger("Perseguir");
         }
@@ -674,6 +681,7 @@ public class CaranguejoChefe : MonoBehaviour
             if (direcao.sqrMagnitude > 0.001f) transform.rotation = Quaternion.LookRotation(direcao);
         }
         estadoAtual = EstadoChefe.ReagindoComRaiva;
+        EfeitosSonoros.Tocar("CaranguejoBravo", transform.position, .6f);
         float duracao = Mathf.Max(0.3f, duracaoGestoRaiva);
         gestoRaiva = GetComponent<RaivaCaranguejo>();
         if (gestoRaiva != null) gestoRaiva.Encerrar();

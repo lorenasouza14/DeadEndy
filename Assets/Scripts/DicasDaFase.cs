@@ -4,7 +4,7 @@ using UnityEngine;
 [DisallowMultipleComponent, RequireComponent(typeof(IndicadorItemEndy))]
 public class DicasDaFase : MonoBehaviour
 {
-    const string DicaAlavanca = "Procure a alavanca nas árvores ao redor.";
+    const string DicaAlavanca = "Procure a alavanca perto das árvores vermelhas ao redor.";
     [SerializeField] Sprite icone;
     [Tooltip("A segunda alavanca da lista é a escondida nas árvores: Switch (1).")]
     [SerializeField] AlavancaTriangulo[] alavancas = System.Array.Empty<AlavancaTriangulo>();

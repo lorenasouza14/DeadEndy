@@ -22,7 +22,7 @@ public static class EfeitosSonoros
         return clip;
     }
     public static bool Suspenso => Time.timeScale <= 0f || SceneManager.GetActiveScene().name == "MenuPrincipal";
-    public static void Tocar(string nome, Vector3 posicao, float volume = .65f, bool interfaceUI = false, float duracao = 0f)
+    public static void Tocar(string nome, Vector3 posicao, float volume = .65f, bool interfaceUI = false, float duracao = 0f, bool espacial = true)
     {
         if (!Application.isPlaying || (!interfaceUI && Suspenso)) return;
         if (nome == "DanoEndy")
@@ -36,7 +36,7 @@ public static class EfeitosSonoros
         var go = new GameObject("Som: " + nome);
         go.transform.position = posicao;
         var som = go.AddComponent<ReproducaoEfeitoEndy>();
-        som.Configurar(clip, volume, interfaceUI, false, null, duracao);
+        som.Configurar(clip, volume, interfaceUI, false, null, duracao, espacial);
     }
     public static void Repetir(MonoBehaviour dono, string nome, bool tocar, float volume = .3f, Transform origem = null)
     {
